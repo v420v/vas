@@ -1,5 +1,7 @@
 module ast
 
+import lexer
+
 pub enum OpKind {
 	mov
 	nop
@@ -18,15 +20,18 @@ pub type Expr = IntExpr | RegExpr
 pub struct IntExpr {
 	pub:
 		lit string
+		pos lexer.Position
 }
 
 pub struct RegExpr {
 	pub:
 		name string
+		pos lexer.Position
 }
 
 pub struct IdentExpr {
 	pub:
 		lit string
+		pos lexer.Position
 }
 

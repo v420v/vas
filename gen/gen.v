@@ -348,7 +348,7 @@ fn (mut g Gen) gen_mov(op ast.Op) {
 			opcode := u8(0xb8 + reg[op.left.name])
 			g.code << opcode
 		} else {
-			eprintln('not implemented yet')
+			eprintln('$op.left.pos.file_name:$op.left.pos.line:$op.left.pos.col: error: expected register')
 			exit(1)
 		}
 	}
@@ -356,7 +356,7 @@ fn (mut g Gen) gen_mov(op ast.Op) {
 	match op.right {
 		ast.IntExpr {
 			num := strconv.atoi(op.right.lit) or {
-				eprintln('error parsing integer')
+				eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: invalid integer')
 				exit(1)
 			}
 			mut buf := [u8(0), 0, 0, 0]
@@ -366,7 +366,8 @@ fn (mut g Gen) gen_mov(op ast.Op) {
 				g.code << b
 			}
 		} else {
-			panic('not implemented yet')
+			eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: unexpected value')
+			exit(1)
 		}
 	}
 }

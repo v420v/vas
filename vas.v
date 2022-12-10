@@ -21,11 +21,11 @@ fn main() {
 	out_file := file_name_without_ext(file_name) + '.o'
 
 	program := os.read_lines(file_name) or {
-		eprintln('error reading file `$file_name`')
+		eprintln('error: reading file `$file_name`')
 		exit(1)
 	}
 
-	mut p := parser.new(program)
+	mut p := parser.new(program, file_name)
 	ops := p.parse()
 
 	mut g := gen.new(out_file)

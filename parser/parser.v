@@ -7,12 +7,14 @@ struct Parser {
 	mut:
 		l          &lexer.Lexer
 		tok        lexer.Token // current token
+		file_name  string
 		text_lines []string
 }
 
-pub fn new(text_lines []string) &Parser {
+pub fn new(text_lines []string, file_name string) &Parser {
 	return &Parser {
 		l:          0,
+		file_name: file_name,
 		text_lines: text_lines,
 	}
 }
@@ -36,7 +38,7 @@ fn (mut p Parser) expect(kind lexer.TokenKind) {
 		if p.tok.kind == lexer.TokenKind.eol {
 			got = tokens_str[p.tok.kind]
 		}
-		eprintln('expected `$expected` but got `$got`')
+		eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: expected `$expected` but got `$got`')
 		exit(1)
 	}
 	p.next()
@@ -46,25 +48,29 @@ fn (mut p Parser) parse_expr() ast.Expr {
 	match p.tok.kind {
 		.number {
 			lit := p.tok.lit
+			pos := p.tok.pos
 			p.expect(lexer.TokenKind.number)
 			return ast.IntExpr {
 				lit: lit,
+				pos: pos,
 			}
 		}
 		.ident {
 			name := p.tok.lit
+			pos := p.tok.pos
 			if name in ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'] {
 				p.expect(lexer.TokenKind.ident)
 				return ast.RegExpr {
 					name: name,
+					pos: pos,
 				}
 			} else {
-				eprintln('$name not implemented yet')
+				eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: unknown identifier `$name`')
 				exit(1)
 			}
 		} else {
 			tok := tokens_str[p.tok.kind]
-			eprintln('expected expr but got $tok')
+			eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: expected expression but got `$tok`')
 			exit(1)
 		}
 	}
@@ -91,7 +97,7 @@ fn (mut p Parser) parse_op() ast.Op {
 				op.kind = ast.OpKind.syscall
 				p.expect(lexer.TokenKind.ident)
 			} else {
-				eprintln('`$p.tok.lit` not supported yet')
+				eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: invalid instruction `$p.tok.lit`')
 				exit(1)
 			}
 		}
@@ -102,12 +108,12 @@ fn (mut p Parser) parse_op() ast.Op {
 pub fn (mut p Parser) parse() []ast.Op {
 	mut ops := []ast.Op{}
 
-	p.l = lexer.new()
-	for _, t in p.text_lines {
+	p.l = lexer.new(p.file_name)
+	for i, t in p.text_lines {
 		mut bytes := t.bytes()
 		bytes << `\0`
 
-		p.l.init(bytes)
+		p.l.init(bytes, i + 1)
 
 		p.tok = p.l.lex()
 

@@ -1,5 +1,5 @@
 
 mov eax, 60
-mov edi, 42
+mov edi, 34
 syscall
 
