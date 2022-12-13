@@ -56,16 +56,23 @@ fn (mut p Parser) parse_expr() ast.Expr {
 			}
 		}
 		.ident {
-			name := p.tok.lit
+			lit := p.tok.lit
 			pos := p.tok.pos
-			if name in ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'] {
-				p.expect(lexer.TokenKind.ident)
+			p.expect(lexer.TokenKind.ident)
+			if lit in ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'] {
 				return ast.RegExpr {
-					name: name,
+					lit: lit,
+					bit: 32,
+					pos: pos,
+				}
+			} else if lit in ['rax', 'rcx', 'rdx', 'rbx', 'rsp', 'rbp', 'rsi', 'rdi'] {
+				return ast.RegExpr {
+					lit: lit,
+					bit: 64,
 					pos: pos,
 				}
 			} else {
-				eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: unknown identifier `$name`')
+				eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: unknown identifier `$lit`')
 				exit(1)
 			}
 		} else {

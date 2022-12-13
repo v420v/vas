@@ -2,11 +2,11 @@ module lexer
 
 pub struct Lexer {
 	mut:
+		c	      u8     // current character
 		text      []u8   // program line
 		line      int
-		file_name string
-		c 	      u8     // current character
 		col       int
+		file_name string
 }
 
 pub enum TokenKind {
@@ -39,7 +39,7 @@ pub fn new(file_name string) &Lexer {
 }
 
 pub fn (mut l Lexer) init(text []u8, line int) {
-	l.text = text 
+	l.text = text
 	l.line = line
 	l.c = text[0]
 	l.col = 0

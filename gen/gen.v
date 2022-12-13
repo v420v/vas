@@ -327,7 +327,7 @@ pub fn new(out_file string) &Gen {
 	}
 }
 
-const reg = {
+const reg_32 = {
 	'eax' : 0
 	'ecx' : 1
 	'edx' : 2
@@ -338,36 +338,91 @@ const reg = {
 	'edi' : 7
 }
 
+const reg_64 = {
+	'rax' : 0
+	'rcx' : 1
+	'rdx' : 2
+	'rbx' : 3
+	'rsp' : 4
+	'rbp' : 5
+	'rsi' : 6
+	'rdi' : 7
+}
+
 fn align_to(n int, align int) int {
 	return (n + align - 1) / align * align
 }
 
-fn (mut g Gen) gen_mov(op ast.Op) {
-	match op.left {
-		ast.RegExpr {
-			opcode := u8(0xb8 + reg[op.left.name])
-			g.code << opcode
-		} else {
-			eprintln('$op.left.pos.file_name:$op.left.pos.line:$op.left.pos.col: error: expected register')
-			exit(1)
-		}
+fn calc_rm(dest string, src string) u8 {
+	mut d_n := -1
+	mut s_n := -1
+
+	if dest in reg_64 {
+		d_n = reg_64[dest]
+		s_n = reg_64[src]
+	}
+	
+	if dest in reg_32 {
+		d_n = reg_32[dest]
+		s_n = reg_32[src]
 	}
 
-	match op.right {
-		ast.IntExpr {
-			num := strconv.atoi(op.right.lit) or {
-				eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: invalid integer')
+	if d_n < 0 || s_n < 0 {
+		panic('failed to lookup registers: $dest, $src')
+	}
+
+	out := 0xc0 + (8 * s_n) + d_n
+
+	if out > 255 {
+		panic("calc_rm received out of bounds value")
+	}
+
+	return u8(out)
+}
+
+fn (mut g Gen) gen_mov(op ast.Op) {
+	if op.left is ast.RegExpr && op.right is ast.RegExpr {
+		left := op.left as ast.RegExpr
+		right := op.right as ast.RegExpr
+		if left.bit != right.bit {
+			eprintln('$right.pos.file_name:$right.pos.line:$right.pos.col: error: invalid combination of operands')
+			exit(1)
+		}
+
+		if left.bit == 32 {
+			g.code << [u8(0x89), u8(calc_rm(left.lit, right.lit))]
+		} else {
+			g.code << [u8(0x48), u8(0x89), u8(calc_rm(left.lit, right.lit))]
+		}
+	} else {
+		match op.left {
+			ast.RegExpr {
+				if op.left.bit == 32 {
+					g.code << u8(0xb8 + reg_32[op.left.lit])
+				} else {
+					g.code << [u8(0x48), u8(0xc7), u8(0xc0 + reg_64[op.left.lit])]
+				}
+			} else {
+				eprintln('$op.left.pos.file_name:$op.left.pos.line:$op.left.pos.col: error: expected register')
 				exit(1)
 			}
-			mut buf := [u8(0), 0, 0, 0]
-			binary.little_endian_put_u32(mut &buf, u32(num))
-			
-			for b in buf {
-				g.code << b
+		}
+
+		match op.right {
+			ast.IntExpr {
+				num := strconv.atoi(op.right.lit) or {
+					eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: invalid integer')
+					exit(1)
+				}
+
+				mut buf := [u8(0), 0, 0, 0]
+				binary.little_endian_put_u32(mut &buf, u32(num))
+
+				g.code << buf
+			}  else {
+				eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: unexpected value')
+				exit(1)
 			}
-		} else {
-			eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: unexpected value')
-			exit(1)
 		}
 	}
 }
@@ -382,8 +437,7 @@ pub fn (mut g Gen) gen(ops []ast.Op) {
 				g.code << 0x90
 			}
 			.syscall {
-				g.code << 0x0f
-				g.code << 0x05
+				g.code << [ u8(0x0f), 0x05 ]
 			}
 		}
 	}

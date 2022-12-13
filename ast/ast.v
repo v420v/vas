@@ -17,21 +17,17 @@ pub struct Op {
 
 pub type Expr = IntExpr | RegExpr
 
-pub struct IntExpr {
-	pub:
-		lit string
-		pos lexer.Position
-}
-
 pub struct RegExpr {
 	pub:
-		name string
-		pos lexer.Position
+	    bit int
+	    lit  string
+	    pos  lexer.Position
 }
 
-pub struct IdentExpr {
+pub struct IntExpr {
 	pub:
-		lit string
-		pos lexer.Position
+	    lit  string
+	    pos  lexer.Position
 }
+
 
