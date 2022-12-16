@@ -1,6 +1,9 @@
 module main
 
 import os
+
+import error
+import lexer
 import parser
 import gen
 
@@ -20,16 +23,29 @@ fn main() {
 
 	out_file := file_name_without_ext(file_name) + '.o'
 
-	program := os.read_lines(file_name) or {
+	program := os.read_file(file_name) or {
 		eprintln('error: reading file `$file_name`')
 		exit(1)
 	}
 
-	mut p := parser.new(program, file_name)
+	mut l := lexer.new(file_name, program)
+
+	tokens := l.lex()
+
+	error.print_all(l.errors, program)
+
+	mut p := parser.new(tokens)
+
 	ops := p.parse()
 
+	error.print_all(p.errors, program)
+
 	mut g := gen.new(out_file)
-	g.gen(ops)
+
+	g.gen(ops)?
+
+	error.print_all(g.errors, program)
+
 	g.gen_elf()
 }
 

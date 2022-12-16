@@ -1,55 +1,39 @@
 module parser
 
-import lexer
+import token
+import error
 import ast
 
 struct Parser {
+	pub mut:
+		errors     []error.Vas_Error
 	mut:
-		l          &lexer.Lexer
-		tok        lexer.Token // current token
-		file_name  string
-		text_lines []string
+		idx        int
+		tok        token.Token // current token
+		tokens     []token.Token
 }
 
-pub fn new(text_lines []string, file_name string) &Parser {
+pub fn new(tokens []token.Token) &Parser {
 	return &Parser {
-		l:          0,
-		file_name: file_name,
-		text_lines: text_lines,
+		idx: 0,
+		tok: tokens[0],
+		tokens: tokens,
 	}
 }
 
 fn (mut p Parser) next() {
-	p.tok = p.l.lex()
+	p.idx++
+	p.tok = p.tokens[p.idx]
 }
 
-const tokens_str = {
-	lexer.TokenKind.number: '<number>'
-	lexer.TokenKind.ident: '<ident>'
-	lexer.TokenKind.comma: ','
-	lexer.TokenKind.colon: ':'
-	lexer.TokenKind.eol: '<EOL>'
-}
-
-fn (mut p Parser) expect(kind lexer.TokenKind) {
-	if kind != p.tok.kind {
-		expected := tokens_str[kind]
-		mut got := p.tok.lit
-		if p.tok.kind == lexer.TokenKind.eol {
-			got = tokens_str[p.tok.kind]
-		}
-		eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: expected `$expected` but got `$got`')
-		exit(1)
-	}
-	p.next()
-}
-
-fn (mut p Parser) parse_expr() ast.Expr {
+fn (mut p Parser) parse_expr() ?ast.Expr {
 	match p.tok.kind {
 		.number {
 			lit := p.tok.lit
 			pos := p.tok.pos
-			p.expect(lexer.TokenKind.number)
+
+			p.next()
+
 			return ast.IntExpr {
 				lit: lit,
 				pos: pos,
@@ -58,7 +42,9 @@ fn (mut p Parser) parse_expr() ast.Expr {
 		.ident {
 			lit := p.tok.lit
 			pos := p.tok.pos
-			p.expect(lexer.TokenKind.ident)
+
+			p.next()
+
 			if lit in ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'] {
 				return ast.RegExpr {
 					lit: lit,
@@ -72,41 +58,48 @@ fn (mut p Parser) parse_expr() ast.Expr {
 					pos: pos,
 				}
 			} else {
-				eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: unknown identifier `$lit`')
-				exit(1)
+				p.errors << error.new_error(pos, 'unknown identifier `$lit`')
 			}
 		} else {
-			tok := tokens_str[p.tok.kind]
-			eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: expected expression but got `$tok`')
-			exit(1)
+			p.errors << error.new_error(p.tok.pos, 'expected expression but got `$p.tok.lit`')
 		}
 	}
+	return none
 }
 
-fn (mut p Parser) parse_op() ast.Op {
+fn (mut p Parser) parse_op() ?ast.Op {
 	mut op := ast.Op{}
+	op.pos = p.tok.pos
+	match p.tok.lit {
+		'mov' {
+			op.kind = ast.OpKind.mov
+			p.next()
 
-	for p.tok.kind != lexer.TokenKind.eol {
-		match p.tok.lit {
-			'mov' {
-				op.kind = ast.OpKind.mov
-				p.expect(lexer.TokenKind.ident)
+			op.left = p.parse_expr() or {
+				return none
+			}
 
-				op.left = p.parse_expr()
-				p.expect(lexer.TokenKind.comma)
-				op.right = p.parse_expr()
+			if p.tok.kind != token.TokenKind.comma {
+				p.errors << error.new_error(p.tok.pos, 'expected `,` but got `$p.tok.lit`')
+				return none
 			}
-			'nop' {
-				op.kind = ast.OpKind.nop
-				p.expect(lexer.TokenKind.ident)
+
+			p.next()
+
+			op.right = p.parse_expr() or {
+				return none
 			}
-			'syscall' {
-				op.kind = ast.OpKind.syscall
-				p.expect(lexer.TokenKind.ident)
-			} else {
-				eprintln('${p.tok.pos.file_name}:${p.tok.pos.line}:${p.tok.pos.col}: error: invalid instruction `$p.tok.lit`')
-				exit(1)
-			}
+		}
+		'nop' {
+			op.kind = ast.OpKind.nop
+			p.next()
+		}
+		'syscall' {
+			op.kind = ast.OpKind.syscall
+			p.next()
+		} else {
+			p.errors << error.new_error(p.tok.pos, 'invalid instruction `$p.tok.lit`')
+			return none
 		}
 	}
 	return op
@@ -115,17 +108,17 @@ fn (mut p Parser) parse_op() ast.Op {
 pub fn (mut p Parser) parse() []ast.Op {
 	mut ops := []ast.Op{}
 
-	p.l = lexer.new(p.file_name)
-	for i, t in p.text_lines {
-		mut bytes := t.bytes()
-		bytes << `\0`
+	for p.tok.kind != token.TokenKind.eof {
+		if p.tok.kind == token.TokenKind.eol {
+			p.next() // EOL
+		} else {
+			ops << p.parse_op() or {
+				ast.Op{}
+			}
 
-		p.l.init(bytes, i + 1)
-
-		p.tok = p.l.lex()
-
-		if p.tok.kind != lexer.TokenKind.eol {
-			ops << p.parse_op()
+			for !(p.tok.kind in [token.TokenKind.eol, token.TokenKind.eof]) {
+				p.next()
+			}
 		}
 	}
 

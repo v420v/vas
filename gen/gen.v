@@ -1,6 +1,8 @@
 module gen
 
 import ast
+import error
+
 import os
 import encoding.binary
 import strconv
@@ -316,37 +318,49 @@ pub fn (mut g Gen) gen_elf() {
 
 struct Gen {
 	out_file string
+	pub mut:
+		errors []error.Vas_Error
 	mut:
-		code []u8 // program
+		code   []u8 // program
 }
 
 pub fn new(out_file string) &Gen {
 	return &Gen {
 		out_file: out_file,
-		code: []u8{}
+		errors: []error.Vas_Error{},
+		code: []u8{},
 	}
 }
 
-const reg_32 = {
-	'eax' : 0
-	'ecx' : 1
-	'edx' : 2
-	'ebx' : 3
-	'esp' : 4
-	'ebp' : 5
-	'esi' : 6
-	'edi' : 7
-}
-
-const reg_64 = {
-	'rax' : 0
-	'rcx' : 1
-	'rdx' : 2
-	'rbx' : 3
-	'rsp' : 4
-	'rbp' : 5
-	'rsi' : 6
-	'rdi' : 7
+fn reg_bits(reg string) int {
+	match reg {
+		'eax', 'rax' {
+			return 0b0000
+		}
+		'ecx', 'rcx' {
+			return 0b0001
+		}
+		'edx', 'rdx' {
+			return 0b0010
+		}
+		'ebx', 'rbx' {
+			return 0b0011
+		}
+		'esp', 'rsp' {
+			return 0b0100
+		}
+		'ebp', 'rbp' {
+			return  0b0101
+		}
+		'esi', 'rsi' {
+			return 0b0110
+		}
+		'edi', 'rdi' {
+			return 0b0111
+		} else {
+			panic('unreachable')
+		}
+	}
 }
 
 fn align_to(n int, align int) int {
@@ -357,81 +371,67 @@ fn calc_rm(dest string, src string) u8 {
 	mut d_n := -1
 	mut s_n := -1
 
-	if dest in reg_64 {
-		d_n = reg_64[dest]
-		s_n = reg_64[src]
-	}
-	
-	if dest in reg_32 {
-		d_n = reg_32[dest]
-		s_n = reg_32[src]
-	}
-
-	if d_n < 0 || s_n < 0 {
-		panic('failed to lookup registers: $dest, $src')
-	}
+	d_n = reg_bits(dest)
+	s_n = reg_bits(src)
 
 	out := 0xc0 + (8 * s_n) + d_n
-
-	if out > 255 {
-		panic("calc_rm received out of bounds value")
-	}
 
 	return u8(out)
 }
 
-fn (mut g Gen) gen_mov(op ast.Op) {
+fn (mut g Gen) gen_mov(op ast.Op) ? {
 	if op.left is ast.RegExpr && op.right is ast.RegExpr {
 		left := op.left as ast.RegExpr
 		right := op.right as ast.RegExpr
+
 		if left.bit != right.bit {
-			eprintln('$right.pos.file_name:$right.pos.line:$right.pos.col: error: invalid combination of operands')
-			exit(1)
+			g.errors << error.new_error(op.pos, 'invalid combination of operands')
+			return
 		}
 
 		if left.bit == 32 {
-			g.code << [u8(0x89), u8(calc_rm(left.lit, right.lit))]
+			g.code << [ u8(0x89), u8(calc_rm(left.lit, right.lit)) ]
 		} else {
-			g.code << [u8(0x48), u8(0x89), u8(calc_rm(left.lit, right.lit))]
+			g.code << [ u8(0x48), u8(0x89), u8(calc_rm(left.lit, right.lit)) ]
 		}
 	} else {
 		match op.left {
 			ast.RegExpr {
 				if op.left.bit == 32 {
-					g.code << u8(0xb8 + reg_32[op.left.lit])
+					g.code << u8(0xb8 + reg_bits(op.left.lit))
 				} else {
-					g.code << [u8(0x48), u8(0xc7), u8(0xc0 + reg_64[op.left.lit])]
+					g.code << [ u8(0x48), u8(0xc7), u8(0xc0 + reg_bits(op.left.lit)) ]
 				}
 			} else {
-				eprintln('$op.left.pos.file_name:$op.left.pos.line:$op.left.pos.col: error: expected register')
-				exit(1)
+				g.errors << error.new_error(op.left.pos, 'expected register')
+				return
 			}
 		}
 
 		match op.right {
 			ast.IntExpr {
 				num := strconv.atoi(op.right.lit) or {
-					eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: invalid integer')
-					exit(1)
+					g.errors << error.new_error(op.right.pos, 'atoi failed')
+					return
 				}
 
-				mut buf := [u8(0), 0, 0, 0]
+				mut buf := [ u8(0), 0, 0, 0 ]
 				binary.little_endian_put_u32(mut &buf, u32(num))
 
 				g.code << buf
 			}  else {
-				eprintln('$op.right.pos.file_name:$op.right.pos.line:$op.right.pos.col: error: unexpected value')
-				exit(1)
+				g.errors << error.new_error(op.right.pos, 'unexpected value')
+				return
 			}
 		}
 	}
 }
 
-pub fn (mut g Gen) gen(ops []ast.Op) {
-	for _, op in ops {
+pub fn (mut g Gen) gen(ops []ast.Op) ? {
+	for op in ops {
 		match op.kind {
 			.mov {
-				g.gen_mov(op)
+				g.gen_mov(op)?
 			}
 			.nop {
 				g.code << 0x90

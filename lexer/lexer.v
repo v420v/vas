@@ -1,62 +1,67 @@
 module lexer
 
+import token
+import error
+
 pub struct Lexer {
 	mut:
-		c	      u8     // current character
-		text      []u8   // program line
+		c	      u8       // current character
+		text      string   // program line
+		idx       int
 		line      int
 		col       int
 		file_name string
+	pub mut:
+		errors    []error.Vas_Error
 }
 
-pub enum TokenKind {
-	ident
-	number
-	comma
-	colon
-	eol // enf of line 
-}
-
-pub struct Position {
-	pub:
-		file_name string
-		line      int
-		col       int
-}
-
-pub struct Token {
-	pub:
-		file_name string
-		kind TokenKind
-		pos  Position
-		lit string
-}
-
-pub fn new(file_name string) &Lexer {
+pub fn new(file_name string, text string) &Lexer {
+	mut c := `\0`
+	if text.len != 0 {
+		c = text[0]
+	}
 	return &Lexer {
+		text: text,
+		c: c,
+		line: 1,
+		col: 0,
 		file_name: file_name,
 	}
 }
 
-pub fn (mut l Lexer) init(text []u8, line int) {
-	l.text = text
-	l.line = line
-	l.c = text[0]
-	l.col = 0
-}
-
 fn (mut l Lexer) advance() {
 	l.col++
-	l.c = l.text[l.col]
+	l.idx++
+
+	if l.c == `\n` {
+		l.col = 0
+		l.line++
+	}
+
+	if l.text.len == l.idx {
+		l.c = `\0`
+	} else {
+		l.c = l.text[l.idx]
+	}
 }
 
-pub fn (mut l Lexer) lex() Token {
+fn (mut l Lexer) current_pos() token.Position {
+	return token.Position{
+		line: l.line,
+		col: l.col,
+		file_name: l.file_name,
+	}
+}
+
+pub fn (mut l Lexer) lex() []token.Token {
+	mut tokens := []token.Token{}
+
 	for l.c != `\0` {
+		mut pos := l.current_pos()
 		if l.c == ` ` {
 			l.advance()
 		} else if l.c >= `0` && l.c <= `9` {
-			pos := Position{line: l.line, col: l.col, file_name: l.file_name}
-			start := l.col
+			start := l.idx
 			for {
 				if l.c >= `0` && l.c <= `9` {
 					l.advance()
@@ -64,10 +69,11 @@ pub fn (mut l Lexer) lex() Token {
 					break
 				}
 			}
-			return Token{lit: l.text[start..l.col].bytestr(), kind: TokenKind.number, pos: pos}
+			lit := l.text[start..l.idx]
+			pos.len = lit.len
+			tokens << token.Token{lit: lit, kind: token.TokenKind.number, pos: pos}
 		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
-			pos := Position{line: l.line, col: l.col, file_name: l.file_name}
-			start := l.col
+			start := l.idx
 			for {
 				if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
 					l.advance()
@@ -75,25 +81,36 @@ pub fn (mut l Lexer) lex() Token {
 					break
 				}
 			}
-			return Token{lit: l.text[start..l.col].bytestr(), kind: TokenKind.ident, pos: pos}
+			lit := l.text[start..l.idx]
+			pos.len = lit.len
+			tokens << token.Token{lit: lit, kind: token.TokenKind.ident, pos: pos}
 		} else {
-			pos := Position{line: l.line, col: l.col, file_name: l.file_name}
+			pos.len = 1
 			match l.c {
+				`\n` {
+					l.advance()
+					tokens << token.Token{lit: '<eol>', kind: token.TokenKind.eol, pos: pos}
+				}
 				`:` {
 					l.advance()
-					return Token{lit: ':', kind: TokenKind.colon, pos: pos}
+					tokens << token.Token{lit: ':', kind: token.TokenKind.colon, pos: pos}
 				}
 				`,` {
 					l.advance()
-					return Token{lit: ',', kind: TokenKind.comma, pos: pos}
+					tokens << token.Token{lit: ',', kind: token.TokenKind.comma, pos: pos}
 				} else {
 					c := [l.c].bytestr()
-					eprintln('$l.file_name:$l.line:$l.col: error: unexpected token `$c`')
-					exit(1)
+					l.errors << error.new_error(pos, 'unexpected token `$c`')
+					for !(l.c in [`\n`, `\0`]) {
+						l.advance()
+					}
 				}
 			}
 		}
 	}
 
-	return Token{lit: '\0', kind: TokenKind.eol, pos: Position{line: l.line, col: l.col, file_name: l.file_name}} // end of line
+	tokens << token.Token{lit: '\0', kind: token.TokenKind.eof, pos: l.current_pos()} // end of line
+
+	return tokens
 }
+
