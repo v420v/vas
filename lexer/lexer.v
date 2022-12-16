@@ -53,6 +53,42 @@ fn (mut l Lexer) current_pos() token.Position {
 	}
 }
 
+fn (mut l Lexer) skip_comment() {
+	for !(l.c in [`\n`, `\0`]) {
+		l.advance()
+	}
+}
+
+fn (mut l Lexer) read_number() token.Token {
+	mut pos := l.current_pos()
+	start := l.idx
+	for {
+		if l.c >= `0` && l.c <= `9` {
+			l.advance()
+		} else {
+			break
+		}
+	}
+	lit := l.text[start..l.idx]
+	pos.len = lit.len
+	return token.Token{lit: lit, kind: token.TokenKind.number, pos: pos}
+}
+
+fn (mut l Lexer) read_ident() token.Token {
+	mut pos := l.current_pos()
+	start := l.idx
+	for {
+		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
+			l.advance()
+		} else {
+			break
+		}
+	}
+	lit := l.text[start..l.idx]
+	pos.len = lit.len
+	return token.Token{lit: lit, kind: token.TokenKind.ident, pos: pos}
+}
+
 pub fn (mut l Lexer) lex() []token.Token {
 	mut tokens := []token.Token{}
 
@@ -61,32 +97,15 @@ pub fn (mut l Lexer) lex() []token.Token {
 		if l.c == ` ` {
 			l.advance()
 		} else if l.c >= `0` && l.c <= `9` {
-			start := l.idx
-			for {
-				if l.c >= `0` && l.c <= `9` {
-					l.advance()
-				} else {
-					break
-				}
-			}
-			lit := l.text[start..l.idx]
-			pos.len = lit.len
-			tokens << token.Token{lit: lit, kind: token.TokenKind.number, pos: pos}
+			tokens << l.read_number()
 		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
-			start := l.idx
-			for {
-				if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
-					l.advance()
-				} else {
-					break
-				}
-			}
-			lit := l.text[start..l.idx]
-			pos.len = lit.len
-			tokens << token.Token{lit: lit, kind: token.TokenKind.ident, pos: pos}
+			tokens << l.read_ident()
 		} else {
 			pos.len = 1
 			match l.c {
+				`#` { // skip comment
+					l.skip_comment()
+				}
 				`\n` {
 					l.advance()
 					tokens << token.Token{lit: '<eol>', kind: token.TokenKind.eol, pos: pos}
@@ -109,7 +128,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 		}
 	}
 
-	tokens << token.Token{lit: '\0', kind: token.TokenKind.eof, pos: l.current_pos()} // end of line
+	tokens << token.Token{lit: '\0', kind: token.TokenKind.eof, pos: l.current_pos()} // end of file
 
 	return tokens
 }
