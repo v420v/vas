@@ -7,6 +7,28 @@ import os
 import encoding.binary
 import strconv
 
+struct Gen {
+	out_file    string
+
+	mut:
+		code    []u8 // program
+		offset  int
+		labels  map[string]int
+
+	pub mut:
+		errors  []error.Vas_Error
+}
+
+pub fn new(out_file string) &Gen {
+	return &Gen {
+		out_file: out_file,
+		code:     []u8{},
+		offset:   0,
+		labels:   map[string]int,
+		errors:   []error.Vas_Error{},
+	}
+}
+
 //
 // ELF Struct
 //
@@ -78,25 +100,9 @@ const shf_execinstr = 0x4
 pub fn (mut g Gen) gen_elf() {
 	rodata := [16]u8{}
 
-	// strtab size 16bytes
-	strtab := [
-		u8(0x00),
-
-		// _start\0
-		0x5f, 0x73, 0x74, 0x61, 0x72, 0x74, 0x00,
-
-		// foo\0
-		//0x66, 0x6f, 0x6f, 0x00,
-
-		// padding
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	]!
-
 	null_nameofs := 0
-	start_nameofs := null_nameofs + ''.len + 1
-	//foo_nameofs := start_nameofs + '_start'.len + 1
 
-	symtab := [
+	mut symtab := [
 		Elf64_Sym{
 			st_name: u32(null_nameofs)
 			st_info: ((stb_local << 4) + (stt_notype & 0xf))
@@ -107,21 +113,31 @@ pub fn (mut g Gen) gen_elf() {
 			st_info: ((stb_local << 4) + (stt_section & 0xf))
 			st_shndx: 2
 		},
-		// _start
-		Elf64_Sym{
-			st_name: u32(start_nameofs)
+	]
+
+	mut strtab := [ u8(0x00) ]
+
+	mut off := null_nameofs
+	mut str := ''
+	for label_name, addr in g.labels {
+		off += str.len + 1
+		symtab << Elf64_Sym{
+			st_name: u32(off)
 			st_info: ((stb_global << 4) + (stt_notype & 0xf))
-			st_shndx: 1
-			st_value: 0
-		},
-		// foo
-		//Elf64_Sym{
-		//	st_name: u32(foo_nameofs)
-		//	st_info: ((stb_global << 4) + (stt_notype & 0xf))
-		//	st_shndx: 1
-		//	st_value: 0x14
-		//},
-	]!
+			st_shndx: 1 // .text section
+			st_value: addr
+		}
+
+		strtab << label_name.bytes()
+		strtab << 0x00
+
+		str = label_name
+	}
+
+	padding := (align_to(strtab.len, 32) - strtab.len)
+	for _ in 0 .. padding {
+		strtab << 0
+	}
 
 	// size 64 bytes
 	shstrtab := [
@@ -161,10 +177,10 @@ pub fn (mut g Gen) gen_elf() {
 	rodata_size := sizeof(rodata)
 
 	strtab_ofs := rodata_ofs + rodata_size
-	strtab_size := sizeof(strtab)
+	strtab_size := u32(strtab.len)
 
 	symtab_ofs := strtab_ofs + strtab_size
-	symtab_size := sizeof(symtab)
+	symtab_size := sizeof(Elf64_Sym) * u32(symtab.len)
 
 	shstrtab_ofs := symtab_ofs + symtab_size
 	shstrtab_size := sizeof(shstrtab)
@@ -295,11 +311,11 @@ pub fn (mut g Gen) gen_elf() {
 		panic('error writing `.rodata`')
 	}
 
-	fp.write_raw(strtab) or {
+	fp.write(strtab) or {
 		panic('error writing `.strtab`')
 	}
 
-	for _, s in symtab {
+	for s in symtab {
 		fp.write_struct(s) or {
 			panic('error writing `.symtab`')
 		}
@@ -309,26 +325,10 @@ pub fn (mut g Gen) gen_elf() {
 		panic('error writing `.shstrtab`')
 	}
 
-	for _, sh in section_headers {
+	for sh in section_headers {
 		fp.write_struct(sh) or {
 			panic('error writing `Elf64_Shdr`')
 		}
-	}
-}
-
-struct Gen {
-	out_file string
-	pub mut:
-		errors []error.Vas_Error
-	mut:
-		code   []u8 // program
-}
-
-pub fn new(out_file string) &Gen {
-	return &Gen {
-		out_file: out_file,
-		errors: []error.Vas_Error{},
-		code: []u8{},
 	}
 }
 
@@ -379,65 +379,129 @@ fn calc_rm(dest string, src string) u8 {
 	return u8(out)
 }
 
-fn (mut g Gen) gen_mov(op ast.Op) ? {
+fn (mut g Gen) mov(op ast.Mov) []u8 {
+	mut code := []u8{}
+
 	if op.left is ast.RegExpr && op.right is ast.RegExpr {
 		left := op.left as ast.RegExpr
 		right := op.right as ast.RegExpr
 
 		if left.bit != right.bit {
 			g.errors << error.new_error(op.pos, 'invalid combination of operands')
-			return
+			return code
 		}
 
 		if left.bit == 32 {
-			g.code << [ u8(0x89), u8(calc_rm(left.lit, right.lit)) ]
+			code << [ u8(0x89), u8(calc_rm(left.lit, right.lit)) ]
 		} else {
-			g.code << [ u8(0x48), u8(0x89), u8(calc_rm(left.lit, right.lit)) ]
+			code << [ u8(0x48), u8(0x89), u8(calc_rm(left.lit, right.lit)) ]
 		}
-	} else {
-		match op.left {
-			ast.RegExpr {
-				if op.left.bit == 32 {
-					g.code << u8(0xb8 + reg_bits(op.left.lit))
-				} else {
-					g.code << [ u8(0x48), u8(0xc7), u8(0xc0 + reg_bits(op.left.lit)) ]
-				}
+		return code
+	}
+
+	match op.left {
+		ast.RegExpr {
+			if op.left.bit == 32 {
+				code << u8(0xb8 + reg_bits(op.left.lit))
 			} else {
-				g.errors << error.new_error(op.left.pos, 'expected register')
-				return
+				code << [ u8(0x48), u8(0xc7), u8(0xc0 + reg_bits(op.left.lit)) ]
 			}
+		} else {
+			g.errors << error.new_error(op.left.pos, 'expected register')
+			return code
 		}
+	}
 
-		match op.right {
-			ast.IntExpr {
-				num := strconv.atoi(op.right.lit) or {
-					g.errors << error.new_error(op.right.pos, 'atoi failed')
-					return
+	match op.right {
+		ast.IntExpr {
+			num := strconv.atoi(op.right.lit) or {
+				g.errors << error.new_error(op.right.pos, 'atoi failed')
+				return code
+			}
+
+			mut buf := [ u8(0), 0, 0, 0 ]
+			binary.little_endian_put_u32(mut &buf, u32(num))
+
+			code << buf
+		}  else {
+			g.errors << error.new_error(op.right.pos, 'unexpected value')
+			return code
+		}
+	}
+
+	return code
+}
+
+pub fn (mut g Gen) gen(mut instrs []ast.Instr) {
+	for mut instr in instrs {
+		match mut instr {
+			ast.Mov {
+				instr.code << g.mov(instr)
+				g.offset += instr.code.len
+			}
+			ast.Nop {
+				instr.code << 0x90
+				g.offset += instr.code.len
+			}
+			ast.Syscall {
+				instr.code << [ u8(0x0f), 0x05 ]
+				g.offset += instr.code.len
+			}
+			ast.Label {
+				g.labels[instr.name] = g.offset
+			}
+			ast.Ret {
+				instr.code << 0xc3
+				g.offset++
+			}
+			ast.Call {
+				match mut instr.expr {
+					ast.IdentExpr {
+						g.offset += 5
+					}
+					ast.RegExpr {
+						if instr.expr.bit != 64 {
+							g.errors << error.new_error(instr.pos, 'invalid operand for instruction')	
+						}
+						instr.code << [ u8(0xff), u8(0xd0 + reg_bits(instr.expr.lit)) ]
+						g.offset += 2
+					} else {
+						g.errors << error.new_error(instr.pos, 'invalid operand for instruction')
+					}
 				}
-
-				mut buf := [ u8(0), 0, 0, 0 ]
-				binary.little_endian_put_u32(mut &buf, u32(num))
-
-				g.code << buf
-			}  else {
-				g.errors << error.new_error(op.right.pos, 'unexpected value')
-				return
+				instr.offset = g.offset
+			} else {
+				panic('unreachable instruction')
 			}
 		}
 	}
 }
 
-pub fn (mut g Gen) gen(ops []ast.Op) ? {
-	for op in ops {
-		match op.kind {
-			.mov {
-				g.gen_mov(op)?
+pub fn (mut g Gen) write_code(instrs []ast.Instr) {
+	for instr in instrs {
+		match instr {
+			ast.Mov, ast.Nop, ast.Syscall, ast.Ret {
+				g.code << instr.code
 			}
-			.nop {
-				g.code << 0x90
+			ast.Label {
+				// pass
 			}
-			.syscall {
-				g.code << [ u8(0x0f), 0x05 ]
+			ast.Call {
+				match instr.expr {
+					ast.IdentExpr {
+						mut buf := [ u8(0), 0, 0, 0 ]
+						binary.little_endian_put_u32(mut &buf, u32(g.labels[instr.expr.name] - instr.offset))
+						g.code << 0xe8
+						g.code << buf
+					}
+					ast.RegExpr {
+						g.code << instr.code
+					} else {
+						g.errors << error.new_error(instr.pos, 'invalid operand for instruction')
+					}
+				}
+			} else {
+				panic('unreachable instruction')
 			}
 		}
 	}

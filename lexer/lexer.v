@@ -71,7 +71,7 @@ fn (mut l Lexer) read_number() token.Token {
 	}
 	lit := l.text[start..l.idx]
 	pos.len = lit.len
-	return token.Token{lit: lit, kind: token.TokenKind.number, pos: pos}
+	return token.Token{lit: lit, kind: .number, pos: pos}
 }
 
 fn (mut l Lexer) read_ident() token.Token {
@@ -86,7 +86,7 @@ fn (mut l Lexer) read_ident() token.Token {
 	}
 	lit := l.text[start..l.idx]
 	pos.len = lit.len
-	return token.Token{lit: lit, kind: token.TokenKind.ident, pos: pos}
+	return token.Token{lit: lit, kind: .ident, pos: pos}
 }
 
 pub fn (mut l Lexer) lex() []token.Token {
@@ -108,15 +108,15 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				`\n` {
 					l.advance()
-					tokens << token.Token{lit: '<eol>', kind: token.TokenKind.eol, pos: pos}
+					tokens << token.Token{lit: '<eol>', kind: .eol, pos: pos}
 				}
 				`:` {
 					l.advance()
-					tokens << token.Token{lit: ':', kind: token.TokenKind.colon, pos: pos}
+					tokens << token.Token{lit: ':', kind: .colon, pos: pos}
 				}
 				`,` {
 					l.advance()
-					tokens << token.Token{lit: ',', kind: token.TokenKind.comma, pos: pos}
+					tokens << token.Token{lit: ',', kind: .comma, pos: pos}
 				} else {
 					c := [l.c].bytestr()
 					l.errors << error.new_error(pos, 'unexpected token `$c`')

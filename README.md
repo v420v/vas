@@ -2,9 +2,20 @@
 # vas: Assembler written in V
 
 ```asm
-mov eax, 60
-mov edi, 34
-syscall
+_start:
+    mov rax, 60
+    mov rdi, 0
+
+    call foo
+    call bar
+
+    syscall
+
+foo:
+    ret
+
+bar:
+    ret
 ```
 
 ## Build

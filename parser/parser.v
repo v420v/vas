@@ -3,6 +3,7 @@ module parser
 import token
 import error
 import ast
+import os
 
 struct Parser {
 	pub mut:
@@ -26,12 +27,15 @@ fn (mut p Parser) next() {
 	p.tok = p.tokens[p.idx]
 }
 
-fn (mut p Parser) parse_expr() ?ast.Expr {
+fn (mut p Parser) peak_token() token.Token {
+	return p.tokens[p.idx+1]
+}
+
+fn (mut p Parser) parse_expr() ast.Expr {
+	pos := p.tok.pos
 	match p.tok.kind {
 		.number {
 			lit := p.tok.lit
-			pos := p.tok.pos
-
 			p.next()
 
 			return ast.IntExpr {
@@ -41,8 +45,6 @@ fn (mut p Parser) parse_expr() ?ast.Expr {
 		}
 		.ident {
 			lit := p.tok.lit
-			pos := p.tok.pos
-
 			p.next()
 
 			if lit in ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'] {
@@ -58,69 +60,113 @@ fn (mut p Parser) parse_expr() ?ast.Expr {
 					pos: pos,
 				}
 			} else {
-				p.errors << error.new_error(pos, 'unknown identifier `$lit`')
+				return ast.IdentExpr {
+					name: lit
+					pos: pos,
+				}
 			}
 		} else {
-			p.errors << error.new_error(p.tok.pos, 'expected expression but got `$p.tok.lit`')
+			p.error(p.tok.pos, 'expected expression but got `$p.tok.lit`')
 		}
 	}
-	return none
+	panic('unreachable')
 }
 
-fn (mut p Parser) parse_op() ?ast.Op {
-	mut op := ast.Op{}
-	op.pos = p.tok.pos
+fn (mut p Parser) parse_op() ast.Instr {
+	pos := p.tok.pos
+
+	if p.tok.kind == .ident && p.peak_token().kind == .colon {
+		label_name := p.tok.lit
+		p.next()
+		p.next()
+		return ast.Label {
+			name: label_name,
+			pos: pos,
+		}
+	}
+
 	match p.tok.lit {
 		'mov' {
-			op.kind = ast.OpKind.mov
 			p.next()
 
-			op.left = p.parse_expr() or {
-				return none
-			}
+			left := p.parse_expr()
 
-			if p.tok.kind != token.TokenKind.comma {
-				p.errors << error.new_error(p.tok.pos, 'expected `,` but got `$p.tok.lit`')
-				return none
+			if p.tok.kind != .comma {
+				p.error(p.tok.pos, 'expected `,` but got `$p.tok.lit`')
 			}
 
 			p.next()
 
-			op.right = p.parse_expr() or {
-				return none
+			right := p.parse_expr()
+
+			return ast.Mov{
+				pos: pos,
+				left: left,
+				right: right,
+			}
+		}
+		'call' {
+			p.next()
+
+			expr := p.parse_expr()
+
+			return ast.Call {
+				expr: expr,
+				offset: 0,
+				pos: pos,
+			}
+		}
+		'ret' {
+			p.next()
+			return ast.Ret {
+				pos: pos,
 			}
 		}
 		'nop' {
-			op.kind = ast.OpKind.nop
 			p.next()
+			return ast.Nop{
+				pos: pos,
+			}
 		}
 		'syscall' {
-			op.kind = ast.OpKind.syscall
 			p.next()
+
+			return ast.Syscall{
+				pos: pos,
+			}
 		} else {
-			p.errors << error.new_error(p.tok.pos, 'invalid instruction `$p.tok.lit`')
-			return none
+			p.error(p.tok.pos, 'invalid instruction `$p.tok.lit`')
 		}
 	}
-	return op
+	panic('unreachable')
 }
 
-pub fn (mut p Parser) parse() []ast.Op {
-	mut ops := []ast.Op{}
+fn (mut p Parser) error(pos token.Position, msg string) {
+	program := os.read_file(pos.file_name) or {
+		eprintln('error: reading file `$pos.file_name`')
+		exit(1)
+	}
 
-	for p.tok.kind != token.TokenKind.eof {
-		if p.tok.kind == token.TokenKind.eol {
+	program_in_lines := program.split('\n')
+
+	code := program_in_lines[pos.line-1]
+
+	error.print_error(error.new_error(pos, msg), code)
+
+	exit(1)
+}
+
+pub fn (mut p Parser) parse() []ast.Instr {
+	mut instrs := []ast.Instr{}
+
+	for p.tok.kind != .eof {
+		if p.tok.kind == .eol {
 			p.next() // EOL
 		} else {
-			ops << p.parse_op() or {
-				ast.Op{}
-			}
-
-			for !(p.tok.kind in [token.TokenKind.eol, token.TokenKind.eof]) {
-				p.next()
-			}
+			instrs << p.parse_op()
 		}
 	}
 
-	return ops
+	return instrs
 }
+

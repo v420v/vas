@@ -1,7 +1,16 @@
 
-# comment
+_start:
+    mov rax, 60
+    mov rdi, 42
 
-mov rax, 60
-mov rdi, 34
-syscall
+    call foo
+    call bar
+
+    syscall
+
+foo:
+    ret
+
+bar:
+    ret
 

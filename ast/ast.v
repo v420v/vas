@@ -2,21 +2,51 @@ module ast
 
 import token
 
-pub enum OpKind {
-	mov
-	nop
-	syscall
-}
+pub type Instr = Mov | Label | Call | Ret | Nop | Syscall | BadInst
 
-pub struct Op {
+pub struct Mov {
 	pub mut:
-		kind OpKind
-		left Expr
+		left  Expr
 		right Expr
-		pos  token.Position
+		pos   token.Position
+		code  []u8
 }
 
-pub type Expr = IntExpr | RegExpr
+pub struct Label {
+	pub mut:
+		name string
+		pos   token.Position
+}
+
+pub struct Call {
+	pub mut:
+		expr   Expr
+		offset int
+		pos    token.Position
+		code   []u8
+}
+
+pub struct Ret {
+	pub mut:
+		pos token.Position
+		code []u8
+}
+
+pub struct Nop {
+	pub mut:
+		pos   token.Position
+		code  []u8
+}
+
+pub struct Syscall {
+	pub mut:
+		pos   token.Position
+		code  []u8
+}
+
+pub struct BadInst {}
+
+pub type Expr = IntExpr | RegExpr | IdentExpr
 
 pub struct RegExpr {
 	pub:
@@ -29,6 +59,12 @@ pub struct IntExpr {
 	pub:
 	    lit  string
 	    pos  token.Position
+}
+
+pub struct IdentExpr {
+	pub:
+		name string
+		pos  token.Position
 }
 
 

@@ -9,8 +9,8 @@ import gen
 
 fn file_name_without_ext(file_name string) string {
 	ext_len := os.file_ext(file_name).len
-	str_u8_arr := file_name.bytes()
-	return str_u8_arr[.. str_u8_arr.len - ext_len].bytestr()
+	bytes := file_name.bytes()
+	return bytes[.. bytes.len - ext_len].bytestr()
 }
 
 fn main() {
@@ -29,23 +29,17 @@ fn main() {
 	}
 
 	mut l := lexer.new(file_name, program)
-
 	tokens := l.lex()
-
 	error.print_all(l.errors, program)
 
 	mut p := parser.new(tokens)
-
-	ops := p.parse()
-
+	mut instrs := p.parse()
 	error.print_all(p.errors, program)
 
 	mut g := gen.new(out_file)
-
-	g.gen(ops)?
-
+	g.gen(mut instrs)
 	error.print_all(g.errors, program)
-
+	g.write_code(instrs)
 	g.gen_elf()
 }
 
