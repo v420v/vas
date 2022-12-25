@@ -3,19 +3,19 @@
 
 ```asm
 _start:
-    mov rax, 60
-    mov rdi, 0
+    callq foo
+    callq bar
 
-    call foo
-    call bar
+    movq $60, %rax
+    movq $42, %rdi
 
     syscall
 
 foo:
-    ret
+    retq
 
 bar:
-    ret
+    retq
 ```
 
 ## Build
@@ -30,7 +30,7 @@ $ ld <filename>.o
 $ ./a.out
 $ echo $?
 
-34
+42
 ```
 
 ## License
