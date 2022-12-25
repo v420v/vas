@@ -52,7 +52,7 @@ fn (mut p Parser) error(pos token.Position, msg string) {
 fn (mut p Parser) parse_expr() ast.Expr {
 	pos := p.tok.pos
 	match p.tok.kind {
-		.dolor { // num?
+		.dolor { // immediates
 			p.next()
 			num := p.tok.lit
 			p.next()

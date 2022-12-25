@@ -10,6 +10,8 @@ struct Gen {
 		code    []u8 // program
 		offset  int
 		labels  map[string]int
+		symtab  []Elf64_Sym
+		strtab  []u8
 	pub mut:
 		errors  []error.Vas_Error
 }
@@ -92,12 +94,8 @@ const sht_strtab = 3
 const shf_alloc = 0x2
 const shf_execinstr = 0x4
 
-pub fn (mut g Gen) gen_elf() {
-	rodata := [16]u8{}
-
-	null_nameofs := 0
-
-	mut symtab := [
+fn (mut g Gen) gen_symtab_strtab(null_nameofs int) {
+	g.symtab = [
 		Elf64_Sym{
 			st_name: u32(null_nameofs)
 			st_info: ((stb_local << 4) + (stt_notype & 0xf))
@@ -110,29 +108,37 @@ pub fn (mut g Gen) gen_elf() {
 		},
 	]
 
-	mut strtab := [ u8(0x00) ]
+	g.strtab = [ u8(0x00) ]
 
 	mut off := null_nameofs
 	mut str := ''
 	for label_name, addr in g.labels {
 		off += str.len + 1
-		symtab << Elf64_Sym{
+		g.symtab << Elf64_Sym{
 			st_name: u32(off)
 			st_info: ((stb_global << 4) + (stt_notype & 0xf))
 			st_shndx: 1 // .text section
 			st_value: addr
 		}
 
-		strtab << label_name.bytes()
-		strtab << 0x00
+		g.strtab << label_name.bytes()
+		g.strtab << 0x00
 
 		str = label_name
 	}
 
-	padding := (align_to(strtab.len, 32) - strtab.len)
+	padding := (align_to(g.strtab.len, 32) - g.strtab.len)
 	for _ in 0 .. padding {
-		strtab << 0
+		g.strtab << 0
 	}
+}
+
+pub fn (mut g Gen) gen_elf() {
+	rodata := [16]u8{}
+
+	null_nameofs := 0
+
+	g.gen_symtab_strtab(null_nameofs)
 
 	// size 64 bytes
 	shstrtab := [
@@ -172,10 +178,10 @@ pub fn (mut g Gen) gen_elf() {
 	rodata_size := sizeof(rodata)
 
 	strtab_ofs := rodata_ofs + rodata_size
-	strtab_size := u32(strtab.len)
+	strtab_size := u32(g.strtab.len)
 
 	symtab_ofs := strtab_ofs + strtab_size
-	symtab_size := sizeof(Elf64_Sym) * u32(symtab.len)
+	symtab_size := sizeof(Elf64_Sym) * u32(g.symtab.len)
 
 	shstrtab_ofs := symtab_ofs + symtab_size
 	shstrtab_size := sizeof(shstrtab)
@@ -306,11 +312,11 @@ pub fn (mut g Gen) gen_elf() {
 		panic('error writing `.rodata`')
 	}
 
-	fp.write(strtab) or {
+	fp.write(g.strtab) or {
 		panic('error writing `.strtab`')
 	}
 
-	for s in symtab {
+	for s in g.symtab {
 		fp.write_struct(s) or {
 			panic('error writing `.symtab`')
 		}
