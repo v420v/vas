@@ -1,6 +1,8 @@
 
 # vas: Assembler written in V
 
+Supports Linux x86-64 AT&T syntax only.
+
 ```asm
 _start:
     callq foo
