@@ -1,16 +1,16 @@
 
-_start:
-    mov rax, 60
-    mov rdi, 42
-
-    call foo
-    call bar
-
-    syscall
-
 foo:
-    ret
+    retq
 
 bar:
-    ret
+    retQ
+
+_start:
+    callq foo
+    callq bar
+
+    movq $60, %rax
+    movq $42, %rdi
+
+    syscall
 

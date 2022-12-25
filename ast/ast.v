@@ -2,49 +2,15 @@ module ast
 
 import token
 
-pub type Instr = Mov | Label | Call | Ret | Nop | Syscall | BadInst
-
-pub struct Mov {
+pub struct Instruction {
 	pub mut:
-		left  Expr
-		right Expr
-		pos   token.Position
-		code  []u8
+		instr_name string
+		left_hs    Expr
+		right_hs   Expr
+		code       []u8
+		offset     int
+		pos        token.Position
 }
-
-pub struct Label {
-	pub mut:
-		name string
-		pos   token.Position
-}
-
-pub struct Call {
-	pub mut:
-		expr   Expr
-		offset int
-		pos    token.Position
-		code   []u8
-}
-
-pub struct Ret {
-	pub mut:
-		pos token.Position
-		code []u8
-}
-
-pub struct Nop {
-	pub mut:
-		pos   token.Position
-		code  []u8
-}
-
-pub struct Syscall {
-	pub mut:
-		pos   token.Position
-		code  []u8
-}
-
-pub struct BadInst {}
 
 pub type Expr = IntExpr | RegExpr | IdentExpr
 
@@ -63,7 +29,7 @@ pub struct IntExpr {
 
 pub struct IdentExpr {
 	pub:
-		name string
+		lit string
 		pos  token.Position
 }
 

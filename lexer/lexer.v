@@ -29,6 +29,14 @@ pub fn new(file_name string, text string) &Lexer {
 	}
 }
 
+fn key_words(s string) string {
+	s_upper := s.to_upper()
+	if s_upper in token.key_words || s_upper in token.registers {
+		return s_upper
+	}
+	return s
+}
+
 fn (mut l Lexer) advance() {
 	l.col++
 	l.idx++
@@ -84,7 +92,7 @@ fn (mut l Lexer) read_ident() token.Token {
 			break
 		}
 	}
-	lit := l.text[start..l.idx]
+	lit := key_words(l.text[start..l.idx])
 	pos.len = lit.len
 	return token.Token{lit: lit, kind: .ident, pos: pos}
 }
@@ -113,6 +121,14 @@ pub fn (mut l Lexer) lex() []token.Token {
 				`:` {
 					l.advance()
 					tokens << token.Token{lit: ':', kind: .colon, pos: pos}
+				}
+				`$` {
+					l.advance()
+					tokens << token.Token{lit: '$', kind: .dolor, pos: pos}
+				}
+				`%` {
+					l.advance()
+					tokens << token.Token{lit: '%', kind: .percent, pos: pos}
 				}
 				`,` {
 					l.advance()

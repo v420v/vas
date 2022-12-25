@@ -34,11 +34,11 @@ fn main() {
 
 	mut p := parser.new(tokens)
 	mut instrs := p.parse()
-	error.print_all(p.errors, program)
 
 	mut g := gen.new(out_file)
 	g.gen(mut instrs)
 	error.print_all(g.errors, program)
+
 	g.write_code(instrs)
 	g.gen_elf()
 }

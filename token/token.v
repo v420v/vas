@@ -1,5 +1,15 @@
 module token
 
+pub const key_words = [
+	'MOV', 'MOVQ', 'MOVL', 'RET', 'RETQ', 'CALL', 'CALLQ',
+	'SYSCALL', 'NOP',
+]
+
+pub const registers = [
+	'EAX', 'RAX', 'ECX', 'RCX', 'EDX', 'RDX', 'EBX', 'RBX',
+	'ESP', 'RSP', 'EBP', 'RBP', 'ESI', 'RSI', 'EDI', 'RDI',
+]
+
 pub struct Position {
 	pub mut:
 		file_name string
@@ -13,6 +23,8 @@ pub enum TokenKind {
 	number
 	comma
 	colon
+	percent
+	dolor
 	eol // enf of line
 	eof // end of file
 }
@@ -23,13 +35,33 @@ pub struct Token {
 		pos  Position
 		lit string
 }
-/*
-pub const tokens_str = {
-	TokenKind.number: '<number>'
-	TokenKind.ident: '<ident>'
-	TokenKind.comma: ','
-	TokenKind.colon: ':'
-	TokenKind.eol: '<EOL>'
-	TokenKind.eof: '<EOF>'
+
+pub fn token_kind_str(kind TokenKind) string {
+	match kind {
+		.ident {
+			return '<ident'
+		}
+		.number {
+			return 'number'
+		}
+		.comma {
+			return ','
+		}
+		.colon {
+			return ':'
+		}
+		.percent {
+			return '%'
+		}
+		.dolor {
+			return '$'
+		}
+		.eol {
+			return '<EOL>'
+		}
+		.eof {
+			return '<EOF>'
+		}
+	}
 }
-*/
+
