@@ -9,6 +9,7 @@ pub struct Instruction {
 		right_hs   Expr
 		code       []u8
 		offset     int
+		binding    u8
 		pos        token.Position
 }
 

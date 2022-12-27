@@ -28,14 +28,14 @@ pub fn new(file_name string, text string) &Lexer {
 		file_name: file_name,
 	}
 }
-
+/*
 fn key_words(s string) string {
 	s_upper := s.to_upper()
 	if s_upper in token.key_words || s_upper in token.registers {
 		return s_upper
 	}
 	return s
-}
+}*/
 
 fn (mut l Lexer) advance() {
 	l.col++
@@ -86,13 +86,13 @@ fn (mut l Lexer) read_ident() token.Token {
 	mut pos := l.current_pos()
 	start := l.idx
 	for {
-		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
+		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` || l.c == `.` {
 			l.advance()
 		} else {
 			break
 		}
 	}
-	lit := key_words(l.text[start..l.idx])
+	lit := l.text[start..l.idx]
 	pos.len = lit.len
 	return token.Token{lit: lit, kind: .ident, pos: pos}
 }
@@ -106,7 +106,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 			l.advance()
 		} else if l.c >= `0` && l.c <= `9` {
 			tokens << l.read_number()
-		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` {
+		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` || l.c == `.` {
 			tokens << l.read_ident()
 		} else {
 			pos.len = 1

@@ -1,9 +1,8 @@
 
-foo:
-    retq
+.global _start
 
 bar:
-    retQ
+    retq
 
 _start:
     callq foo
@@ -13,4 +12,7 @@ _start:
     movq $42, %rdi
 
     syscall
+
+foo:
+    retq
 

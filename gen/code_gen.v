@@ -66,6 +66,24 @@ fn calc_rm(dest string, src string) u8 {
 	return u8(out)
 }
 
+fn (mut g Gen) has_label(name string) bool {
+	for l in g.labels {
+		if l.left_hs.lit == name {
+			return true
+		}
+	}
+	return false
+}
+
+fn (mut g Gen) get_label(name string) &ast.Instruction {
+	for i, l in g.labels {
+		if l.left_hs.lit == name {
+			return &g.labels[i]
+		}
+	}
+	panic('unknown label name `$name`')
+}
+
 pub fn (mut g Gen) gen(mut instrs []ast.Instruction) {
 	for mut instr in instrs {
 		mut src_size := 0
@@ -132,11 +150,15 @@ pub fn (mut g Gen) gen(mut instrs []ast.Instruction) {
 			'LABEL' {
 				match mut instr.left_hs {
 					ast.IdentExpr {
-						g.labels[instr.left_hs.lit] = g.offset
+						instr.offset = g.offset
+						g.labels << instr
 					} else {
-						g.errors << error.new_error(instr.pos, 'label must be an identifier')
+						g.errors << error.new_error(instr.pos, 'must be an identifier')
 					}
 				}
+			}
+			'.GLOBAL' {
+				// pass
 			}
 			'RETQ' {
 				code << 0xc3
@@ -178,13 +200,42 @@ pub fn (mut g Gen) write_code(instrs []ast.Instruction) {
 				match instr.left_hs {
 					ast.IdentExpr {
 						mut buf := [ u8(0), 0, 0, 0 ]
-						binary.little_endian_put_u32(mut &buf, u32(g.labels[instr.left_hs.lit] - instr.offset))
+						label := g.get_label(instr.left_hs.lit)
+						binary.little_endian_put_u32(mut &buf, u32(label.offset - instr.offset))
 						g.code << 0xe8
 						g.code << buf
 					}
 					ast.RegExpr {
 						g.code << instr.code
 					} else {}
+				}
+			}
+			'.GLOBAL' {
+				match instr.left_hs {
+					ast.IdentExpr {
+						if g.has_label(instr.left_hs.lit) {
+							mut l := g.get_label(instr.left_hs.lit)
+							l.binding = stb_global
+							g.globals_count++
+						}
+					} else {
+						g.errors << error.new_error(instr.left_hs.pos, 'must be an identifier')
+					}
+				}
+			}
+			'.LOCAL' {
+				match instr.left_hs {
+					ast.IdentExpr {
+						if g.has_label(instr.left_hs.lit) {
+							mut l := g.get_label(instr.left_hs.lit)
+							if l.binding == stb_global {
+								g.globals_count--
+							}
+							l.binding = stb_local
+						}
+					} else {
+						g.errors << error.new_error(instr.left_hs.pos, 'must be an identifier')
+					}
 				}
 			}
 			'LABEL' {} // pass

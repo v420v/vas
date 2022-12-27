@@ -63,7 +63,7 @@ fn (mut p Parser) parse_expr() ast.Expr {
 		}
 		.percent { // register
 			p.next()
-			reg_name := p.tok.lit
+			reg_name := p.tok.lit.to_upper()
 			if !(reg_name in token.registers) {
 				p.error(p.tok.pos, 'invalid register name')
 			}
@@ -96,13 +96,22 @@ fn (mut p Parser) parse_instr() ast.Instruction {
 		// parse label
 		instr.instr_name = 'LABEL'
 		instr.left_hs = p.parse_expr()
+		instr.binding = 0
 		p.expect(.colon)
 		return instr
 	}
 
-	name := p.tok.lit
+	name := p.tok.lit.to_upper()
 
 	match name {
+		'.GLOBAL' {
+			p.next()
+			instr.left_hs = p.parse_expr()
+		}
+		'.LOCAL' {
+			p.next()
+			instr.left_hs = p.parse_expr()
+		}
 		'MOVQ', 'MOVL' {
 			// parse mov instruction
 			// Example
@@ -130,13 +139,7 @@ fn (mut p Parser) parse_instr() ast.Instruction {
 		'NOP' {
 			p.next()
 		} else {
-			// _start:
-			instr.instr_name = 'LABEL'
-			instr.left_hs = p.parse_expr()
-			if p.tok.kind != .colon {
-				p.error(instr.pos, 'unkwoun instruction `$name`')
-			}
-			p.next()
+			p.error(instr.pos, 'unkwoun instruction `$name`')
 		}
 	}
 

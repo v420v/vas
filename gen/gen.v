@@ -1,5 +1,6 @@
 module gen
 
+import ast
 import error
 
 import os
@@ -7,22 +8,24 @@ import os
 struct Gen {
 	out_file    string
 	mut:
-		code    []u8 // program
-		offset  int
-		labels  map[string]int
-		symtab  []Elf64_Sym
-		strtab  []u8
+		code          []u8 // program
+		offset        int
+		labels        []ast.Instruction
+		globals_count int
+		symtab        []Elf64_Sym
+		strtab        []u8
 	pub mut:
-		errors  []error.Vas_Error
+		errors        []error.Vas_Error
 }
 
 pub fn new(out_file string) &Gen {
 	return &Gen {
-		out_file: out_file,
-		code:     []u8{},
-		offset:   0,
-		labels:   map[string]int,
-		errors:   []error.Vas_Error{},
+		offset:        0,
+		globals_count: 0,
+		out_file:      out_file,
+		code:          []u8{},
+		labels:        []ast.Instruction{},
+		errors:        []error.Vas_Error{},
 	}
 }
 
@@ -94,6 +97,27 @@ const sht_strtab = 3
 const shf_alloc = 0x2
 const shf_execinstr = 0x4
 
+fn (mut g Gen) gen_label(label_binding int, mut off &int, mut str &string) {
+	mut label_name := ''
+	for label in g.labels {
+		if label.binding == label_binding {
+			label_name = label.left_hs.lit
+			unsafe {*off += str.len + 1}
+
+			g.symtab << Elf64_Sym{
+				st_name: u32(*off),
+				st_info: u8((label.binding << 4) + (stt_notype & 0xf)),
+				st_shndx: 1,
+				st_value: label.offset,
+			}
+
+			g.strtab << label_name.bytes()
+			g.strtab << 0x00
+			str = label_name
+		}
+	}
+}
+
 fn (mut g Gen) gen_symtab_strtab(null_nameofs int) {
 	g.symtab = [
 		Elf64_Sym{
@@ -112,20 +136,9 @@ fn (mut g Gen) gen_symtab_strtab(null_nameofs int) {
 
 	mut off := null_nameofs
 	mut str := ''
-	for label_name, addr in g.labels {
-		off += str.len + 1
-		g.symtab << Elf64_Sym{
-			st_name: u32(off)
-			st_info: ((stb_global << 4) + (stt_notype & 0xf))
-			st_shndx: 1 // .text section
-			st_value: addr
-		}
 
-		g.strtab << label_name.bytes()
-		g.strtab << 0x00
-
-		str = label_name
-	}
+	g.gen_label(stb_local, mut &off, mut &str)
+	g.gen_label(stb_global,mut &off, mut &str)
 
 	padding := (align_to(g.strtab.len, 32) - g.strtab.len)
 	for _ in 0 .. padding {
@@ -242,7 +255,8 @@ pub fn (mut g Gen) gen_elf() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: 3 // section number of .strtab
-			sh_info: 2 // Number of local symbols
+			sh_info: u32(g.labels.len - g.globals_count + 2) // Number of local symbols
+			                                        //    ^ null + rodata
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		},
