@@ -1,9 +1,13 @@
 
 # vas: Assembler written in V
 
+THIS SOFTWARE IS UNFINISHED!!!
+
 Supports Linux x86-64 AT&T syntax only.
 
 ```asm
+.global _start
+
 _start:
     callq foo
     callq bar
