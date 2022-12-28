@@ -147,12 +147,40 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 							g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
 						} else {
 							code << u8(0x58 + reg_bits(instr.left_hs.lit))
-							g.offset += code.len
 						}
 					} else {
 						g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
 					}
 				}
+				g.offset += code.len
+			}
+			'PUSHQ' {
+				match mut instr.left_hs {
+					instruction.RegExpr {
+						if !(instr.left_hs.lit in reg64) {
+							g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
+						} else {
+							code << u8(0x50 + reg_bits(instr.left_hs.lit))
+						}
+					}
+					instruction.IntExpr {
+						num := strconv.atoi(instr.left_hs.lit) or {
+							panic('atoi() failed')
+						}
+						if num < 1 << 7 {
+							code << [ u8(0x6a), u8(num) ]
+						} else if num < 1 << 31 {
+							mut hex := [ u8(0), 0, 0, 0 ]
+							binary.little_endian_put_u32(mut &hex, u32(num))
+							code << [ u8(0x68), hex[0], hex[1], hex[2], hex[3] ]
+						} else {
+							panic('unreachable')
+						}
+					} else  {
+						panic('unreachable')
+					}
+				}
+				g.offset += code.len
 			}
 			'MOVL' {
 				g.errors << error.new_error(instr.pos, 'instruction not implemented yet')
@@ -202,7 +230,9 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 					}
 				}
 				instr.offset = g.offset
-			} else {}
+			} else {
+				panic('unreachable')
+			}
 		}
 		instr.code = code
 	}
@@ -211,7 +241,7 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
 	for instr in instrs {
 		match instr.instr_name {
-			'MOVQ', 'SYSCALL', 'RETQ', 'NOP', 'POPQ' {
+			'MOVQ', 'SYSCALL', 'RETQ', 'NOP', 'POPQ', 'PUSHQ' {
 				g.code << instr.code
 			}
 			'CALLQ' {

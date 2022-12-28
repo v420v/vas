@@ -1,10 +1,5 @@
 module token
 
-//pub const key_words = [
-//	'MOV', 'MOVQ', 'MOVL', 'RET', 'RETQ', 'CALL', 'CALLQ',
-//	'SYSCALL', 'NOP',
-//]
-
 pub const registers = [
 	'EAX', 'RAX', 'ECX', 'RCX', 'EDX', 'RDX', 'EBX', 'RBX',
 	'ESP', 'RSP', 'EBP', 'RBP', 'ESI', 'RSI', 'EDI', 'RDI',
