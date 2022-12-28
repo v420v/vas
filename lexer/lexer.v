@@ -28,14 +28,6 @@ pub fn new(file_name string, text string) &Lexer {
 		file_name: file_name,
 	}
 }
-/*
-fn key_words(s string) string {
-	s_upper := s.to_upper()
-	if s_upper in token.key_words || s_upper in token.registers {
-		return s_upper
-	}
-	return s
-}*/
 
 fn (mut l Lexer) advance() {
 	l.col++

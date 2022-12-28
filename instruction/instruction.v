@@ -1,4 +1,4 @@
-module ast
+module instruction
 
 import token
 

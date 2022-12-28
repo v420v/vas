@@ -2,7 +2,7 @@ module parser
 
 import error
 import token
-import ast
+import instruction
 import os
 
 struct Parser {
@@ -49,14 +49,14 @@ fn (mut p Parser) error(pos token.Position, msg string) {
 	exit(1)
 }
 
-fn (mut p Parser) parse_expr() ast.Expr {
+fn (mut p Parser) parse_expr() instruction.Expr {
 	pos := p.tok.pos
 	match p.tok.kind {
 		.dolor { // immediates
 			p.next()
 			num := p.tok.lit
 			p.next()
-			return ast.IntExpr {
+			return instruction.IntExpr {
 				lit: num
 				pos: pos
 			}
@@ -68,7 +68,7 @@ fn (mut p Parser) parse_expr() ast.Expr {
 				p.error(p.tok.pos, 'invalid register name')
 			}
 			p.next()
-			return ast.RegExpr {
+			return instruction.RegExpr {
 				lit: reg_name
 				pos: pos
 			}
@@ -76,7 +76,7 @@ fn (mut p Parser) parse_expr() ast.Expr {
 		.ident { // identifier ? label name
 			lit := p.tok.lit
 			p.next()
-			return ast.IdentExpr {
+			return instruction.IdentExpr {
 				lit: lit
 				pos: pos
 			}
@@ -87,13 +87,12 @@ fn (mut p Parser) parse_expr() ast.Expr {
 	panic('unreachable')
 }
 
-fn (mut p Parser) parse_instr() ast.Instruction {
-	mut instr := ast.Instruction{
+fn (mut p Parser) parse_instr() instruction.Instruction {
+	mut instr := instruction.Instruction{
 		pos: p.tok.pos
 	}
 
 	if p.tok.kind == .ident && p.peak_token().kind == .colon {
-		// parse label
 		instr.instr_name = 'LABEL'
 		instr.left_hs = p.parse_expr()
 		instr.binding = 0
@@ -113,28 +112,24 @@ fn (mut p Parser) parse_instr() ast.Instruction {
 			instr.left_hs = p.parse_expr()
 		}
 		'MOVQ', 'MOVL' {
-			// parse mov instruction
-			// Example
-			// movq $10, %rax
 			p.next()
 			instr.left_hs = p.parse_expr()
 			p.expect(.comma)
 			instr.right_hs = p.parse_expr()
 		}
+		'POPQ' {
+			p.next()
+			instr.left_hs = p.parse_expr()
+		}
 		'CALLQ' {
 			p.next()
-			// parse call instruction
 			instr.left_hs = p.parse_expr()
 		}
 		'RETQ' {
 			p.next()
-			// parse return instruction
-			// pass
 		}
 		'SYSCALL' {
 			p.next()
-			// parse syscall instruction
-			// pass
 		}
 		'NOP' {
 			p.next()
@@ -147,8 +142,8 @@ fn (mut p Parser) parse_instr() ast.Instruction {
 	return instr
 }
 
-pub fn (mut p Parser) parse() []ast.Instruction {
-	mut instrs := []ast.Instruction{}
+pub fn (mut p Parser) parse() []instruction.Instruction {
+	mut instrs := []instruction.Instruction{}
 	for p.tok.kind != .eof {
 		if p.tok.kind == .eol {
 			p.next()
