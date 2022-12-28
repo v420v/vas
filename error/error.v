@@ -35,9 +35,13 @@ pub fn print_all(errors []Vas_Error, program string) {
 	if errors.len != 0 {
 		program_in_lines := program.split('\n')
 
-		for e in errors {
+		for i, e in errors {
 			code := program_in_lines[e.pos.line-1]
 			print_error(e, code)
+			if i == 15 {
+				eprintln('too many errors...')
+				break
+			}
 		}
 
 		exit(1)
