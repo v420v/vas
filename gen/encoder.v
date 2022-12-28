@@ -150,8 +150,12 @@ pub fn (mut g Gen) gen(mut instrs []ast.Instruction) {
 			'LABEL' {
 				match mut instr.left_hs {
 					ast.IdentExpr {
-						instr.offset = g.offset
-						g.labels << instr
+						if g.has_label(instr.left_hs.lit) {
+							g.errors << error.new_error(instr.pos, 'symbol `$instr.left_hs.lit` is already defined')
+						} else {
+							instr.offset = g.offset
+							g.labels << instr
+						}
 					} else {
 						g.errors << error.new_error(instr.pos, 'must be an identifier')
 					}
