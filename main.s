@@ -9,7 +9,9 @@ _start:
     callq bar
 
     movq $60, %rax
-    movq $42, %rdi
+    
+    movq $35, %rdi
+    addq $35, %rdi
 
     syscall
 
