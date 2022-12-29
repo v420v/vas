@@ -8,7 +8,7 @@ pub struct Instruction {
 		left_hs    Expr
 		right_hs   Expr
 		code       []u8
-		offset     int
+		addr       int
 		binding    u8
 		pos        token.Position
 }

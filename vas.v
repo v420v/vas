@@ -36,7 +36,7 @@ fn main() {
 	mut instrs := p.parse()
 
 	mut g := gen.new(out_file)
-	g.gen(mut instrs)
+	g.encode(mut instrs)
 	error.print_all(g.errors, program)
 
 	g.write_code(instrs)

@@ -125,6 +125,12 @@ fn (mut p Parser) parse_instr() instruction.Instruction {
 			p.next()
 			instr.left_hs = p.parse_expr()
 		}
+		'ADDQ' {
+			p.next()
+			instr.left_hs = p.parse_expr()
+			p.expect(.comma)
+			instr.right_hs = p.parse_expr()
+		}
 		'CALLQ' {
 			p.next()
 			instr.left_hs = p.parse_expr()

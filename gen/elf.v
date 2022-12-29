@@ -9,7 +9,7 @@ struct Gen {
 	out_file    string
 	mut:
 		code          []u8 // program
-		offset        int
+		addr          int
 		labels        []instruction.Instruction
 		globals_count int
 		symtab        []Elf64_Sym
@@ -20,7 +20,7 @@ struct Gen {
 
 pub fn new(out_file string) &Gen {
 	return &Gen {
-		offset:        0,
+		addr:          0,
 		globals_count: 0,
 		out_file:      out_file,
 		code:          []u8{},
@@ -108,7 +108,7 @@ fn (mut g Gen) gen_label(label_binding int, mut off &int, mut str &string) {
 				st_name: u32(*off),
 				st_info: u8((label.binding << 4) + (stt_notype & 0xf)),
 				st_shndx: 1,
-				st_value: label.offset,
+				st_value: label.addr,
 			}
 
 			g.strtab << label_name.bytes()

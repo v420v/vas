@@ -84,7 +84,7 @@ fn (mut g Gen) get_label(name string) &instruction.Instruction {
 	panic('unknown label name `$name`')
 }
 
-pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
+pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 	for mut instr in instrs {
 		mut src_size := 0
 		mut trg_size := 0
@@ -138,7 +138,7 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 						panic('unreachable')
 					}
 				}
-				g.offset += code.len
+				g.addr += code.len
 			}
 			'POPQ' {
 				match mut instr.left_hs {
@@ -152,7 +152,7 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 						g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
 					}
 				}
-				g.offset += code.len
+				g.addr += code.len
 			}
 			'PUSHQ' {
 				match mut instr.left_hs {
@@ -180,14 +180,72 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 						panic('unreachable')
 					}
 				}
-				g.offset += code.len
+				g.addr += code.len
+			}
+			'ADDQ' {
+				match mut instr.left_hs {
+					// addq %reg, ...
+					instruction.RegExpr {
+						src_size = reg_size(instr.left_hs.lit)
+						match mut instr.right_hs {
+							// addq %reg, %reg
+							instruction.RegExpr {
+								trg_size = reg_size(instr.right_hs.lit)
+
+								if src_size != 64 || src_size != trg_size {
+									g.errors << error.new_error(instr.pos, 'miss match size of operand')
+								}
+								code << [ u8(0x48), u8(0x01), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
+							} else {
+								panic('unreachable')
+							}
+						}
+					}
+					instruction.IntExpr {
+						match mut instr.right_hs {
+							// addq $num, %reg
+							instruction.RegExpr {
+								trg_size = reg_size(instr.right_hs.lit)
+
+								if trg_size != 64 {
+									g.errors << error.new_error(instr.pos, 'miss match size of operand')
+								}
+
+								num := strconv.atoi(instr.left_hs.lit) or {
+									panic('atoi() failed')
+								}
+
+								mod_rm :=  u8(0xc0 + reg_bits(instr.right_hs.lit))
+
+								if -128 <= num && num <= 127 {
+									code << [ u8(0x48), 0x83, mod_rm, u8(num) ]
+								} else if num < 1 << 31 {
+									mut hex := [ u8(0), 0, 0, 0 ]
+									binary.little_endian_put_u32(mut &hex, u32(num))
+									if instr.right_hs.lit == 'RAX' {
+										code << [ u8(0x48), 0x05, hex[0], hex[1], hex[2], hex[3] ]
+									} else {
+										code << [ u8(0x48), 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
+									}
+								} else {
+									panic('unreachable')
+								}
+							} else {
+								panic('unreachable')
+							}
+						}
+					} else {
+						panic('unreachable')
+					}
+				}
+				g.addr += code.len
 			}
 			'MOVL' {
 				g.errors << error.new_error(instr.pos, 'instruction not implemented yet')
 			}
 			'SYSCALL' {
 				code << [ u8(0x0f), 0x05 ]
-				g.offset += code.len
+				g.addr += code.len
 			}
 			'LABEL' {
 				match mut instr.left_hs {
@@ -195,7 +253,7 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 						if g.has_label(instr.left_hs.lit) {
 							g.errors << error.new_error(instr.pos, 'symbol `$instr.left_hs.lit` is already defined')
 						} else {
-							instr.offset = g.offset
+							instr.addr = g.addr
 							g.labels << instr
 						}
 					} else {
@@ -208,28 +266,28 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 			}
 			'RETQ' {
 				code << 0xc3
-				g.offset++
+				g.addr++
 			}
 			'NOP' {
 				code << 0x90
-				g.offset++
+				g.addr++
 			}
 			'CALLQ' {
 				match mut instr.left_hs {
 					instruction.IdentExpr {
-						g.offset += 5
+						g.addr += 5
 					}
 					instruction.RegExpr {
 						if reg_size(instr.left_hs.lit) != 64 {
 							g.errors << error.new_error(instr.pos, 'not supported in 64bit mode')
 						}
 						code << [ u8(0xff), u8(0xd0 + reg_bits(instr.left_hs.lit)) ]
-						g.offset += code.len
+						g.addr += code.len
 					} else {
 						g.errors << error.new_error(instr.pos, 'invalid operand for instruction')
 					}
 				}
-				instr.offset = g.offset
+				instr.addr = g.addr
 			} else {
 				panic('unreachable')
 			}
@@ -241,7 +299,7 @@ pub fn (mut g Gen) gen(mut instrs []instruction.Instruction) {
 pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
 	for instr in instrs {
 		match instr.instr_name {
-			'MOVQ', 'SYSCALL', 'RETQ', 'NOP', 'POPQ', 'PUSHQ' {
+			'MOVQ', 'SYSCALL', 'RETQ', 'NOP', 'POPQ', 'PUSHQ', 'ADDQ' {
 				g.code << instr.code
 			}
 			'CALLQ' {
@@ -249,7 +307,7 @@ pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
 					instruction.IdentExpr {
 						mut buf := [ u8(0), 0, 0, 0 ]
 						label := g.get_label(instr.left_hs.lit)
-						binary.little_endian_put_u32(mut &buf, u32(label.offset - instr.offset))
+						binary.little_endian_put_u32(mut &buf, u32(label.addr - instr.addr))
 						g.code << 0xe8
 						g.code << buf
 					}
@@ -287,7 +345,9 @@ pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
 				}
 			}
 			'LABEL' {} // pass
-			else {}
+			else {
+				panic('unreachable')
+			}
 		}
 	}
 
