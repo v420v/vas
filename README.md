@@ -8,19 +8,21 @@ Supports Linux x86-64 AT&T syntax only.
 ```asm
 .global _start
 
+bar:
+    retq
+
 _start:
     callq foo
     callq bar
 
     movq $60, %rax
-    movq $42, %rdi
+    
+    movq $35, %rdi
+    addq $35, %rdi
 
     syscall
 
 foo:
-    retq
-
-bar:
     retq
 ```
 
@@ -36,7 +38,7 @@ $ ld <filename>.o
 $ ./a.out
 $ echo $?
 
-42
+69
 ```
 
 ## License
