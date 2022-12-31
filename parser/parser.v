@@ -127,6 +127,13 @@ fn (mut p Parser) parse_instr() gen.Instr {
 			p.expect(.comma)
 			instr.right_hs = p.parse_expr()
 		}
+		'SUBQ' {
+			instr.kind = .subq
+			p.next()
+			instr.left_hs = p.parse_expr()
+			p.expect(.comma)
+			instr.right_hs = p.parse_expr()
+		}
 		'CALLQ' {
 			instr.kind = .callq
 			p.next()

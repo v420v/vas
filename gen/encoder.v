@@ -14,6 +14,7 @@ pub enum InstrKind {
 	popq
 	pushq
 	addq
+	subq
 	callq
 	retq
 	syscall
@@ -140,11 +141,9 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 		match mut instr.kind {
 			.movq {
 				match mut instr.left_hs {
-					// movq %reg, ...
 					RegExpr {
 						src_size = reg_size(instr.left_hs.lit)
 						match mut instr.right_hs {
-							// movq %reg, %reg
 							RegExpr {
 								trg_size = reg_size(instr.right_hs.lit)
 
@@ -152,15 +151,15 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 									error.print(error.new_error(instr.pos, 'miss match size of operand'))
 									exit(1)
 								}
-								// movq %reg, ...
+
 								code << [ u8(0x48), u8(0x89), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
 							} else {
-								panic('unreachable')
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
 							}
 						}
 					}
 
-					// movq $num, ...
 					IntExpr {
 						num := strconv.atoi(instr.left_hs.lit) or {
 							panic('atoi() failed')
@@ -170,7 +169,6 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 						binary.little_endian_put_u32(mut &buf, u32(num))
 
 						match mut instr.right_hs {
-							// movq $num, %reg
 							RegExpr {
 								trg_size = reg_size(instr.right_hs.lit)
 								if trg_size != 64 {
@@ -180,11 +178,13 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 								code << [ u8(0x48), u8(0xc7), u8(0xc0 + reg_bits(instr.right_hs.lit)) ]
 								code << buf
 							} else {
-								panic('unreachable')
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
 							}
 						}
 					} else {
-						panic('unreachable')
+						error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+						exit(1)
 					}
 				}
 				g.addr += code.len
@@ -227,11 +227,10 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 							mut hex := [ u8(0), 0, 0, 0 ]
 							binary.little_endian_put_u32(mut &hex, u32(num))
 							code << [ u8(0x68), hex[0], hex[1], hex[2], hex[3] ]
-						} else {
-							panic('unreachable')
 						}
 					} else  {
-						panic('unreachable')
+						error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+						exit(1)
 					}
 				}
 				g.addr += code.len
@@ -239,11 +238,9 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 			
 			.addq {
 				match mut instr.left_hs {
-					// addq %reg, ...
 					RegExpr {
 						src_size = reg_size(instr.left_hs.lit)
 						match mut instr.right_hs {
-							// addq %reg, %reg
 							RegExpr {
 								trg_size = reg_size(instr.right_hs.lit)
 
@@ -251,25 +248,27 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 									error.print(error.new_error(instr.pos, 'miss match size of operand'))
 									exit(1)
 								}
+
 								code << [ u8(0x48), u8(0x01), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
 							} else {
-								panic('unreachable')
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
 							}
 						}
 					}
 					IntExpr {
+						num := strconv.atoi(instr.left_hs.lit) or {
+							error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+							exit(1)
+						}
+
 						match mut instr.right_hs {
-							// addq $num, %reg
 							RegExpr {
 								trg_size = reg_size(instr.right_hs.lit)
 
 								if trg_size != 64 {
 									error.print(error.new_error(instr.pos, 'miss match size of operand'))
 									exit(1)
-								}
-
-								num := strconv.atoi(instr.left_hs.lit) or {
-									panic('atoi() failed')
 								}
 
 								mod_rm :=  u8(0xc0 + reg_bits(instr.right_hs.lit))
@@ -279,20 +278,78 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 								} else if num < 1 << 31 {
 									mut hex := [ u8(0), 0, 0, 0 ]
 									binary.little_endian_put_u32(mut &hex, u32(num))
+
 									if instr.right_hs.lit == 'RAX' {
 										code << [ u8(0x48), 0x05, hex[0], hex[1], hex[2], hex[3] ]
 									} else {
 										code << [ u8(0x48), 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
 									}
-								} else {
-									panic('unreachable')
 								}
 							} else {
-								panic('unreachable')
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
 							}
 						}
 					} else {
-						panic('unreachable')
+						error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+						exit(1)
+					}
+				}
+				g.addr += code.len
+			}
+
+			.subq {
+				match mut instr.left_hs {
+					RegExpr {
+						src_size = reg_size(instr.left_hs.lit)
+						match mut instr.right_hs {
+							RegExpr {
+								trg_size = reg_size(instr.right_hs.lit)
+
+								if src_size != 64 || src_size != trg_size {
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
+								}
+
+								code << [ u8(0x48), 0x29, u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
+							} else {
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
+							}
+						}
+					}
+					IntExpr {
+						num := strconv.atoi(instr.left_hs.lit) or {
+							error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+							exit(1)
+						}
+
+						match mut instr.right_hs {
+							RegExpr {
+								trg_size = reg_size(instr.right_hs.lit)
+
+								if trg_size != 64 {
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
+								}
+
+								mod_rm :=  u8(0xe8 + reg_bits(instr.right_hs.lit))
+
+								if -128 <= num && num <= 127 {
+									code << [ u8(0x48), 0x83, mod_rm, u8(num) ]
+								} else if num < 1 << 31 {
+									mut hex := [ u8(0), 0, 0, 0 ]
+									binary.little_endian_put_u32(mut &hex, u32(num))
+									code << [ u8(0x48), 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
+								}
+							} else {
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
+							}
+						}
+					} else {
+						error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+						exit(1)
 					}
 				}
 				g.addr += code.len
@@ -361,7 +418,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 pub fn (mut g Gen) write_code(instrs []Instr) {
 	for instr in instrs {
 		match instr.kind {
-			.movq, .syscall, .retq, .nop, .popq, .pushq, .addq {
+			.movq, .syscall, .retq, .nop, .popq, .pushq, .addq, .subq {
 				g.code << instr.code
 			}
 

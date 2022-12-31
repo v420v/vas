@@ -11,6 +11,10 @@ _start:
     movq $60, %rax
     
     movq $35, %rdi
+
+    addq $35, %rdi
+    subq $35, %rdi
+    
     addq $35, %rdi
 
     syscall
