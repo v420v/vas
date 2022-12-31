@@ -29,14 +29,12 @@ fn main() {
 
 	mut l := lexer.new(file_name, program)
 	tokens := l.lex()
-	//error.print_all(l.errors, program)
 
 	mut p := parser.new(tokens)
 	mut instrs := p.parse()
 
 	mut g := gen.new(out_file)
 	g.encode(mut instrs)
-	//error.print_all(g.errors, program)
 
 	g.write_code(instrs)
 	g.gen_elf()

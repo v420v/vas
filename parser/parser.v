@@ -2,7 +2,7 @@ module parser
 
 import error
 import token
-import instruction
+import gen
 
 struct Parser {
 	mut:
@@ -37,14 +37,14 @@ fn (mut p Parser) expect(exp token.TokenKind) {
 	p.next()
 }
 
-fn (mut p Parser) parse_expr() instruction.Expr {
+fn (mut p Parser) parse_expr() gen.Expr {
 	pos := p.tok.pos
 	match p.tok.kind {
 		.dolor { // immediates
 			p.next()
 			num := p.tok.lit
 			p.next()
-			return instruction.IntExpr {
+			return gen.IntExpr {
 				lit: num
 				pos: pos
 			}
@@ -57,7 +57,7 @@ fn (mut p Parser) parse_expr() instruction.Expr {
 				exit(1)
 			}
 			p.next()
-			return instruction.RegExpr {
+			return gen.RegExpr {
 				lit: reg_name
 				pos: pos
 			}
@@ -65,7 +65,7 @@ fn (mut p Parser) parse_expr() instruction.Expr {
 		.ident { // identifier ? label name
 			lit := p.tok.lit
 			p.next()
-			return instruction.IdentExpr {
+			return gen.IdentExpr {
 				lit: lit
 				pos: pos
 			}
@@ -77,13 +77,13 @@ fn (mut p Parser) parse_expr() instruction.Expr {
 	panic('unreachable')
 }
 
-fn (mut p Parser) parse_instr() instruction.Instr {
-	mut instr := instruction.Instr{
+fn (mut p Parser) parse_instr() gen.Instr {
+	mut instr := gen.Instr{
 		pos: p.tok.pos
 	}
 
 	if p.tok.kind == .ident && p.peak_token().kind == .colon {
-		instr.instr_name = 'LABEL'
+		instr.kind = .label
 		instr.left_hs = p.parse_expr()
 		instr.binding = 0
 		p.expect(.colon)
@@ -94,44 +94,54 @@ fn (mut p Parser) parse_instr() instruction.Instr {
 
 	match name.to_upper() {
 		'.GLOBAL' {
+			instr.kind = .global
 			p.next()
 			instr.left_hs = p.parse_expr()
 		}
 		'.LOCAL' {
+			instr.kind = .local
 			p.next()
 			instr.left_hs = p.parse_expr()
 		}
-		'MOVQ', 'MOVL' {
+		'MOVQ' {
+			instr.kind = .movq
 			p.next()
 			instr.left_hs = p.parse_expr()
 			p.expect(.comma)
 			instr.right_hs = p.parse_expr()
 		}
 		'POPQ' {
+			instr.kind = .popq
 			p.next()
 			instr.left_hs = p.parse_expr()
 		}
 		'PUSHQ' {
+			instr.kind = .pushq
 			p.next()
 			instr.left_hs = p.parse_expr()
 		}
 		'ADDQ' {
+			instr.kind = .addq
 			p.next()
 			instr.left_hs = p.parse_expr()
 			p.expect(.comma)
 			instr.right_hs = p.parse_expr()
 		}
 		'CALLQ' {
+			instr.kind = .callq
 			p.next()
 			instr.left_hs = p.parse_expr()
 		}
 		'RETQ' {
+			instr.kind = .retq
 			p.next()
 		}
 		'SYSCALL' {
+			instr.kind = .syscall
 			p.next()
 		}
 		'NOP' {
+			instr.kind = .nop
 			p.next()
 		} else {
 			error.print(error.new_error(instr.pos, 'unkwoun instruction `$name`'))
@@ -139,12 +149,11 @@ fn (mut p Parser) parse_instr() instruction.Instr {
 		}
 	}
 
-	instr.instr_name = name.to_upper()
 	return instr
 }
 
-pub fn (mut p Parser) parse() []instruction.Instr {
-	mut instrs := []instruction.Instr{}
+pub fn (mut p Parser) parse() []gen.Instr {
+	mut instrs := []gen.Instr{}
 	for p.tok.kind != .eof {
 		if p.tok.kind == .eol {
 			p.next()
