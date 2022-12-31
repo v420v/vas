@@ -38,7 +38,7 @@ $ ld <filename>.o
 $ ./a.out
 $ echo $?
 
-69
+70
 ```
 
 ## License
