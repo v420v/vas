@@ -3,7 +3,6 @@ module parser
 import error
 import token
 import instruction
-import os
 
 struct Parser {
 	mut:
@@ -32,21 +31,10 @@ fn (mut p Parser) peak_token() token.Token {
 fn (mut p Parser) expect(exp token.TokenKind) {
 	if p.tok.kind != exp {
 		exp_tok_str := token.token_kind_str(exp)
-		p.error(p.tok.pos, 'expected `$exp_tok_str` but got `$p.tok.lit`')
-	}
-	p.next()
-}
-
-fn (mut p Parser) error(pos token.Position, msg string) {
-	program := os.read_file(pos.file_name) or {
-		eprintln('error: reading file `$pos.file_name`')
+		error.print(error.new_error(p.tok.pos, 'expected `$exp_tok_str` but got `$p.tok.lit`'))
 		exit(1)
 	}
-
-	program_in_lines := program.split('\n')
-	error.print_error(error.new_error(pos, msg), program_in_lines[pos.line-1])
-
-	exit(1)
+	p.next()
 }
 
 fn (mut p Parser) parse_expr() instruction.Expr {
@@ -65,7 +53,8 @@ fn (mut p Parser) parse_expr() instruction.Expr {
 			p.next()
 			reg_name := p.tok.lit.to_upper()
 			if !(reg_name in token.registers) {
-				p.error(p.tok.pos, 'invalid register name')
+				error.print(error.new_error(p.tok.pos, 'invalid register name'))
+				exit(1)
 			}
 			p.next()
 			return instruction.RegExpr {
@@ -81,14 +70,15 @@ fn (mut p Parser) parse_expr() instruction.Expr {
 				pos: pos
 			}
 		} else {
-			p.error(p.tok.pos, 'expected expression but got `$p.tok.lit`')
+			error.print(error.new_error(p.tok.pos, 'expected expression but got `$p.tok.lit`'))
+			exit(1)
 		}
 	}
 	panic('unreachable')
 }
 
-fn (mut p Parser) parse_instr() instruction.Instruction {
-	mut instr := instruction.Instruction{
+fn (mut p Parser) parse_instr() instruction.Instr {
+	mut instr := instruction.Instr{
 		pos: p.tok.pos
 	}
 
@@ -100,9 +90,9 @@ fn (mut p Parser) parse_instr() instruction.Instruction {
 		return instr
 	}
 
-	name := p.tok.lit.to_upper()
+	name := p.tok.lit
 
-	match name {
+	match name.to_upper() {
 		'.GLOBAL' {
 			p.next()
 			instr.left_hs = p.parse_expr()
@@ -144,16 +134,17 @@ fn (mut p Parser) parse_instr() instruction.Instruction {
 		'NOP' {
 			p.next()
 		} else {
-			p.error(instr.pos, 'unkwoun instruction `$name`')
+			error.print(error.new_error(instr.pos, 'unkwoun instruction `$name`'))
+			exit(1)
 		}
 	}
 
-	instr.instr_name = name
+	instr.instr_name = name.to_upper()
 	return instr
 }
 
-pub fn (mut p Parser) parse() []instruction.Instruction {
-	mut instrs := []instruction.Instruction{}
+pub fn (mut p Parser) parse() []instruction.Instr {
+	mut instrs := []instruction.Instr{}
 	for p.tok.kind != .eof {
 		if p.tok.kind == .eol {
 			p.next()

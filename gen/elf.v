@@ -1,7 +1,6 @@
 module gen
 
 import instruction
-import error
 
 import os
 
@@ -10,12 +9,10 @@ struct Gen {
 	mut:
 		code          []u8 // program
 		addr          int
-		labels        []instruction.Instruction
+		labels        []instruction.Instr
 		globals_count int
 		symtab        []Elf64_Sym
 		strtab        []u8
-	pub mut:
-		errors        []error.Vas_Error
 }
 
 pub fn new(out_file string) &Gen {
@@ -24,8 +21,7 @@ pub fn new(out_file string) &Gen {
 		globals_count: 0,
 		out_file:      out_file,
 		code:          []u8{},
-		labels:        []instruction.Instruction{},
-		errors:        []error.Vas_Error{},
+		labels:        []instruction.Instr{},
 	}
 }
 

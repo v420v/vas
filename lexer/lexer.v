@@ -11,8 +11,6 @@ pub struct Lexer {
 		line      int
 		col       int
 		file_name string
-	pub mut:
-		errors    []error.Vas_Error
 }
 
 pub fn new(file_name string, text string) &Lexer {
@@ -127,10 +125,9 @@ pub fn (mut l Lexer) lex() []token.Token {
 					tokens << token.Token{lit: ',', kind: .comma, pos: pos}
 				} else {
 					c := [l.c].bytestr()
-					l.errors << error.new_error(pos, 'unexpected token `$c`')
-					for !(l.c in [`\n`, `\0`]) {
-						l.advance()
-					}
+					err := error.new_error(pos, 'unexpected token `$c`')
+					error.print(err)
+					exit(1)
 				}
 			}
 		}

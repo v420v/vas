@@ -1,5 +1,6 @@
 module error
 
+import os
 import token
 
 pub struct Vas_Error {
@@ -15,7 +16,16 @@ pub fn new_error(pos token.Position, msg string) Vas_Error {
 	}
 }
 
-pub fn print_error(e Vas_Error, code string) {
+pub fn print(e Vas_Error) {
+	program := os.read_file(e.pos.file_name) or {
+		eprintln('error: reading file `$e.pos.file_name`')
+		exit(1)
+	}
+
+	program_in_lines := program.split('\n')
+
+	code := program_in_lines[e.pos.line-1]
+
 	eprintln('\u001b[1m$e.pos.file_name:$e.pos.line:$e.pos.col: \x1b[91merror\x1b[0m\u001b[1m: $e.msg \033[0m')
 
 	eprintln(' $e.pos.line | $code')
@@ -29,22 +39,5 @@ pub fn print_error(e Vas_Error, code string) {
 	}
 
 	eprintln('')
-}
-
-pub fn print_all(errors []Vas_Error, program string) {
-	if errors.len != 0 {
-		program_in_lines := program.split('\n')
-
-		for i, e in errors {
-			code := program_in_lines[e.pos.line-1]
-			print_error(e, code)
-			if i == 15 {
-				eprintln('too many errors...')
-				break
-			}
-		}
-
-		exit(1)
-	}
 }
 

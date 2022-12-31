@@ -2,7 +2,7 @@ module instruction
 
 import token
 
-pub struct Instruction {
+pub struct Instr {
 	pub mut:
 		instr_name string
 		left_hs    Expr

@@ -75,7 +75,7 @@ fn (mut g Gen) has_label(name string) bool {
 	return false
 }
 
-fn (mut g Gen) get_label(name string) &instruction.Instruction {
+fn (mut g Gen) get_label(name string) &instruction.Instr {
 	for i, l in g.labels {
 		if l.left_hs.lit == name {
 			return &g.labels[i]
@@ -84,7 +84,7 @@ fn (mut g Gen) get_label(name string) &instruction.Instruction {
 	panic('unknown label name `$name`')
 }
 
-pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
+pub fn (mut g Gen) encode(mut instrs []instruction.Instr) {
 	for mut instr in instrs {
 		mut src_size := 0
 		mut trg_size := 0
@@ -102,7 +102,8 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 								trg_size = reg_size(instr.right_hs.lit)
 
 								if src_size != 64 || src_size != trg_size {
-									g.errors << error.new_error(instr.pos, 'miss match size of operand')
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
 								}
 								// movq %reg, ...
 								code << [ u8(0x48), u8(0x89), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
@@ -126,7 +127,8 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 							instruction.RegExpr {
 								trg_size = reg_size(instr.right_hs.lit)
 								if trg_size != 64 {
-									g.errors << error.new_error(instr.right_hs.pos, 'miss match size of operand')
+									error.print(error.new_error(instr.right_hs.pos, 'miss match size of operand'))
+									exit(1)
 								}
 								code << [ u8(0x48), u8(0xc7), u8(0xc0 + reg_bits(instr.right_hs.lit)) ]
 								code << buf
@@ -144,12 +146,14 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 				match mut instr.left_hs {
 					instruction.RegExpr {
 						if !(instr.left_hs.lit in reg64) {
-							g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
+							error.print(error.new_error(instr.left_hs.pos, 'invalid operand for instruction'))
+							exit(1)
 						} else {
 							code << u8(0x58 + reg_bits(instr.left_hs.lit))
 						}
 					} else {
-						g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
+						error.print(error.new_error(instr.left_hs.pos, 'invalid operand for instruction'))
+						exit(1)
 					}
 				}
 				g.addr += code.len
@@ -158,7 +162,8 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 				match mut instr.left_hs {
 					instruction.RegExpr {
 						if !(instr.left_hs.lit in reg64) {
-							g.errors << error.new_error(instr.left_hs.pos, 'invalid operand for instruction')
+							error.print(error.new_error(instr.left_hs.pos, 'invalid operand for instruction'))
+							exit(1)
 						} else {
 							code << u8(0x50 + reg_bits(instr.left_hs.lit))
 						}
@@ -193,7 +198,8 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 								trg_size = reg_size(instr.right_hs.lit)
 
 								if src_size != 64 || src_size != trg_size {
-									g.errors << error.new_error(instr.pos, 'miss match size of operand')
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
 								}
 								code << [ u8(0x48), u8(0x01), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
 							} else {
@@ -208,7 +214,8 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 								trg_size = reg_size(instr.right_hs.lit)
 
 								if trg_size != 64 {
-									g.errors << error.new_error(instr.pos, 'miss match size of operand')
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
 								}
 
 								num := strconv.atoi(instr.left_hs.lit) or {
@@ -241,7 +248,8 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 				g.addr += code.len
 			}
 			'MOVL' {
-				g.errors << error.new_error(instr.pos, 'instruction not implemented yet')
+				error.print(error.new_error(instr.pos, 'instruction not implemented yet'))
+				exit(1)
 			}
 			'SYSCALL' {
 				code << [ u8(0x0f), 0x05 ]
@@ -251,13 +259,15 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 				match mut instr.left_hs {
 					instruction.IdentExpr {
 						if g.has_label(instr.left_hs.lit) {
-							g.errors << error.new_error(instr.pos, 'symbol `$instr.left_hs.lit` is already defined')
+							error.print(error.new_error(instr.pos, 'symbol `$instr.left_hs.lit` is already defined'))
+							exit(1)
 						} else {
 							instr.addr = g.addr
 							g.labels << instr
 						}
 					} else {
-						g.errors << error.new_error(instr.pos, 'must be an identifier')
+						error.print(error.new_error(instr.pos, 'must be an identifier'))
+						exit(1)
 					}
 				}
 			}
@@ -279,12 +289,14 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 					}
 					instruction.RegExpr {
 						if reg_size(instr.left_hs.lit) != 64 {
-							g.errors << error.new_error(instr.pos, 'not supported in 64bit mode')
+							error.print(error.new_error(instr.pos, 'not supported in 64bit mode'))
+							exit(1)
 						}
 						code << [ u8(0xff), u8(0xd0 + reg_bits(instr.left_hs.lit)) ]
 						g.addr += code.len
 					} else {
-						g.errors << error.new_error(instr.pos, 'invalid operand for instruction')
+						error.print(error.new_error(instr.pos, 'invalid operand for instruction'))
+						exit(1)
 					}
 				}
 				instr.addr = g.addr
@@ -296,7 +308,7 @@ pub fn (mut g Gen) encode(mut instrs []instruction.Instruction) {
 	}
 }
 
-pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
+pub fn (mut g Gen) write_code(instrs []instruction.Instr) {
 	for instr in instrs {
 		match instr.instr_name {
 			'MOVQ', 'SYSCALL', 'RETQ', 'NOP', 'POPQ', 'PUSHQ', 'ADDQ' {
@@ -325,7 +337,8 @@ pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
 							g.globals_count++
 						}
 					} else {
-						g.errors << error.new_error(instr.left_hs.pos, 'must be an identifier')
+						error.print(error.new_error(instr.left_hs.pos, 'must be an identifier'))
+						exit(1)
 					}
 				}
 			}
@@ -340,7 +353,8 @@ pub fn (mut g Gen) write_code(instrs []instruction.Instruction) {
 							l.binding = stb_local
 						}
 					} else {
-						g.errors << error.new_error(instr.left_hs.pos, 'must be an identifier')
+						error.print(error.new_error(instr.left_hs.pos, 'must be an identifier'))
+						exit(1)
 					}
 				}
 			}
