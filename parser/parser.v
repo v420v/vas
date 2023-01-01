@@ -147,6 +147,13 @@ fn (mut p Parser) parse_instr() gen.Instr {
 			instr.kind = .syscall
 			p.next()
 		}
+		'XORQ' {
+			instr.kind = .xorq
+			p.next()
+			instr.left_hs = p.parse_expr()
+			p.expect(.comma)
+			instr.right_hs = p.parse_expr()
+		}
 		'NOP' {
 			instr.kind = .nop
 			p.next()

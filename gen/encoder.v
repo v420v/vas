@@ -16,6 +16,7 @@ pub enum InstrKind {
 	addq
 	subq
 	callq
+	xorq
 	retq
 	syscall
 	nop
@@ -53,6 +54,8 @@ pub struct IdentExpr {
 		lit string
 		pos  token.Position
 }
+
+const rex_w = u8(0x48)
 
 const reg32 = ['EAX', 'ECX', 'EDX', 'EBX', 'ESP', 'EBP', 'ESI', 'EDI']
 const reg64 = ['RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI']
@@ -109,9 +112,7 @@ fn calc_rm(dest string, src string) u8 {
 	d_n = reg_bits(dest)
 	s_n = reg_bits(src)
 
-	out := 0xc0 + (8 * s_n) + d_n
-
-	return u8(out)
+	return u8(0xc0 + (8 * s_n) + d_n)
 }
 
 fn (mut g Gen) has_label(name string) bool {
@@ -152,7 +153,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 									exit(1)
 								}
 
-								code << [ u8(0x48), u8(0x89), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
+								code << [ rex_w, u8(0x89), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
 							} else {
 								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
 								exit(1)
@@ -162,7 +163,8 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 
 					IntExpr {
 						num := strconv.atoi(instr.left_hs.lit) or {
-							panic('atoi() failed')
+							error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+							exit(1)
 						}
 
 						mut buf := [ u8(0), 0, 0, 0 ]
@@ -175,8 +177,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 									error.print(error.new_error(instr.right_hs.pos, 'miss match size of operand'))
 									exit(1)
 								}
-								code << [ u8(0x48), u8(0xc7), u8(0xc0 + reg_bits(instr.right_hs.lit)) ]
-								code << buf
+								code << [ rex_w, u8(0xc7), u8(0xc0 + reg_bits(instr.right_hs.lit)), buf[0], buf[1], buf[2], buf[3] ]
 							} else {
 								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
 								exit(1)
@@ -189,7 +190,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 				}
 				g.addr += code.len
 			}
-			
+
 			.popq {
 				match mut instr.left_hs {
 					RegExpr {
@@ -206,7 +207,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 				}
 				g.addr += code.len
 			}
-			
+
 			.pushq {
 				match mut instr.left_hs {
 					RegExpr {
@@ -235,7 +236,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 				}
 				g.addr += code.len
 			}
-			
+
 			.addq {
 				match mut instr.left_hs {
 					RegExpr {
@@ -249,7 +250,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 									exit(1)
 								}
 
-								code << [ u8(0x48), u8(0x01), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
+								code << [ rex_w, u8(0x01), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
 							} else {
 								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
 								exit(1)
@@ -274,15 +275,14 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 								mod_rm :=  u8(0xc0 + reg_bits(instr.right_hs.lit))
 
 								if -128 <= num && num <= 127 {
-									code << [ u8(0x48), 0x83, mod_rm, u8(num) ]
+									code << [ rex_w, 0x83, mod_rm, u8(num) ]
 								} else if num < 1 << 31 {
 									mut hex := [ u8(0), 0, 0, 0 ]
 									binary.little_endian_put_u32(mut &hex, u32(num))
-
 									if instr.right_hs.lit == 'RAX' {
-										code << [ u8(0x48), 0x05, hex[0], hex[1], hex[2], hex[3] ]
+										code << [ rex_w, 0x05, hex[0], hex[1], hex[2], hex[3] ]
 									} else {
-										code << [ u8(0x48), 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
+										code << [ rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
 									}
 								}
 							} else {
@@ -311,7 +311,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 									exit(1)
 								}
 
-								code << [ u8(0x48), 0x29, u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
+								code << [ rex_w, 0x29, u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit)) ]
 							} else {
 								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
 								exit(1)
@@ -336,11 +336,11 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 								mod_rm :=  u8(0xe8 + reg_bits(instr.right_hs.lit))
 
 								if -128 <= num && num <= 127 {
-									code << [ u8(0x48), 0x83, mod_rm, u8(num) ]
+									code << [ rex_w, 0x83, mod_rm, u8(num) ]
 								} else if num < 1 << 31 {
 									mut hex := [ u8(0), 0, 0, 0 ]
 									binary.little_endian_put_u32(mut &hex, u32(num))
-									code << [ u8(0x48), 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
+									code << [ rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3] ]
 								}
 							} else {
 								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
@@ -380,7 +380,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 			.global, .local {
 				// pass
 			}
-			
+
 			.retq {
 				code << 0xc3
 				g.addr++
@@ -389,6 +389,51 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 			.nop {
 				code << 0x90
 				g.addr++
+			}
+
+			.xorq {
+				match instr.left_hs {
+					RegExpr {
+						src_size = reg_size(instr.left_hs.lit)
+						match instr.right_hs {
+							RegExpr {
+								trg_size = reg_size(instr.right_hs.lit)
+								if src_size != 64 || src_size != trg_size {
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
+								}
+								code << [rex_w, 0x31, calc_rm(instr.left_hs.lit, instr.right_hs.lit)]
+							} else {
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
+							}
+						}
+					}
+					IntExpr {
+						num := strconv.atoi(instr.left_hs.lit) or {
+							error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+							exit(1)
+						}
+
+						match instr.right_hs {
+							RegExpr {
+								trg_size = reg_size(instr.right_hs.lit)
+								if trg_size != 64 {
+									error.print(error.new_error(instr.pos, 'miss match size of operand'))
+									exit(1)
+								}
+								code = [rex_w, 0x83, u8(0xf0 + reg_bits(instr.right_hs.lit)), u8(num)]
+							} else {
+								error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+								exit(1)
+							}
+						}
+					} else {
+						error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+						exit(1)
+					}
+				}
+				g.addr += code.len
 			}
 
 			.callq {
@@ -418,7 +463,7 @@ pub fn (mut g Gen) encode(mut instrs []Instr) {
 pub fn (mut g Gen) write_code(instrs []Instr) {
 	for instr in instrs {
 		match instr.kind {
-			.movq, .syscall, .retq, .nop, .popq, .pushq, .addq, .subq {
+			.movq, .syscall, .retq, .nop, .popq, .pushq, .addq, .subq, .xorq {
 				g.code << instr.code
 			}
 
@@ -428,8 +473,7 @@ pub fn (mut g Gen) write_code(instrs []Instr) {
 						mut buf := [ u8(0), 0, 0, 0 ]
 						label := g.get_label(instr.left_hs.lit)
 						binary.little_endian_put_u32(mut &buf, u32(label.addr - instr.addr))
-						g.code << 0xe8
-						g.code << buf
+						g.code << [u8(0xe8), buf[0], buf[1], buf[2], buf[3]]
 					}
 					RegExpr {
 						g.code << instr.code
