@@ -62,7 +62,7 @@ fn (mut p Parser) parse_expr() gen.Expr {
 				pos: pos
 			}
 		}
-		.ident { // identifier ? label name
+		.ident, .number { // identifier ? label name
 			lit := p.tok.lit
 			p.next()
 			return gen.IdentExpr {
@@ -82,7 +82,7 @@ fn (mut p Parser) parse_instr() gen.Instr {
 		pos: p.tok.pos
 	}
 
-	if p.tok.kind == .ident && p.peak_token().kind == .colon {
+	if (p.tok.kind == .ident || p.tok.kind == .number) && p.peak_token().kind == .colon {
 		instr.kind = .label
 		instr.left_hs = p.parse_expr()
 		instr.binding = 0

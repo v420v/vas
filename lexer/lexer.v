@@ -76,7 +76,7 @@ fn (mut l Lexer) read_ident() token.Token {
 	mut pos := l.current_pos()
 	start := l.idx
 	for {
-		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || l.c == `_` || l.c == `.` {
+		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || (l.c >= `0` && l.c <= `9`) || l.c == `_` || l.c == `.` {
 			l.advance()
 		} else {
 			break
