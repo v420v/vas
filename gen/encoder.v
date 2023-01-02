@@ -231,7 +231,7 @@ fn (mut g Gen) encode_pushq(instr Instr) []u8 {
 			if num < 1 << 7 {
 				code << [u8(0x6a), u8(num)]
 			} else if num < 1 << 31 {
-				mut hex := [4]u8{}
+				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(num))
 				code << [u8(0x68), hex[0], hex[1], hex[2], hex[3]]
 			}
@@ -289,7 +289,7 @@ fn (mut g Gen) encode_addq(instr Instr) []u8 {
 					if -128 <= num && num <= 127 {
 						code << [gen.rex_w, 0x83, mod_rm, u8(num)]
 					} else if num < 1 << 31 {
-						mut hex := [4]u8{}
+						mut hex := [u8(0), 0, 0, 0]
 						binary.little_endian_put_u32(mut &hex, u32(num))
 						if instr.right_hs.lit == 'RAX' {
 							code << [gen.rex_w, 0x05, hex[0], hex[1], hex[2], hex[3]]
@@ -357,7 +357,7 @@ fn (mut g Gen) encode_subq(instr Instr) []u8 {
 					if -128 <= num && num <= 127 {
 						code << [gen.rex_w, 0x83, mod_rm, u8(num)]
 					} else if num < 1 << 31 {
-						mut hex := [4]u8{}
+						mut hex := [u8(0), 0, 0, 0]
 						binary.little_endian_put_u32(mut &hex, u32(num))
 						code << [gen.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
 					}
@@ -472,7 +472,6 @@ fn (mut g Gen) encode_callq(instr Instr) ([]u8, int) {
 
 pub fn (mut g Gen) encode(mut instrs []Instr) {
 	for mut instr in instrs {
-
 		match mut instr.kind {
 			.movq {
 				instr.code = g.encode_movq(instr)

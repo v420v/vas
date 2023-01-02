@@ -1,16 +1,30 @@
 module token
 
 pub const registers = [
-	'EAX', 'RAX', 'ECX', 'RCX', 'EDX', 'RDX', 'EBX', 'RBX',
-	'ESP', 'RSP', 'EBP', 'RBP', 'ESI', 'RSI', 'EDI', 'RDI',
+	'EAX',
+	'RAX',
+	'ECX',
+	'RCX',
+	'EDX',
+	'RDX',
+	'EBX',
+	'RBX',
+	'ESP',
+	'RSP',
+	'EBP',
+	'RBP',
+	'ESI',
+	'RSI',
+	'EDI',
+	'RDI',
 ]
 
 pub struct Position {
-	pub mut:
-		file_name string
-		line      int
-		col       int
-		len       int
+pub mut:
+	file_name string
+	line      int
+	col       int
+	len       int
 }
 
 pub enum TokenKind {
@@ -25,10 +39,10 @@ pub enum TokenKind {
 }
 
 pub struct Token {
-	pub:
-		kind TokenKind
-		pos  Position
-		lit string
+pub:
+	kind TokenKind
+	pos  Position
+	lit  string
 }
 
 pub fn token_kind_str(kind TokenKind) string {
@@ -59,4 +73,5 @@ pub fn token_kind_str(kind TokenKind) string {
 		}
 	}
 }
+
 

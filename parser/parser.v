@@ -5,17 +5,17 @@ import token
 import gen
 
 struct Parser {
-	mut:
-		idx        int
-		tok        token.Token // current token
-		tokens     []token.Token
+mut:
+	idx    int
+	tok    token.Token // current token
+	tokens []token.Token
 }
 
 pub fn new(tokens []token.Token) &Parser {
-	return &Parser {
-		idx: 0,
-		tok: tokens[0],
-		tokens: tokens,
+	return &Parser{
+		idx: 0
+		tok: tokens[0]
+		tokens: tokens
 	}
 }
 
@@ -25,13 +25,13 @@ fn (mut p Parser) next() {
 }
 
 fn (mut p Parser) peak_token() token.Token {
-	return p.tokens[p.idx+1]
+	return p.tokens[p.idx + 1]
 }
 
 fn (mut p Parser) expect(exp token.TokenKind) {
 	if p.tok.kind != exp {
 		exp_tok_str := token.token_kind_str(exp)
-		error.print(error.new_error(p.tok.pos, 'expected `$exp_tok_str` but got `$p.tok.lit`'))
+		error.print(error.new_error(p.tok.pos, 'expected `${exp_tok_str}` but got `${p.tok.lit}`'))
 		exit(1)
 	}
 	p.next()
@@ -44,7 +44,7 @@ fn (mut p Parser) parse_expr() gen.Expr {
 			p.next()
 			num := p.tok.lit
 			p.next()
-			return gen.IntExpr {
+			return gen.IntExpr{
 				lit: num
 				pos: pos
 			}
@@ -52,12 +52,12 @@ fn (mut p Parser) parse_expr() gen.Expr {
 		.percent { // register
 			p.next()
 			reg_name := p.tok.lit.to_upper()
-			if !(reg_name in token.registers) {
+			if reg_name !in token.registers {
 				error.print(error.new_error(p.tok.pos, 'invalid register name'))
 				exit(1)
 			}
 			p.next()
-			return gen.RegExpr {
+			return gen.RegExpr{
 				lit: reg_name
 				pos: pos
 			}
@@ -65,12 +65,13 @@ fn (mut p Parser) parse_expr() gen.Expr {
 		.ident, .number { // identifier ? label name
 			lit := p.tok.lit
 			p.next()
-			return gen.IdentExpr {
+			return gen.IdentExpr{
 				lit: lit
 				pos: pos
 			}
-		} else {
-			error.print(error.new_error(p.tok.pos, 'expected expression but got `$p.tok.lit`'))
+		}
+		else {
+			error.print(error.new_error(p.tok.pos, 'expected expression but got `${p.tok.lit}`'))
 			exit(1)
 		}
 	}
@@ -161,8 +162,9 @@ fn (mut p Parser) parse_instr() gen.Instr {
 		'HLT' {
 			instr.kind = .hlt
 			p.next()
-		} else {
-			error.print(error.new_error(instr.pos, 'unkwoun instruction `$name`'))
+		}
+		else {
+			error.print(error.new_error(instr.pos, 'unkwoun instruction `${name}`'))
 			exit(1)
 		}
 	}
@@ -181,3 +183,4 @@ pub fn (mut p Parser) parse() []gen.Instr {
 	}
 	return instrs
 }
+
