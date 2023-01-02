@@ -157,6 +157,10 @@ fn (mut p Parser) parse_instr() gen.Instr {
 		'NOP' {
 			instr.kind = .nop
 			p.next()
+		}
+		'HLT' {
+			instr.kind = .hlt
+			p.next()
 		} else {
 			error.print(error.new_error(instr.pos, 'unkwoun instruction `$name`'))
 			exit(1)
