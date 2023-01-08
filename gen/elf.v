@@ -95,19 +95,22 @@ fn (mut g Gen) gen_label(label_binding int, mut off &int, mut str &string) {
 	for label in g.labels {
 		if label.binding == label_binding {
 			label_name = label.left_hs.lit
-			unsafe {
-				*off += str.len + 1
-			}
-			g.symtab << Elf64_Sym{
-				st_name: u32(*off)
-				st_info: u8((label.binding << 4) + (gen.stt_notype & 0xf))
-				st_shndx: 1
-				st_value: label.addr
-			}
+			if !(label_name.to_upper().starts_with('.L') && label_binding == stb_local) {
+				unsafe {
+					*off += str.len + 1
+				}
 
-			g.strtab << label_name.bytes()
-			g.strtab << 0x00
-			str = label_name
+				g.symtab << Elf64_Sym{
+					st_name: u32(*off)
+					st_info: u8((label.binding << 4) + (gen.stt_notype & 0xf))
+					st_shndx: 1
+					st_value: label.addr
+				}
+
+				g.strtab << label_name.bytes()
+				g.strtab << 0x00
+				str = label_name
+			}
 		}
 	}
 }
@@ -147,7 +150,6 @@ pub fn (mut g Gen) gen_elf() {
 
 	g.gen_symtab_strtab(null_nameofs)
 
-	// size 64 bytes
 	shstrtab := [
 		u8(0x00),
 		// .text\0

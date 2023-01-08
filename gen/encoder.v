@@ -164,8 +164,8 @@ fn (mut g Gen) encode_movq(instr Instr) []u8 {
 				exit(1)
 			}
 
-			mut buf := [u8(0), 0, 0, 0]
-			binary.little_endian_put_u32(mut &buf, u32(num))
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(num))
 
 			match instr.right_hs {
 				RegExpr {
@@ -174,8 +174,8 @@ fn (mut g Gen) encode_movq(instr Instr) []u8 {
 						error.print(error.new_error(instr.right_hs.pos, 'miss match size of operand'))
 						exit(1)
 					}
-					code << [gen.rex_w, u8(0xc7), u8(0xc0 + reg_bits(instr.right_hs.lit)), buf[0],
-						buf[1], buf[2], buf[3]]
+					mod_rm := u8(0xc0 + reg_bits(instr.right_hs.lit))
+					code << [gen.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
 				}
 				else {
 					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
