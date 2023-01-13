@@ -96,18 +96,16 @@ fn (mut l Lexer) read_ident() token.Token {
 	}
 }
 
-pub fn (mut l Lexer) lex() []token.Token {
-	mut tokens := []token.Token{}
-
+pub fn (mut l Lexer) lex() token.Token {
 	for l.c != `\0` {
 		mut pos := l.current_pos()
 		if l.c == ` ` {
 			l.advance()
 		} else if l.c >= `0` && l.c <= `9` {
-			tokens << l.read_number()
+			return l.read_number()
 		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`)
 			|| l.c == `_` || l.c == `.` {
-			tokens << l.read_ident()
+			return l.read_ident()
 		} else {
 			pos.len = 1
 			match l.c {
@@ -116,7 +114,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				`\n` {
 					l.advance()
-					tokens << token.Token{
+					return token.Token{
 						lit: '<eol>'
 						kind: .eol
 						pos: pos
@@ -124,7 +122,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				`:` {
 					l.advance()
-					tokens << token.Token{
+					return token.Token{
 						lit: ':'
 						kind: .colon
 						pos: pos
@@ -132,7 +130,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				`$` {
 					l.advance()
-					tokens << token.Token{
+					return token.Token{
 						lit: '$'
 						kind: .dolor
 						pos: pos
@@ -140,7 +138,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				`%` {
 					l.advance()
-					tokens << token.Token{
+					return token.Token{
 						lit: '%'
 						kind: .percent
 						pos: pos
@@ -148,7 +146,7 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				`,` {
 					l.advance()
-					tokens << token.Token{
+					return token.Token{
 						lit: ','
 						kind: .comma
 						pos: pos
@@ -156,20 +154,17 @@ pub fn (mut l Lexer) lex() []token.Token {
 				}
 				else {
 					c := [l.c].bytestr()
-					err := error.new_error(pos, 'unexpected token `${c}`')
-					error.print(err)
+					error.print(pos, 'unexpected token `${c}`')
 					exit(1)
 				}
 			}
 		}
 	}
 
-	tokens << token.Token{
+	return token.Token{
 		lit: '\0'
 		kind: token.TokenKind.eof
 		pos: l.current_pos()
 	} // end of file
-
-	return tokens
 }
 

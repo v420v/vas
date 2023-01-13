@@ -135,32 +135,27 @@ fn (mut g Gen) get_label(name string) &Instr {
 }
 
 fn (mut g Gen) encode_movq(instr Instr) []u8 {
-	mut src_size := 0
-	mut trg_size := 0
 	mut code := []u8{}
 	match instr.left_hs {
 		RegExpr {
-			src_size = reg_size(instr.left_hs.lit)
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-
-					if src_size != 64 || src_size != trg_size {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.left_hs.lit) != 64 || reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 
 					code << [gen.rex_w, u8(0x89), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit))]
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		IntExpr {
 			num := strconv.atoi(instr.left_hs.lit) or {
-				error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+				error.print(instr.left_hs.pos, 'atoi() failed')
 				exit(1)
 			}
 
@@ -169,25 +164,25 @@ fn (mut g Gen) encode_movq(instr Instr) []u8 {
 
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-					if trg_size != 64 {
-						error.print(error.new_error(instr.right_hs.pos, 'miss match size of operand'))
+					if reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.right_hs.pos, 'miss match size of operand')
 						exit(1)
 					}
 					mod_rm := u8(0xc0 + reg_bits(instr.right_hs.lit))
 					code << [gen.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		else {
-			error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+			error.print(instr.left_hs.pos, 'unexpected expression')
 			exit(1)
 		}
 	}
+
 	g.addr += code.len
 	return code
 }
@@ -197,14 +192,14 @@ fn (mut g Gen) encode_popq(instr Instr) []u8 {
 	match instr.left_hs {
 		RegExpr {
 			if instr.left_hs.lit !in gen.reg64 {
-				error.print(error.new_error(instr.left_hs.pos, 'invalid operand for instruction'))
+				error.print(instr.left_hs.pos, 'invalid operand for instruction')
 				exit(1)
 			} else {
 				code << u8(0x58 + reg_bits(instr.left_hs.lit))
 			}
 		}
 		else {
-			error.print(error.new_error(instr.left_hs.pos, 'invalid operand for instruction'))
+			error.print(instr.left_hs.pos, 'invalid operand for instruction')
 			exit(1)
 		}
 	}
@@ -217,7 +212,7 @@ fn (mut g Gen) encode_pushq(instr Instr) []u8 {
 	match instr.left_hs {
 		RegExpr {
 			if instr.left_hs.lit !in gen.reg64 {
-				error.print(error.new_error(instr.left_hs.pos, 'invalid operand for instruction'))
+				error.print(instr.left_hs.pos, 'invalid operand for instruction')
 				exit(1)
 			} else {
 				code << u8(0x50 + reg_bits(instr.left_hs.lit))
@@ -225,7 +220,7 @@ fn (mut g Gen) encode_pushq(instr Instr) []u8 {
 		}
 		IntExpr {
 			num := strconv.atoi(instr.left_hs.lit) or {
-				error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+				error.print(instr.left_hs.pos, 'atoi() failed')
 				exit(1)
 			}
 			if num < 1 << 7 {
@@ -237,7 +232,7 @@ fn (mut g Gen) encode_pushq(instr Instr) []u8 {
 			}
 		}
 		else {
-			error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+			error.print(instr.left_hs.pos, 'unexpected expression')
 			exit(1)
 		}
 	}
@@ -246,41 +241,34 @@ fn (mut g Gen) encode_pushq(instr Instr) []u8 {
 }
 
 fn (mut g Gen) encode_addq(instr Instr) []u8 {
-	mut src_size := 0
-	mut trg_size := 0
 	mut code := []u8{}
 	match instr.left_hs {
 		RegExpr {
-			src_size = reg_size(instr.left_hs.lit)
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-
-					if src_size != 64 || src_size != trg_size {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.left_hs.lit) != 64 || reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 
 					code << [gen.rex_w, u8(0x01), u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit))]
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		IntExpr {
 			num := strconv.atoi(instr.left_hs.lit) or {
-				error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+				error.print(instr.left_hs.pos, 'atoi() failed')
 				exit(1)
 			}
 
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-
-					if trg_size != 64 {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 
@@ -299,13 +287,13 @@ fn (mut g Gen) encode_addq(instr Instr) []u8 {
 					}
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		else {
-			error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+			error.print(instr.left_hs.pos, 'unexpected expression')
 			exit(1)
 		}
 	}
@@ -314,41 +302,34 @@ fn (mut g Gen) encode_addq(instr Instr) []u8 {
 }
 
 fn (mut g Gen) encode_subq(instr Instr) []u8 {
-	mut src_size := 0
-	mut trg_size := 0
 	mut code := []u8{}
 	match instr.left_hs {
 		RegExpr {
-			src_size = reg_size(instr.left_hs.lit)
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-
-					if src_size != 64 || src_size != trg_size {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.left_hs.lit) != 64 || reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 
 					code << [gen.rex_w, 0x29, u8(calc_rm(instr.right_hs.lit, instr.left_hs.lit))]
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		IntExpr {
 			num := strconv.atoi(instr.left_hs.lit) or {
-				error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+				error.print(instr.left_hs.pos, 'atoi() failed')
 				exit(1)
 			}
 
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-
-					if trg_size != 64 {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 
@@ -363,13 +344,13 @@ fn (mut g Gen) encode_subq(instr Instr) []u8 {
 					}
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		else {
-			error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+			error.print(instr.left_hs.pos, 'unexpected expression')
 			exit(1)
 		}
 	}
@@ -382,14 +363,14 @@ pub fn (mut g Gen) encode_label(instr Instr) int {
 	match instr.left_hs {
 		IdentExpr {
 			if g.has_label(instr.left_hs.lit) {
-				error.print(error.new_error(instr.pos, 'symbol `${instr.left_hs.lit}` is already defined'))
+				error.print(instr.pos, 'symbol `${instr.left_hs.lit}` is already defined')
 				exit(1)
 			} else {
 				addr = g.addr
 			}
 		}
 		else {
-			error.print(error.new_error(instr.pos, 'must be an identifier'))
+			error.print(instr.pos, 'must be an identifier')
 			exit(1)
 		}
 	}
@@ -397,50 +378,45 @@ pub fn (mut g Gen) encode_label(instr Instr) int {
 }
 
 fn (mut g Gen) encode_xor(instr Instr) []u8 {
-	mut src_size := 0
-	mut trg_size := 0
 	mut code := []u8{}
 	match instr.left_hs {
 		RegExpr {
-			src_size = reg_size(instr.left_hs.lit)
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-					if src_size != 64 || src_size != trg_size {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.left_hs.lit) != 64 || reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 					code << [gen.rex_w, 0x31, calc_rm(instr.left_hs.lit, instr.right_hs.lit)]
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		IntExpr {
 			num := strconv.atoi(instr.left_hs.lit) or {
-				error.print(error.new_error(instr.left_hs.pos, 'atoi() failed'))
+				error.print(instr.left_hs.pos, 'atoi() failed')
 				exit(1)
 			}
 
 			match instr.right_hs {
 				RegExpr {
-					trg_size = reg_size(instr.right_hs.lit)
-					if trg_size != 64 {
-						error.print(error.new_error(instr.pos, 'miss match size of operand'))
+					if reg_size(instr.right_hs.lit) != 64 {
+						error.print(instr.pos, 'miss match size of operand')
 						exit(1)
 					}
 					code = [gen.rex_w, 0x83, u8(0xf0 + reg_bits(instr.right_hs.lit)), u8(num)]
 				}
 				else {
-					error.print(error.new_error(instr.right_hs.pos, 'unexpected expression'))
+					error.print(instr.right_hs.pos, 'unexpected expression')
 					exit(1)
 				}
 			}
 		}
 		else {
-			error.print(error.new_error(instr.left_hs.pos, 'unexpected expression'))
+			error.print(instr.left_hs.pos, 'unexpected expression')
 			exit(1)
 		}
 	}
@@ -456,14 +432,14 @@ fn (mut g Gen) encode_callq(instr Instr) ([]u8, int) {
 		}
 		RegExpr {
 			if reg_size(instr.left_hs.lit) != 64 {
-				error.print(error.new_error(instr.pos, 'not supported in 64bit mode'))
+				error.print(instr.pos, 'not supported in 64bit mode')
 				exit(1)
 			}
 			code << [u8(0xff), u8(0xd0 + reg_bits(instr.left_hs.lit))]
 			g.addr += code.len
 		}
 		else {
-			error.print(error.new_error(instr.pos, 'invalid operand for instruction'))
+			error.print(instr.pos, 'invalid operand for instruction')
 			exit(1)
 		}
 	}
@@ -551,7 +527,7 @@ pub fn (mut g Gen) write_code(instrs []Instr) {
 						}
 					}
 					else {
-						error.print(error.new_error(instr.left_hs.pos, 'must be an identifier'))
+						error.print(instr.left_hs.pos, 'must be an identifier')
 						exit(1)
 					}
 				}
@@ -568,7 +544,7 @@ pub fn (mut g Gen) write_code(instrs []Instr) {
 						}
 					}
 					else {
-						error.print(error.new_error(instr.left_hs.pos, 'must be an identifier'))
+						error.print(instr.left_hs.pos, 'must be an identifier')
 						exit(1)
 					}
 				}
