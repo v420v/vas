@@ -28,7 +28,7 @@ foo:
 
 ## Build
 ```sh
-$ v vas.v
+$ v vas.v -gc none
 ```
 
 ## Assemble
