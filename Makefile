@@ -1,6 +1,6 @@
 
 build:
-	v vas.v
+	v vas.v -gc none
 
 clean:
 	rm *.o *.out ./vas
