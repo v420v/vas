@@ -1,6 +1,5 @@
 module parser
 
-import os
 import error
 import token
 import lexer
@@ -8,22 +7,20 @@ import gen
 
 struct Parser {
 mut:
-	tok  token.Token // current token
-	lex  lexer.Lexer
+	tok             token.Token // current token
+	lex             lexer.Lexer
+	call_targets    []gen.CallTarget
+	defined_symbols []&gen.Instr
 }
 
-pub fn new(file_name string) &Parser {
-	program := os.read_file(file_name) or {
-		eprintln('error: reading file `${file_name}`')
-		exit(1)
-	}
-
+pub fn new(program string, file_name string) &Parser {
 	mut l := lexer.new(file_name, program)
-	tok := l.lex()
 
 	return &Parser{
-		tok: tok
-		lex: l
+		tok:             l.lex()
+		lex:             l
+		call_targets:    []gen.CallTarget{}
+		defined_symbols: []&gen.Instr{}
 	}
 }
 
@@ -73,103 +70,109 @@ fn (mut p Parser) parse_expr() gen.Expr {
 				pos: pos
 			}
 		}
-		else {
-			error.print(p.tok.pos, 'expected expression but got `${p.tok.lit}`')
-			exit(1)
-		}
+		else {}
 	}
-	panic('unreachable')
+	error.print(p.tok.pos, 'expected expression but got `${p.tok.lit}`')
+	exit(1)
 }
 
-fn (mut p Parser) parse_instr() gen.Instr {
-	mut instr := gen.Instr{
-		pos: p.tok.pos
-	}
+fn (mut p Parser) parse_instr() &gen.Instr {
+	pos := p.tok.pos
+	mut instr := gen.Instr{}
 
 	name := p.tok.lit
 	p.next()
 
 	if p.tok.kind == .colon {
 		instr.kind = .label
-		instr.left_hs = gen.Expr(
-			gen.IdentExpr{
-				lit: name
-				pos: instr.pos
-			}
-		)
-		instr.binding = 0
+		instr.symbol_name = name
 		p.expect(.colon)
-		return instr
-	}
 
-	match name.to_upper() {
-		'.GLOBAL' {
-			instr.kind = .global
-			instr.left_hs = p.parse_expr()
-		}
-		'.LOCAL' {
-			instr.kind = .local
-			instr.left_hs = p.parse_expr()
-		}
-		'MOVQ' {
-			instr.kind = .movq
-			instr.left_hs = p.parse_expr()
-			p.expect(.comma)
-			instr.right_hs = p.parse_expr()
-		}
-		'POPQ' {
-			instr.kind = .popq
-			instr.left_hs = p.parse_expr()
-		}
-		'PUSHQ' {
-			instr.kind = .pushq
-			instr.left_hs = p.parse_expr()
-		}
-		'ADDQ' {
-			instr.kind = .addq
-			instr.left_hs = p.parse_expr()
-			p.expect(.comma)
-			instr.right_hs = p.parse_expr()
-		}
-		'SUBQ' {
-			instr.kind = .subq
-			instr.left_hs = p.parse_expr()
-			p.expect(.comma)
-			instr.right_hs = p.parse_expr()
-		}
-		'CALLQ' {
-			instr.kind = .callq
-			instr.left_hs = p.parse_expr()
-		}
-		'RETQ' {
-			instr.kind = .retq
-		}
-		'SYSCALL' {
-			instr.kind = .syscall
-		}
-		'XORQ' {
-			instr.kind = .xorq
-			instr.left_hs = p.parse_expr()
-			p.expect(.comma)
-			instr.right_hs = p.parse_expr()
-		}
-		'NOP' {
-			instr.kind = .nop
-		}
-		'HLT' {
-			instr.kind = .hlt
-		}
-		else {
-			error.print(instr.pos, 'unkwoun instruction `${name}`')
-			exit(1)
+		p.defined_symbols << &instr
+	} else {
+		match name.to_upper() {
+			'.GLOBAL' {
+				instr.kind = .global
+				instr.symbol_name = p.tok.lit
+				p.next()
+			}
+			'.LOCAL' {
+				instr.kind = .local
+				instr.symbol_name = p.tok.lit
+				p.next()
+			}
+			'MOVQ' {
+				instr.kind = .movq
+				left_expr := p.parse_expr()
+				p.expect(.comma)
+				right_expr := p.parse_expr()
+				instr.code = gen.encode_movq(left_expr, right_expr, pos)
+			}
+			'POPQ' {
+				instr.kind = .popq
+				expr := p.parse_expr()
+				instr.code = gen.encode_popq(expr)
+			}
+			'PUSHQ' {
+				instr.kind = .pushq
+				expr := p.parse_expr()
+				instr.code = gen.encode_pushq(expr)
+			}
+			'ADDQ' {
+				instr.kind = .addq
+				left_expr := p.parse_expr()
+				p.expect(.comma)
+				right_expr := p.parse_expr()
+				instr.code = gen.encode_addq(left_expr, right_expr, pos)
+			}
+			'SUBQ' {
+				instr.kind = .subq
+				left_expr := p.parse_expr()
+				p.expect(.comma)
+				right_expr := p.parse_expr()
+				instr.code = gen.encode_subq(left_expr, right_expr, pos)
+			}
+			'CALLQ' {
+				left_expr := p.parse_expr()
+				call_instr, call_target := gen.encode_callq(left_expr, pos)
+				p.call_targets << call_target
+				return call_instr
+			}
+			'RETQ' {
+				instr.kind = .retq
+				instr.code = [u8(0xc3)]
+			}
+			'SYSCALL' {
+				instr.kind = .syscall
+				instr.code = [u8(0x0f), 0x05]
+			}
+			'XORQ' {
+				instr.kind = .xorq
+				left_expr := p.parse_expr()
+				p.expect(.comma)
+				right_expr := p.parse_expr()
+				instr.code = gen.encode_xorq(left_expr, right_expr, pos)
+			}
+			'NOPQ' {
+				instr.kind = .nopq
+				instr.code = [u8(0x90)]
+			}
+			'HLT' {
+				instr.kind = .hlt
+				instr.code = [u8(0xf4)]
+			}
+			else {
+				error.print(pos, 'unkwoun instruction `${name}`')
+				exit(1)
+			}
 		}
 	}
-
-	return instr
+	return &instr
 }
 
-pub fn (mut p Parser) parse() []gen.Instr {
-	mut instrs := []gen.Instr{}
+pub fn (mut p Parser) parse() ([]&gen.Instr, []&gen.Instr, []gen.CallTarget) {
+	mut instrs := []&gen.Instr{}
+
 	for p.tok.kind != .eof {
 		if p.tok.kind == .eol {
 			p.next()
@@ -177,6 +180,7 @@ pub fn (mut p Parser) parse() []gen.Instr {
 			instrs << p.parse_instr()
 		}
 	}
-	return instrs
+
+	return instrs, p.defined_symbols, p.call_targets
 }
 
