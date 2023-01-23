@@ -7,7 +7,7 @@ pub struct Gen {
 pub mut:
 	code          []u8 // program
 	addr          i64
-	symbols        []&Instr
+	symbols       []&Instr
 	globals_count int
 	symtab        []Elf64_Sym
 	strtab        []u8
@@ -66,6 +66,12 @@ struct Elf64_Shdr {
 	sh_entsize   voidptr
 }
 
+struct Elf64_Rela {
+	r_offset u64
+	r_info   u64
+	r_addend i64
+}
+
 struct Elf64_Phdr {
 	ph_type   u32
 	ph_flags  u32
@@ -86,8 +92,10 @@ pub const (
 	sht_progbits = 1
 	sht_symtab = 2
 	sht_strtab = 3
+	sht_rela = 4
 	shf_alloc = 0x2
 	shf_execinstr = 0x4
+	shf_info_link = 0x40
 )
 
 fn (mut g Gen) gen_symbol(symbol_binding int, mut off &int, mut str &string) {
@@ -145,30 +153,37 @@ fn (mut g Gen) gen_symtab_strtab(null_nameofs int) {
 pub fn (mut g Gen) gen_elf() {
 	rodata := [16]u8{}
 
+	mut relatext := []Elf64_Rela{}
+
 	null_nameofs := 0
 
 	g.gen_symtab_strtab(null_nameofs)
 
-	shstrtab := [
+	mut shstrtab := [
 		u8(0x00),
 		// .text\0
 		0x2e, 0x74, 0x65, 0x78, 0x74, 0x00,
 		// .rodata\0
 		0x2e, 0x72, 0x6f, 0x64, 0x61, 0x74, 0x61, 0x00,
+		// .rela.text\0
+		0x2e, 0x72, 0x65, 0x6c, 0x61, 0x2e, 0x74, 0x65, 0x78, 0x74, 0x00,
 		// .strtab\0
 		0x2e, 0x73, 0x74, 0x72, 0x74, 0x61, 0x62, 0x00,
 		// .symtab\0
 		0x2e, 0x73, 0x79, 0x6d, 0x74, 0x61, 0x62, 0x00,
 		// .shstrtab\0
 		0x2e, 0x73, 0x68, 0x73, 0x74, 0x72, 0x74, 0x61, 0x62, 0x00,
-		// padding
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	]!
+	]
+
+	padding := (align_to(shstrtab.len, 32) - shstrtab.len)
+	for _ in 0 .. padding {
+		shstrtab << 0
+	}
 
 	text_nameofs := null_nameofs + ''.len + 1
 	rodata_nameofs := text_nameofs + '.text'.len + 1
-	strtab_nameofs := rodata_nameofs + '.rodata'.len + 1
+	relatext_nameofs := rodata_nameofs + '.rodata'.len + 1
+	strtab_nameofs :=   relatext_nameofs + '.rela.text'.len + 1
 	symtab_nameofs := strtab_nameofs + '.strtab'.len + 1
 	shstrtab_nameofs := symtab_nameofs + '.symtab'.len + 1
 
@@ -184,8 +199,11 @@ pub fn (mut g Gen) gen_elf() {
 	symtab_ofs := strtab_ofs + strtab_size
 	symtab_size := sizeof(Elf64_Sym) * u32(g.symtab.len)
 
-	shstrtab_ofs := symtab_ofs + symtab_size
-	shstrtab_size := sizeof(shstrtab)
+	relatext_ofs := symtab_ofs + symtab_size
+  	relatext_size := sizeof(Elf64_Rela) * u32(relatext.len)
+
+	shstrtab_ofs := relatext_ofs + relatext_size
+	shstrtab_size := u32(shstrtab.len)
 
 	sectionheader_ofs := shstrtab_ofs + shstrtab_size
 
@@ -248,6 +266,19 @@ pub fn (mut g Gen) gen_elf() {
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		},
+		// .rela.text
+		Elf64_Shdr{
+			sh_name: u32(relatext_nameofs)
+			sh_type: gen.sht_rela,
+			sh_flags: gen.shf_info_link
+			sh_addr: 0
+			sh_offset: relatext_ofs
+			sh_size: relatext_size
+			sh_link: 4
+			sh_info: 1
+			sh_addralign: 8
+			sh_entsize: sizeof(Elf64_Rela)
+		}
 		// .shstrtab
 		Elf64_Shdr{
 			sh_name: u32(shstrtab_nameofs)
@@ -310,7 +341,11 @@ pub fn (mut g Gen) gen_elf() {
 		fp.write_struct(s) or { panic('error writing `.symtab`') }
 	}
 
-	fp.write_raw(shstrtab) or { panic('error writing `.shstrtab`') }
+	for r in relatext {
+		fp.write_struct(r) or { panic('error writing `.rela.text`') }
+	}
+
+	fp.write(shstrtab) or { panic('error writing `.shstrtab`') }
 
 	for sh in section_headers {
 		fp.write_struct(sh) or { panic('error writing `Elf64_Shdr`') }
