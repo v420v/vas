@@ -60,18 +60,10 @@ pub:
 
 const (
 	rex_w = u8(0x48)
-	reg32 = ['EAX', 'ECX', 'EDX', 'EBX', 'ESP', 'EBP', 'ESI', 'EDI']
-	reg64 = ['RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI']
 )
 
-fn reg_size(reg string) int {
-	if reg in gen.reg32 {
-		return 32
-	}
-	if reg in gen.reg64 {
-		return 64
-	}
-	panic('unreachable')
+fn reg_is_64(reg string) bool {
+	return reg[0] == `R`
 }
 
 fn reg_bits(reg string) int {
@@ -126,7 +118,7 @@ pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 		RegExpr {
 			match right_expr {
 				RegExpr {
-					if reg_size(left_expr.lit) != 64 || reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -150,7 +142,7 @@ pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 
 			match right_expr {
 				RegExpr {
-					if reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(right_expr.lit) {
 						error.print(right_expr.pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -176,7 +168,7 @@ pub fn encode_popq(expr Expr) []u8 {
 	mut code := []u8{}
 	match expr {
 		RegExpr {
-			if expr.lit !in gen.reg64 {
+			if !reg_is_64(expr.lit) {
 				error.print(expr.pos, 'invalid operand for instruction')
 				exit(1)
 			} else {
@@ -195,7 +187,7 @@ pub fn encode_pushq(expr Expr) []u8 {
 	mut code := []u8{}
 	match expr {
 		RegExpr {
-			if expr.lit !in gen.reg64 {
+			if !reg_is_64(expr.lit) {
 				error.print(expr.pos, 'invalid operand for instruction')
 				exit(1)
 			} else {
@@ -229,7 +221,7 @@ pub fn encode_addq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 		RegExpr {
 			match right_expr {
 				RegExpr {
-					if reg_size(left_expr.lit) != 64 || reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -250,7 +242,7 @@ pub fn encode_addq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 
 			match right_expr {
 				RegExpr {
-					if reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -313,7 +305,7 @@ pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 		RegExpr {
 			match right_expr {
 				RegExpr {
-					if reg_size(left_expr.lit) != 64 || reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -334,7 +326,7 @@ pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 
 			match right_expr {
 				RegExpr {
-					if reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -369,7 +361,7 @@ pub fn encode_xorq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 		RegExpr {
 			match right_expr {
 				RegExpr {
-					if reg_size(left_expr.lit) != 64 || reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}
@@ -389,7 +381,7 @@ pub fn encode_xorq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 
 			match right_expr {
 				RegExpr {
-					if reg_size(right_expr.lit) != 64 {
+					if !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
 					}

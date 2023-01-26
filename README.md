@@ -26,12 +26,15 @@ foo:
     retq
 ```
 
+[If V is not installed](https://github.com/vlang/v)
+
 ## Build
+
 ```sh
 $ v vas.v -gc none
 ```
 
-## Assemble
+## Run
 ```
 $ vas <filename>.s
 $ ld <filename>.o
