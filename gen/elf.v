@@ -8,18 +8,23 @@ pub mut:
 	code          []u8 // program
 	addr          i64
 	symbols       []&Instr
+	rela_symbols  []string
 	globals_count int
+	relatext      []Elf64_Rela
 	symtab        []Elf64_Sym
 	strtab        []u8
 }
 
 pub fn new(out_file string) &Gen {
 	return &Gen{
-		addr: 0
+		addr:          0
 		globals_count: 0
-		out_file: out_file
-		code: []u8{}
-		symbols: []&Instr{}
+		out_file:      out_file
+		code:          []u8{}
+		symbols:       []&Instr{}
+		relatext:      []Elf64_Rela{}
+		symtab:        []Elf64_Sym{}
+		strtab:        []u8{}
 	}
 }
 
@@ -66,7 +71,7 @@ struct Elf64_Shdr {
 	sh_entsize   voidptr
 }
 
-struct Elf64_Rela {
+pub struct Elf64_Rela {
 	r_offset u64
 	r_info   u64
 	r_addend i64
@@ -122,26 +127,45 @@ fn (mut g Gen) gen_symbol(symbol_binding int, mut off &int, mut str &string) {
 	}
 }
 
-fn (mut g Gen) gen_symtab_strtab(null_nameofs int) {
+fn (mut g Gen) gen_rela_symbol(mut off &int, mut str &string) {
+	for symbol in g.rela_symbols {
+		unsafe {
+			*off += str.len + 1
+		}
+		g.symtab << Elf64_Sym{
+			st_name: u32(*off)
+			st_info: u8((gen.stb_global << 4) + (gen.stt_notype & 0xf))
+			st_shndx: 0
+		}
+		g.strtab << symbol.bytes()
+		g.strtab << 0x00
+		str = symbol
+	}
+}
+
+fn (mut g Gen) gen_symtab_strtab() {
+	g.strtab = [
+		u8(0x00),
+	]
+
+	mut off := 0
+	mut str := ''
+
 	g.symtab = [
 		Elf64_Sym{
-			st_name: u32(null_nameofs)
+			st_name: u32(0) // null_nameofs
 			st_info: ((gen.stb_local << 4) + (gen.stt_notype & 0xf))
 		},
 		// Section .rodata
 		Elf64_Sym{
-			st_name: u32(null_nameofs)
+			st_name: u32(0) // null_nameofs
 			st_info: ((gen.stb_local << 4) + (gen.stt_section & 0xf))
 			st_shndx: 2
 		},
 	]
 
-	g.strtab = [u8(0x00)]
-
-	mut off := null_nameofs
-	mut str := ''
-
 	g.gen_symbol(gen.stb_local, mut &off, mut &str)
+	g.gen_rela_symbol(mut &off, mut &str)
 	g.gen_symbol(gen.stb_global, mut &off, mut &str)
 
 	padding := (align_to(g.strtab.len, 32) - g.strtab.len)
@@ -153,11 +177,7 @@ fn (mut g Gen) gen_symtab_strtab(null_nameofs int) {
 pub fn (mut g Gen) gen_elf() {
 	rodata := [16]u8{}
 
-	mut relatext := []Elf64_Rela{}
-
-	null_nameofs := 0
-
-	g.gen_symtab_strtab(null_nameofs)
+	g.gen_symtab_strtab()
 
 	mut shstrtab := [
 		u8(0x00),
@@ -180,6 +200,7 @@ pub fn (mut g Gen) gen_elf() {
 		shstrtab << 0
 	}
 
+	null_nameofs := 0
 	text_nameofs := null_nameofs + ''.len + 1
 	rodata_nameofs := text_nameofs + '.text'.len + 1
 	relatext_nameofs := rodata_nameofs + '.rodata'.len + 1
@@ -200,7 +221,7 @@ pub fn (mut g Gen) gen_elf() {
 	symtab_size := sizeof(Elf64_Sym) * u32(g.symtab.len)
 
 	relatext_ofs := symtab_ofs + symtab_size
-  	relatext_size := sizeof(Elf64_Rela) * u32(relatext.len)
+  	relatext_size := sizeof(Elf64_Rela) * u32(g.relatext.len)
 
 	shstrtab_ofs := relatext_ofs + relatext_size
 	shstrtab_size := u32(shstrtab.len)
@@ -341,7 +362,7 @@ pub fn (mut g Gen) gen_elf() {
 		fp.write_struct(s) or { panic('error writing `.symtab`') }
 	}
 
-	for r in relatext {
+	for r in g.relatext {
 		fp.write_struct(r) or { panic('error writing `.rela.text`') }
 	}
 

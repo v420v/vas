@@ -24,11 +24,12 @@ pub enum InstrKind {
 
 pub struct Instr {
 pub mut:
-	binding     u8
-	kind        InstrKind
-	code        []u8
-	symbol_name string
-	addr        i64
+	binding       u8
+	kind          InstrKind
+	code          []u8
+	symbol_name   string
+	symbol_number int
+	addr          i64
 }
 
 pub struct CallTarget {
@@ -401,3 +402,87 @@ pub fn encode_xorq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 	return code
 }
 
+// TODO: Rewrite this function later for improved readability and efficiency.
+pub fn (mut g Gen) assign_instruction_addresses(mut instrs  []&Instr) {
+	for mut instr in instrs {
+		instr.addr = g.addr
+		g.addr += instr.code.len
+
+		if instr.kind == .global {
+			g.globals_count++
+
+			symbol_name := instr.symbol_name
+			for mut symbol in g.symbols {
+				if symbol.symbol_name == symbol_name {
+					symbol.binding = gen.stb_global
+				}
+			}
+		} else if instr.kind == .local {
+			symbol_name := instr.symbol_name
+			for mut symbol in g.symbols {
+				if symbol.symbol_name == symbol_name {
+					symbol.binding = gen.stb_local
+				}
+			}
+		} else {
+			g.code << instr.code
+		}
+	}
+}
+
+pub fn (mut g Gen) resolve_call_targets(call_targets []CallTarget) {
+	for call_target in call_targets {
+		for mut symbol in g.symbols {
+			if symbol.symbol_name == call_target.target_symbol {
+				mut buf := [u8(0), 0, 0, 0]
+				binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
+				g.code[call_target.caller.addr+1] = buf[0]
+				g.code[call_target.caller.addr+2] = buf[1]
+				g.code[call_target.caller.addr+3] = buf[2]
+				g.code[call_target.caller.addr+4] = buf[3]
+			}
+		}
+	}
+}
+
+fn (mut g Gen) symbol_exist(name string) bool {
+	for symbol in g.symbols {
+		if symbol.symbol_name == name {
+			return true
+		}
+	}
+	return false
+}
+
+fn (mut g Gen) add_rela_text(addr i64, symbol_number int) {
+	g.relatext << gen.Elf64_Rela{
+      r_offset: u64(addr) + 1,
+      r_info: (((u64((symbol_number))) << 32) + (4)),
+      r_addend: -4,
+    }
+}
+
+// TODO: Rewrite this function later for improved readability and efficiency.
+pub fn (mut g Gen) handle_undefined_symbols(call_targets []CallTarget) {
+	local_symbols_count := g.symbols.len - g.globals_count + 2
+	mut index := local_symbols_count
+
+	for call_target in call_targets {
+		if !g.symbol_exist(call_target.target_symbol) {
+			if call_target.target_symbol in g.rela_symbols {
+				mut symbol_number := local_symbols_count
+				for s in g.rela_symbols {
+					if s == call_target.target_symbol {
+						break
+					}
+					symbol_number++
+				}
+				g.add_rela_text(call_target.caller.addr, symbol_number)
+			} else {
+				g.rela_symbols << call_target.target_symbol
+				g.add_rela_text(call_target.caller.addr, index)
+				index++
+			}
+		}
+	}
+}
