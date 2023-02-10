@@ -38,16 +38,15 @@ pub mut:
 	caller      &Instr
 }
 
-pub type Expr = IdentExpr | IntExpr | RegExpr
+pub type Expr = IdentExpr | Immediate | Register
 
-pub struct RegExpr {
+pub struct Register {
 pub:
-	bit int
 	lit string
 	pos token.Position
 }
 
-pub struct IntExpr {
+pub struct Immediate {
 pub:
 	lit string
 	pos token.Position
@@ -116,9 +115,9 @@ fn calc_rm(dest string, src string) u8 {
 pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 	mut code := []u8{}
 	match left_expr {
-		RegExpr {
+		Register {
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -132,7 +131,7 @@ pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 				}
 			}
 		}
-		IntExpr {
+		Immediate {
 			num := strconv.atoi(left_expr.lit) or {
 				error.print(left_expr.pos, 'atoi() failed')
 				exit(1)
@@ -142,7 +141,7 @@ pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 			binary.little_endian_put_u32(mut &hex, u32(num))
 
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(right_expr.lit) {
 						error.print(right_expr.pos, 'miss match size of operand')
 						exit(1)
@@ -168,7 +167,7 @@ pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 pub fn encode_popq(expr Expr) []u8 {
 	mut code := []u8{}
 	match expr {
-		RegExpr {
+		Register {
 			if !reg_is_64(expr.lit) {
 				error.print(expr.pos, 'invalid operand for instruction')
 				exit(1)
@@ -187,7 +186,7 @@ pub fn encode_popq(expr Expr) []u8 {
 pub fn encode_pushq(expr Expr) []u8 {
 	mut code := []u8{}
 	match expr {
-		RegExpr {
+		Register {
 			if !reg_is_64(expr.lit) {
 				error.print(expr.pos, 'invalid operand for instruction')
 				exit(1)
@@ -195,7 +194,7 @@ pub fn encode_pushq(expr Expr) []u8 {
 				code << u8(0x50 + reg_bits(expr.lit))
 			}
 		}
-		IntExpr {
+		Immediate {
 			num := strconv.atoi(expr.lit) or {
 				error.print(expr.pos, 'atoi() failed')
 				exit(1)
@@ -219,9 +218,9 @@ pub fn encode_pushq(expr Expr) []u8 {
 pub fn encode_addq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 	mut code := []u8{}
 	match left_expr {
-		RegExpr {
+		Register {
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -235,14 +234,14 @@ pub fn encode_addq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 				}
 			}
 		}
-		IntExpr {
+		Immediate {
 			num := strconv.atoi(left_expr.lit) or {
 				error.print(left_expr.pos, 'atoi() failed')
 				exit(1)
 			}
 
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -303,9 +302,9 @@ pub fn encode_callq(left_expr Expr, pos token.Position) (&Instr, CallTarget) {
 pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 	mut code := []u8{}
 	match left_expr {
-		RegExpr {
+		Register {
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -319,14 +318,14 @@ pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 				}
 			}
 		}
-		IntExpr {
+		Immediate {
 			num := strconv.atoi(left_expr.lit) or {
 				error.print(left_expr.pos, 'atoi() failed')
 				exit(1)
 			}
 
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -359,9 +358,9 @@ pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 pub fn encode_xorq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 	mut code := []u8{}
 	match left_expr {
-		RegExpr {
+		Register {
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -374,14 +373,14 @@ pub fn encode_xorq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 				}
 			}
 		}
-		IntExpr {
+		Immediate {
 			num := strconv.atoi(left_expr.lit) or {
 				error.print(left_expr.pos, 'atoi() failed')
 				exit(1)
 			}
 
 			match right_expr {
-				RegExpr {
+				Register {
 					if !reg_is_64(right_expr.lit) {
 						error.print(pos, 'miss match size of operand')
 						exit(1)
@@ -462,26 +461,33 @@ fn (mut g Gen) add_rela_text(addr i64, symbol_number int) {
     }
 }
 
+fn (mut g Gen) find_rela_symbol_pos(symbol_name string) int {
+	mut pos := 0
+	for s in g.rela_symbols {
+		if s == symbol_name {
+			break
+		}
+		pos++
+	}
+	return pos
+}
+
 // TODO: Rewrite this function later for improved readability and efficiency.
 pub fn (mut g Gen) handle_undefined_symbols(call_targets []CallTarget) {
 	local_symbols_count := g.symbols.len - g.globals_count + 2
-	mut index := local_symbols_count
+	mut pos := local_symbols_count
 
 	for call_target in call_targets {
 		if !g.symbol_exist(call_target.target_symbol) {
 			if call_target.target_symbol in g.rela_symbols {
-				mut symbol_number := local_symbols_count
-				for s in g.rela_symbols {
-					if s == call_target.target_symbol {
-						break
-					}
-					symbol_number++
-				}
-				g.add_rela_text(call_target.caller.addr, symbol_number)
+				g.add_rela_text(
+					call_target.caller.addr,
+					local_symbols_count + g.find_rela_symbol_pos(call_target.target_symbol)
+				)
 			} else {
 				g.rela_symbols << call_target.target_symbol
-				g.add_rela_text(call_target.caller.addr, index)
-				index++
+				g.add_rela_text(call_target.caller.addr, pos)
+				pos++
 			}
 		}
 	}

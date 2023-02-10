@@ -48,10 +48,10 @@ pub:
 pub fn token_kind_str(kind TokenKind) string {
 	match kind {
 		.ident {
-			return '<ident'
+			return '<ident>'
 		}
 		.number {
-			return 'number'
+			return '<number>'
 		}
 		.comma {
 			return ','

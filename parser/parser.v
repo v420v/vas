@@ -44,7 +44,7 @@ fn (mut p Parser) parse_expr() gen.Expr {
 			p.next()
 			num := p.tok.lit
 			p.next()
-			return gen.IntExpr{
+			return gen.Immediate{
 				lit: num
 				pos: pos
 			}
@@ -57,7 +57,7 @@ fn (mut p Parser) parse_expr() gen.Expr {
 				exit(1)
 			}
 			p.next()
-			return gen.RegExpr{
+			return gen.Register{
 				lit: reg_name
 				pos: pos
 			}
