@@ -19,6 +19,7 @@ pub enum InstrKind {
 	syscall
 	nopq
 	hlt
+	leave
 	label
 }
 

@@ -161,6 +161,10 @@ fn (mut p Parser) parse_instr() &gen.Instr {
 				instr.kind = .hlt
 				instr.code = [u8(0xf4)]
 			}
+			'LEAVE' {
+				instr.kind = .leave
+				instr.code = [u8(0xc9)]
+			}
 			else {
 				error.print(pos, 'unkwoun instruction `${name}`')
 				exit(1)
