@@ -1,24 +1,23 @@
 
 .global _start
 
-bar:
-    retq
+msg:
+  .string "Hello world!"
 
 _start:
-    callq foo
-    callq bar
+  pushq %rbp
+  movq %rsp, %rbp
+  subq $16, %rbp
 
-    movq $60, %rax
-    
-    movq $35, %rdi
+  movq $1, %rax
+  movq $1, %rdi
+  leaq msg(%rip), %rsi
+  movq $13, %rdx
+  syscall
 
-    addq $35, %rdi
-    subq $35, %rdi
-    
-    addq $35, %rdi
+  movq $60, %rax
+  movq $0, %rdi
+  syscall
 
-    syscall
 
-foo:
-    retq
 

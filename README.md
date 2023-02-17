@@ -6,24 +6,28 @@ THIS SOFTWARE IS UNFINISHED!!!
 Supports Linux x86-64 AT&T syntax only.
 
 ```asm
+# Hello world!
+
 .global _start
 
-bar:
-    retq
+msg:
+  .string "Hello world!"
 
 _start:
-    callq foo
-    callq bar
+  pushq %rbp
+  movq %rsp, %rbp
+  subq $16, %rbp
 
-    movq $60, %rax
-    
-    movq $35, %rdi
-    addq $35, %rdi
+  movq $1, %rax
+  movq $1, %rdi
+  leaq msg(%rip), %rsi
+  movq $13, %rdx
+  syscall
 
-    syscall
+  movq $60, %rax
+  movq $0, %rdi
+  syscall
 
-foo:
-    retq
 ```
 
 [If V is not installed](https://github.com/vlang/v)
@@ -39,9 +43,8 @@ $ v vas.v -gc none
 $ vas <filename>.s
 $ ld <filename>.o
 $ ./a.out
-$ echo $?
 
-70
+> Hello world!
 ```
 
 ## License
