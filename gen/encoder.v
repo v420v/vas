@@ -8,6 +8,8 @@ import token
 pub enum InstrKind {
 	global
 	local
+	string
+	leaq
 	movq
 	popq
 	pushq
@@ -39,7 +41,13 @@ pub mut:
 	caller      &Instr
 }
 
-pub type Expr = IdentExpr | Immediate | Register
+pub struct RelaTextUser {
+pub mut:
+	uses   string
+	instr  &Instr
+}
+
+pub type Expr = IdentExpr | Immediate | Register | Indirection
 
 pub struct Register {
 pub:
@@ -53,13 +61,20 @@ pub:
 	pos token.Position
 }
 
+pub struct Indirection {
+pub:
+	expr Expr
+	regi Register
+	pos token.Position
+}
+
 pub struct IdentExpr {
 pub:
 	lit string
 	pos token.Position
 }
 
-const (
+pub const (
 	rex_w = u8(0x48)
 )
 
@@ -67,7 +82,7 @@ fn reg_is_64(reg string) bool {
 	return reg[0] == `R`
 }
 
-fn reg_bits(reg string) int {
+pub fn reg_bits(reg string) int {
 	match reg {
 		'EAX', 'RAX' {
 			return 0b0000
@@ -111,6 +126,10 @@ fn calc_rm(dest string, src string) u8 {
 	s_n = reg_bits(src)
 
 	return u8(0xc0 + (8 * s_n) + d_n)
+}
+
+pub fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
+	return (mod << 6) + (reg_op << 3) + rm
 }
 
 pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
@@ -300,6 +319,33 @@ pub fn encode_callq(left_expr Expr, pos token.Position) (&Instr, CallTarget) {
 	return &instr, call_target
 }
 
+pub fn encode_leaq(left_expr Expr, right_expr Expr, pos token.Position) (&Instr, RelaTextUser) {
+	mut instr := gen.Instr{}
+	instr.kind = .leaq
+	match left_expr {
+		Indirection {
+			regi := left_expr.regi
+			opcode := u8(0x8d)
+			target_regi := right_expr as Register
+			if regi.lit != "RIP" {
+				error.print(regi.pos, 'unexpected expression')
+				exit(1)
+			}
+			mod_rm := compose_mod_rm(0b00, u8(reg_bits(target_regi.lit)), u8(0b101))
+			instr.code = [gen.rex_w, opcode, mod_rm, 0, 0, 0, 0]
+			symbol := left_expr.expr as IdentExpr
+			ru := gen.RelaTextUser{
+				instr:  &instr,
+				uses:   symbol.lit,
+			}
+			return &instr, ru
+		} else {
+			error.print(left_expr.pos, 'unexpected expression')
+			exit(1)
+		}
+	}
+}
+
 pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
 	mut code := []u8{}
 	match left_expr {
@@ -445,7 +491,7 @@ pub fn (mut g Gen) resolve_call_targets(call_targets []CallTarget) {
 	}
 }
 
-fn (mut g Gen) symbol_exist(name string) bool {
+fn (mut g Gen) symbol_is_defined(name string) bool {
 	for symbol in g.symbols {
 		if symbol.symbol_name == name {
 			return true
@@ -454,15 +500,7 @@ fn (mut g Gen) symbol_exist(name string) bool {
 	return false
 }
 
-fn (mut g Gen) add_rela_text(addr i64, symbol_number int) {
-	g.relatext << gen.Elf64_Rela{
-      r_offset: u64(addr) + 1,
-      r_info: (((u64((symbol_number))) << 32) + (4)),
-      r_addend: -4,
-    }
-}
-
-fn (mut g Gen) find_rela_symbol_pos(symbol_name string) int {
+fn (mut g Gen) rela_symbol_pos(symbol_name string) int {
 	mut pos := 0
 	for s in g.rela_symbols {
 		if s == symbol_name {
@@ -473,23 +511,61 @@ fn (mut g Gen) find_rela_symbol_pos(symbol_name string) int {
 	return pos
 }
 
-// TODO: Rewrite this function later for improved readability and efficiency.
-pub fn (mut g Gen) handle_undefined_symbols(call_targets []CallTarget) {
-	local_symbols_count := g.symbols.len - g.globals_count + 2
-	mut pos := local_symbols_count
+pub fn (mut g Gen) handle_undefined_symbols(call_targets []CallTarget, rela_text_users []RelaTextUser) {
+	local_symbols_len := g.symbols.len - g.globals_count + 3
+	mut pos := local_symbols_len
+	mut r_info := u64(0)
+
+	// callq printf
 
 	for call_target in call_targets {
-		if !g.symbol_exist(call_target.target_symbol) {
-			if call_target.target_symbol in g.rela_symbols {
-				g.add_rela_text(
-					call_target.caller.addr,
-					local_symbols_count + g.find_rela_symbol_pos(call_target.target_symbol)
-				)
-			} else {
-				g.rela_symbols << call_target.target_symbol
-				g.add_rela_text(call_target.caller.addr, pos)
-				pos++
-			}
+		if g.symbol_is_defined(call_target.target_symbol) {
+			continue
 		}
+		if call_target.target_symbol in g.rela_symbols {
+            r_info = (((u64(local_symbols_len + g.rela_symbol_pos(call_target.target_symbol))) << 32) + gen.r_x86_64_plt32)
+        } else {
+            g.rela_symbols << call_target.target_symbol
+            r_info = (((u64(pos)) << 32) + gen.r_x86_64_plt32)
+            pos++
+        }
+        g.relatext << gen.Elf64_Rela{
+            r_offset: u64(call_target.caller.addr) + 1,
+            r_info: r_info,
+            r_addend: -4,
+        }
+	}
+
+
+	// leaq msg(%rip), %rdi
+	//      ^^^^^^^^^
+
+	for r in rela_text_users {
+    	r_offset := u64(r.instr.addr + 3)
+    	mut r_addend := i64(0)
+    	if !g.symbol_is_defined(r.uses) {
+    	    if r.uses in g.rela_symbols {
+    	        r_info = ((u64(g.rela_symbol_pos(r.uses) + local_symbols_len) << 32) + gen.r_x86_64_pc32)
+    	    } else {
+    	        g.rela_symbols << r.uses
+    	        r_info = (u64(pos) << 32) + gen.r_x86_64_pc32
+    	        pos++
+    	    }
+			r_addend = -4
+    	} else {
+    	    for s in g.symbols {
+    	        if s.symbol_name == r.uses {
+    	            r_addend = s.addr - 4
+					break
+    	        }
+    	    }
+			r_info = (u64(1) << 32) + gen.r_x86_64_pc32
+			//            ^ index of .text
+    	}
+		g.relatext << gen.Elf64_Rela{
+    	    r_offset: r_offset,
+    	    r_info: r_info,
+    	    r_addend: r_addend,
+    	}
 	}
 }

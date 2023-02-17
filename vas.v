@@ -42,15 +42,15 @@ fn main() {
 	mut p := parser.new(program, file_name)
 	mut g := gen.new(out_file)
 
-	mut instrs, defined_symbols, call_targets := p.parse()
+	p.parse()
 
-	g.symbols = defined_symbols
+	g.symbols = p.defined_symbols
 
-	g.assign_instruction_addresses(mut instrs)
+	g.assign_instruction_addresses(mut p.instrs)
 
-	g.resolve_call_targets(call_targets)
+	g.resolve_call_targets(p.call_targets)
 
-	g.handle_undefined_symbols(call_targets)
+	g.handle_undefined_symbols(p.call_targets, p.rela_text_users)
 
 	padding := (gen.align_to(g.code.len, 32) - g.code.len)
 	for _ in 0 .. padding {

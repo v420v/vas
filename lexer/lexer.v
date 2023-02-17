@@ -106,6 +106,20 @@ pub fn (mut l Lexer) lex() token.Token {
 		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`)
 			|| l.c == `_` || l.c == `.` {
 			return l.read_ident()
+		} else if l.c == `"` {
+			l.advance()
+			start := l.idx
+			for l.c != `"` {
+				l.advance()
+			}
+			lit := l.text[start..l.idx]
+			pos.len = lit.len + 2
+			l.advance()
+			return token.Token{
+				lit: lit
+				kind: .string
+				pos: pos
+			}
 		} else {
 			pos.len = 1
 			match l.c {
@@ -125,6 +139,22 @@ pub fn (mut l Lexer) lex() token.Token {
 					return token.Token{
 						lit: ':'
 						kind: .colon
+						pos: pos
+					}
+				}
+				`(` {
+					l.advance()
+					return token.Token{
+						lit: '('
+						kind: .lpar
+						pos: pos
+					}
+				}
+				`)` {
+					l.advance()
+					return token.Token{
+						lit: ')'
+						kind: .rpar
 						pos: pos
 					}
 				}

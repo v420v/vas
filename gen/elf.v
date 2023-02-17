@@ -89,18 +89,39 @@ struct Elf64_Phdr {
 }
 
 pub const (
-	stb_local = 0
-	stb_global = 1
-	stt_notype = 0
-	stt_section = 3
-	sht_null = 0
-	sht_progbits = 1
-	sht_symtab = 2
-	sht_strtab = 3
-	sht_rela = 4
-	shf_alloc = 0x2
-	shf_execinstr = 0x4
-	shf_info_link = 0x40
+	stb_local          = 0
+	stb_global         = 1
+
+	stt_notype         = 0
+	stt_section        = 3
+
+	sht_null           = 0
+	sht_progbits       = 1
+	sht_symtab         = 2
+	sht_strtab         = 3
+	sht_rela           = 4
+
+	shf_alloc          = 0x2
+	shf_execinstr      = 0x4
+	shf_info_link      = 0x40
+
+	r_x86_64_none	   = 0
+	r_x86_64_64		   = 1
+	r_x86_64_pc32	   = 2
+	r_x86_64_got32	   = 3
+	r_x86_64_plt32	   = 4
+	r_x86_64_copy	   = 5
+	r_x86_64_glob_dat  = 6
+	r_x86_64_jump_slot = 7
+	r_x86_64_relative  = 8
+	r_x86_64_gotpcrel  = 9
+	r_x86_64_32		   = 10
+	r_x86_64_32s	   = 11
+	r_x86_64_16		   = 12
+	r_x86_64_pc16	   = 13
+	r_x86_64_8		   = 14
+	r_x86_64_pc8	   = 15
+	r_x86_64_pc64	   = 24
 )
 
 fn (mut g Gen) gen_symbol(symbol_binding int, mut off &int, mut str &string) {
@@ -155,6 +176,11 @@ fn (mut g Gen) gen_symtab_strtab() {
 		Elf64_Sym{
 			st_name: u32(0) // null_nameofs
 			st_info: ((gen.stb_local << 4) + (gen.stt_notype & 0xf))
+		},
+		Elf64_Sym{
+			st_name: u32(0) // null_nameofs
+			st_info: ((gen.stb_local << 4) + (gen.stt_section & 0xf))
+			st_shndx: 1
 		},
 		// Section .rodata
 		Elf64_Sym{
@@ -282,8 +308,8 @@ pub fn (mut g Gen) gen_elf() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: 3 // section number of .strtab
-			sh_info: u32(g.symbols.len - g.globals_count + 2) // Number of local symbols
-			//                                             ^ null + rodata
+			sh_info: u32(g.symbols.len - g.globals_count + 3) // Number of local symbols
+			//                                             ^ null + rodata + text
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		},

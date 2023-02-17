@@ -17,6 +17,7 @@ pub const registers = [
 	'RSI',
 	'EDI',
 	'RDI',
+	'RIP',
 ]
 
 pub struct Position {
@@ -30,8 +31,11 @@ pub mut:
 pub enum TokenKind {
 	ident
 	number
+	string
 	comma
 	colon
+	lpar
+	rpar
 	percent
 	dolor
 	eol // enf of line
@@ -53,11 +57,20 @@ pub fn token_kind_str(kind TokenKind) string {
 		.number {
 			return '<number>'
 		}
+		.string {
+			return '<string>'
+		}
 		.comma {
 			return ','
 		}
 		.colon {
 			return ':'
+		}
+		.lpar {
+			return '('
+		}
+		.rpar {
+			return ')'
 		}
 		.percent {
 			return '%'
