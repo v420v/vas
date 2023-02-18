@@ -82,6 +82,7 @@ fn (mut p Parser) parse_expr() gen.Expr {
 				return gen.Indirection{
 					expr: expr
 					regi: regi
+					pos: pos
 				}
 			}
 			return expr
