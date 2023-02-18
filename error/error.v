@@ -13,8 +13,7 @@ fn space(n int) string {
 
 pub fn print(pos token.Position, msg string) {
 	program := os.read_file(pos.file_name) or {
-		eprintln('error: reading file `$pos.file_name`')
-		exit(1)
+		panic('error: something whent wrong while reading file `$pos.file_name`')
 	}
 
 	program_in_lines := program.split('\n')
