@@ -1,13 +1,16 @@
+# Hello world!
 
 .global _start
 
+.data
 msg:
-  .string "Hello world!"
+  .string "Hello, world!"
 
+.text
 _start:
   pushq %rbp
   movq %rsp, %rbp
-  subq $16, %rbp
+  subq $16, %rsp
 
   movq $1, %rax
   movq $1, %rdi
@@ -18,6 +21,4 @@ _start:
   movq $60, %rax
   movq $0, %rdi
   syscall
-
-
 

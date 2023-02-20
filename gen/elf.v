@@ -5,8 +5,10 @@ import os
 pub struct Gen {
 	out_file string
 pub mut:
-	code          []u8 // program
-	addr          i64
+	code          []u8 // text section
+	data          []u8 // data section
+	text_addr     i64
+	data_addr     i64
 	symbols       []&Instr
 	rela_symbols  []string
 	globals_count int
@@ -17,11 +19,14 @@ pub mut:
 
 pub fn new(out_file string) &Gen {
 	return &Gen{
-		addr:          0
-		globals_count: 0
 		out_file:      out_file
-		code:          []u8{}
+		code:          []u8{} // text section
+		data:          []u8{} // data section
+		text_addr:     0
+		data_addr:     0
 		symbols:       []&Instr{}
+		rela_symbols:  []string{}
+		globals_count: 0
 		relatext:      []Elf64_Rela{}
 		symtab:        []Elf64_Sym{}
 		strtab:        []u8{}
@@ -122,6 +127,10 @@ pub const (
 	r_x86_64_8		   = 14
 	r_x86_64_pc8	   = 15
 	r_x86_64_pc64	   = 24
+
+	mod_indirection_with_no_displacement = u8(0b00)
+	mod_indirection_with_displacement8 = u8(0b01)
+	mod_indirection_with_displacement32 = u8(0b10)
 )
 
 fn (mut g Gen) gen_symbol(symbol_binding int, mut off &int, mut str &string) {
@@ -133,10 +142,18 @@ fn (mut g Gen) gen_symbol(symbol_binding int, mut off &int, mut str &string) {
 					*off += str.len + 1
 				}
 
+				st_shndx := if symbol.section == .text {
+					u8(1)
+				} else if symbol.section == .data {
+					u8(2)
+				} else {
+					panic('unreachable')
+				}
+
 				g.symtab << Elf64_Sym{
 					st_name: u32(*off)
 					st_info: u8((symbol.binding << 4) + (gen.stt_notype & 0xf))
-					st_shndx: 1
+					st_shndx: st_shndx
 					st_value: symbol.addr
 				}
 
@@ -201,7 +218,10 @@ fn (mut g Gen) gen_symtab_strtab() {
 }
 
 pub fn (mut g Gen) gen_elf() {
-	rodata := [16]u8{}
+	rodata_padding := (gen.align_to(g.data.len, 16) - g.data.len)
+	for _ in 0 .. rodata_padding {
+		g.data << 0
+	}
 
 	g.gen_symtab_strtab()
 
@@ -238,7 +258,7 @@ pub fn (mut g Gen) gen_elf() {
 	code_size := u32(g.code.len)
 
 	rodata_ofs := code_ofs + code_size
-	rodata_size := sizeof(rodata)
+	rodata_size := u32(g.data.len)
 
 	strtab_ofs := rodata_ofs + rodata_size
 	strtab_size := u32(g.strtab.len)
@@ -380,7 +400,7 @@ pub fn (mut g Gen) gen_elf() {
 
 	fp.write(g.code) or { panic('error writing `code`') }
 
-	fp.write_raw(rodata) or { panic('error writing `.rodata`') }
+	fp.write(g.data) or { panic('error writing `.rodata`') }
 
 	fp.write(g.strtab) or { panic('error writing `.strtab`') }
 

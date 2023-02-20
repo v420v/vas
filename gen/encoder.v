@@ -6,6 +6,8 @@ import strconv
 import token
 
 pub enum InstrKind {
+	text
+	data
 	global
 	local
 	string
@@ -31,6 +33,7 @@ pub mut:
 	kind          InstrKind
 	code          []u8
 	symbol_name   string
+	section       InstrKind
 	symbol_number int
 	addr          i64
 }
@@ -47,7 +50,13 @@ pub mut:
 	instr  &Instr
 }
 
-pub type Expr = IdentExpr | Immediate | Register | Indirection
+pub type Expr = IdentExpr | Immediate | Register | Indirection | Number
+
+pub struct Number {
+pub:
+	lit string
+	pos token.Position
+}
 
 pub struct Register {
 pub:
@@ -57,7 +66,7 @@ pub:
 
 pub struct Immediate {
 pub:
-	lit string
+	expr Expr
 	pos token.Position
 }
 
@@ -85,28 +94,28 @@ fn reg_is_64(reg string) bool {
 pub fn reg_bits(reg string) int {
 	match reg {
 		'EAX', 'RAX' {
-			return 0b0000
+			return 0
 		}
 		'ECX', 'RCX' {
-			return 0b0001
+			return 1
 		}
 		'EDX', 'RDX' {
-			return 0b0010
+			return 2
 		}
 		'EBX', 'RBX' {
-			return 0b0011
+			return 3
 		}
 		'ESP', 'RSP' {
-			return 0b0100
+			return 4
 		}
 		'EBP', 'RBP' {
-			return 0b0101
+			return 5
 		}
 		'ESI', 'RSI' {
-			return 0b0110
+			return 6
 		}
 		'EDI', 'RDI' {
-			return 0b0111
+			return 7
 		}
 		else {
 			panic('unreachable')
@@ -132,167 +141,105 @@ pub fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
 }
 
-pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
-	mut code := []u8{}
-	match left_expr {
-		Register {
-			match right_expr {
-				Register {
-					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
-
-					code << [gen.rex_w, u8(0x89), u8(calc_rm(right_expr.lit, left_expr.lit))]
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
-		}
-		Immediate {
-			num := strconv.atoi(left_expr.lit) or {
-				error.print(left_expr.pos, 'atoi() failed')
-				exit(1)
-			}
-
-			mut hex := [u8(0), 0, 0, 0]
-			binary.little_endian_put_u32(mut &hex, u32(num))
-
-			match right_expr {
-				Register {
-					if !reg_is_64(right_expr.lit) {
-						error.print(right_expr.pos, 'miss match size of operand')
-						exit(1)
-					}
-					mod_rm := u8(0xc0 + reg_bits(right_expr.lit))
-					code << [gen.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
+fn eval_expr(expr Expr) int {
+	return match expr {
+		Number {
+			strconv.atoi(expr.lit) or {
+                error.print(expr.pos, 'atoi() failed')
+                exit(1)
+            }
 		}
 		else {
-			error.print(left_expr.pos, 'unexpected expression')
-			exit(1)
+			0
 		}
 	}
+}
 
-	return code
+pub fn encode_movq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
+    if left_expr is Register && right_expr is Register {
+        return [gen.rex_w, 0x89, u8(calc_rm(right_expr.lit, left_expr.lit))]
+    }
+    
+	if left_expr is Register && right_expr is Indirection {
+        reg := u8(reg_bits(left_expr.lit))
+        rm := u8(reg_bits(right_expr.regi.lit))
+        mut num := 0
+
+	    num = eval_expr(right_expr.expr)
+
+        mod := mod_indirection_with_displacement8
+        mod_rm := compose_mod_rm(mod, reg, rm)
+        return [gen.rex_w, 0x89, mod_rm, u8(num)]
+    }
+
+    if left_expr is Immediate && right_expr is Register {
+        num := eval_expr(left_expr.expr)
+
+        mut hex := [u8(0), 0, 0, 0]
+        binary.little_endian_put_u32(mut &hex, u32(num))
+
+        mod_rm := u8(0xc0 + reg_bits(right_expr.lit))
+        return [gen.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
+    }
+
+	error.print(pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn encode_popq(expr Expr) []u8 {
-	mut code := []u8{}
-	match expr {
-		Register {
-			if !reg_is_64(expr.lit) {
-				error.print(expr.pos, 'invalid operand for instruction')
-				exit(1)
-			} else {
-				code << u8(0x58 + reg_bits(expr.lit))
-			}
-		}
-		else {
-			error.print(expr.pos, 'invalid operand for instruction')
-			exit(1)
-		}
+	if expr is Register {
+		return [u8(0x58 + reg_bits(expr.lit))]
 	}
-	return code
+	error.print(expr.pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn encode_pushq(expr Expr) []u8 {
-	mut code := []u8{}
-	match expr {
-		Register {
-			if !reg_is_64(expr.lit) {
-				error.print(expr.pos, 'invalid operand for instruction')
-				exit(1)
-			} else {
-				code << u8(0x50 + reg_bits(expr.lit))
-			}
-		}
-		Immediate {
-			num := strconv.atoi(expr.lit) or {
-				error.print(expr.pos, 'atoi() failed')
-				exit(1)
-			}
-			if num < 1 << 7 {
-				code << [u8(0x6a), u8(num)]
-			} else if num < 1 << 31 {
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(num))
-				code << [u8(0x68), hex[0], hex[1], hex[2], hex[3]]
-			}
-		}
-		else {
-			error.print(expr.pos, 'unexpected expression')
-			exit(1)
+	if expr is Register {
+		return [u8(0x50 + reg_bits(expr.lit))]
+	}
+
+	if expr is Immediate {
+		num := eval_expr(expr.expr)
+
+		if num < 1 << 7 {
+			return [u8(0x6a), u8(num)]
+		} else if num < 1 << 31 {
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(num))
+			return [u8(0x68), hex[0], hex[1], hex[2], hex[3]]
 		}
 	}
-	return code
+
+	error.print(expr.pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn encode_addq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
-	mut code := []u8{}
-	match left_expr {
-		Register {
-			match right_expr {
-				Register {
-					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
+	if left_expr is Register && right_expr is Register {
+		return [gen.rex_w, u8(0x01), u8(calc_rm(right_expr.lit, left_expr.lit))]
+	}
+	
+	if left_expr is Immediate && right_expr is Register {
+		num := eval_expr(left_expr.expr)
+		mod_rm := u8(0xc0 + reg_bits(right_expr.lit))
 
-					code << [gen.rex_w, u8(0x01), u8(calc_rm(right_expr.lit, left_expr.lit))]
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
+		if -128 <= num && num <= 127 {
+			return [gen.rex_w, 0x83, mod_rm, u8(num)]
+		} else if num < 1 << 31 {
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(num))
+			if right_expr.lit == 'RAX' {
+				return [gen.rex_w, 0x05, hex[0], hex[1], hex[2], hex[3]]
+			} else {
+				return [gen.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
 			}
-		}
-		Immediate {
-			num := strconv.atoi(left_expr.lit) or {
-				error.print(left_expr.pos, 'atoi() failed')
-				exit(1)
-			}
-
-			match right_expr {
-				Register {
-					if !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
-
-					mod_rm := u8(0xc0 + reg_bits(right_expr.lit))
-
-					if -128 <= num && num <= 127 {
-						code << [gen.rex_w, 0x83, mod_rm, u8(num)]
-					} else if num < 1 << 31 {
-						mut hex := [u8(0), 0, 0, 0]
-						binary.little_endian_put_u32(mut &hex, u32(num))
-						if right_expr.lit == 'RAX' {
-							code << [gen.rex_w, 0x05, hex[0], hex[1], hex[2], hex[3]]
-						} else {
-							code << [gen.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
-						}
-					}
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
-		}
-		else {
-			error.print(left_expr.pos, 'unexpected expression')
-			exit(1)
+		} else {
+			panic('PANIC')
 		}
 	}
-	return code
+	error.print(pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn encode_callq(left_expr Expr, pos token.Position) (&Instr, CallTarget) {
@@ -300,16 +247,15 @@ pub fn encode_callq(left_expr Expr, pos token.Position) (&Instr, CallTarget) {
 		kind: .callq
 		code: [u8(0xe8), 0, 0, 0, 0]
 	}
-
 	mut target_sym_name := ''
-	match left_expr {
-		IdentExpr{
-			target_sym_name = left_expr.lit
-		}
-		else {
-			error.print(left_expr.pos, 'unexpected expression (not supported yet)')
-			exit(1)
-		}
+
+	if left_expr is IdentExpr {
+		target_sym_name = left_expr.lit
+	} else if left_expr is Number {
+		target_sym_name = left_expr.lit
+	} else {
+		error.print(pos, 'invalid operand for instruction')
+		exit(1)
 	}
 
 	call_target := CallTarget{
@@ -322,158 +268,104 @@ pub fn encode_callq(left_expr Expr, pos token.Position) (&Instr, CallTarget) {
 pub fn encode_leaq(left_expr Expr, right_expr Expr, pos token.Position) (&Instr, RelaTextUser) {
 	mut instr := gen.Instr{}
 	instr.kind = .leaq
-	match left_expr {
-		Indirection {
-			regi := left_expr.regi
-			opcode := u8(0x8d)
-			target_regi := right_expr as Register
-			if regi.lit != "RIP" {
-				error.print(regi.pos, 'unexpected expression')
-				exit(1)
-			}
-			mod_rm := compose_mod_rm(0b00, u8(reg_bits(target_regi.lit)), u8(0b101))
-			instr.code = [gen.rex_w, opcode, mod_rm, 0, 0, 0, 0]
-			symbol := left_expr.expr as IdentExpr
-			ru := gen.RelaTextUser{
-				instr:  &instr,
-				uses:   symbol.lit,
-			}
-			return &instr, ru
-		} else {
-			error.print(left_expr.pos, 'unexpected expression')
+	if left_expr is Indirection && right_expr is Register {
+		regi := left_expr.regi
+
+		target_regi := right_expr
+		if regi.lit != "RIP" {
+			error.print(regi.pos, 'unexpected expression (not implemented yet...)')
 			exit(1)
 		}
+
+		mod_rm := compose_mod_rm(0b00, u8(reg_bits(target_regi.lit)), u8(0b101))
+		instr.code = [gen.rex_w, 0x8d, mod_rm, 0, 0, 0, 0]
+
+		if left_expr.expr is IdentExpr {
+			symbol := left_expr.expr.lit
+			ru := gen.RelaTextUser{
+				instr:  &instr,
+				uses:   symbol,
+			}
+			return &instr, ru
+		}
 	}
+	error.print(pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn encode_subq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
-	mut code := []u8{}
-	match left_expr {
-		Register {
-			match right_expr {
-				Register {
-					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
+	if left_expr is Register && right_expr is Register {
+		return [gen.rex_w, 0x29, u8(calc_rm(right_expr.lit, left_expr.lit))]
+	}
+	
+	if left_expr is Immediate && right_expr is Register {
+		num := eval_expr(left_expr.expr)
+		mod_rm := u8(0xe8 + reg_bits(right_expr.lit))
 
-					code << [gen.rex_w, 0x29, u8(calc_rm(right_expr.lit, left_expr.lit))]
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
-		}
-		Immediate {
-			num := strconv.atoi(left_expr.lit) or {
-				error.print(left_expr.pos, 'atoi() failed')
-				exit(1)
-			}
-
-			match right_expr {
-				Register {
-					if !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
-
-					mod_rm := u8(0xe8 + reg_bits(right_expr.lit))
-
-					if -128 <= num && num <= 127 {
-						code << [gen.rex_w, 0x83, mod_rm, u8(num)]
-					} else if num < 1 << 31 {
-						mut hex := [u8(0), 0, 0, 0]
-						binary.little_endian_put_u32(mut &hex, u32(num))
-						code << [gen.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
-					}
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
-		}
-		else {
-			error.print(left_expr.pos, 'unexpected expression')
-			exit(1)
+		if -128 <= num && num <= 127 {
+			return [gen.rex_w, 0x83, mod_rm, u8(num)]
+		} else if num < 1 << 31 {
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(num))
+			return [gen.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
 		}
 	}
-	return code
+
+	error.print(pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn encode_xorq(left_expr Expr, right_expr Expr, pos token.Position) []u8 {
-	mut code := []u8{}
-	match left_expr {
-		Register {
-			match right_expr {
-				Register {
-					if !reg_is_64(left_expr.lit) || !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
-					code << [gen.rex_w, 0x31, calc_rm(left_expr.lit, right_expr.lit)]
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
-		}
-		Immediate {
-			num := strconv.atoi(left_expr.lit) or {
-				error.print(left_expr.pos, 'atoi() failed')
-				exit(1)
-			}
-
-			match right_expr {
-				Register {
-					if !reg_is_64(right_expr.lit) {
-						error.print(pos, 'miss match size of operand')
-						exit(1)
-					}
-					code = [gen.rex_w, 0x83, u8(0xf0 + reg_bits(right_expr.lit)), u8(num)]
-				}
-				else {
-					error.print(right_expr.pos, 'unexpected expression')
-					exit(1)
-				}
-			}
-		}
-		else {
-			error.print(left_expr.pos, 'unexpected expression')
-			exit(1)
-		}
+	if left_expr is Register && right_expr is Register {
+		return [gen.rex_w, 0x31, calc_rm(left_expr.lit, right_expr.lit)]
 	}
-	return code
+
+	if left_expr is Immediate && right_expr is Register {
+		num := eval_expr(left_expr.expr)
+
+		return [gen.rex_w, 0x83, u8(0xf0 + reg_bits(right_expr.lit)), u8(num)]
+	}
+
+	error.print(pos, 'invalid operand for instruction')
+	exit(1)
 }
 
-// TODO: Rewrite this function later for improved readability and efficiency.
-pub fn (mut g Gen) assign_instruction_addresses(mut instrs  []&Instr) {
-	for mut instr in instrs {
-		instr.addr = g.addr
-		g.addr += instr.code.len
-
-		if instr.kind == .global {
-			g.globals_count++
-
-			symbol_name := instr.symbol_name
-			for mut symbol in g.symbols {
-				if symbol.symbol_name == symbol_name {
-					symbol.binding = gen.stb_global
-				}
-			}
-		} else if instr.kind == .local {
-			symbol_name := instr.symbol_name
-			for mut symbol in g.symbols {
-				if symbol.symbol_name == symbol_name {
-					symbol.binding = gen.stb_local
-				}
-			}
-		} else {
-			g.code << instr.code
+fn (mut g Gen) assign_symbol_binding(symbol_name string, binding u8) {
+	for mut symbol in g.symbols {
+		if symbol.symbol_name == symbol_name {
+			symbol.binding = binding
+			break
 		}
 	}
+}
+
+pub fn (mut g Gen) assign_instruction_addresses(mut instrs  []&Instr) {
+    mut section := InstrKind.text
+    for mut instr in instrs {
+        section = if instr.kind == .data { .data } else { .text }
+
+		match instr.kind {
+            .global  {
+                g.globals_count++
+                g.assign_symbol_binding(instr.symbol_name, gen.stb_global)
+            }
+            .local  {
+                g.assign_symbol_binding(instr.symbol_name, gen.stb_local)
+            }
+            else {
+				if section == .text {
+					instr.addr = g.text_addr
+					g.text_addr += instr.code.len
+					g.code << instr.code
+				} else {
+					instr.addr = g.data_addr
+					g.data_addr += instr.code.len
+					g.data << instr.code
+				}
+            }
+        }
+        instr.section = section
+    }
 }
 
 pub fn (mut g Gen) resolve_call_targets(call_targets []CallTarget) {
@@ -536,7 +428,6 @@ pub fn (mut g Gen) handle_undefined_symbols(call_targets []CallTarget, rela_text
         }
 	}
 
-
 	// leaq msg(%rip), %rdi
 	//      ^^^^^^^^^
 
@@ -556,11 +447,11 @@ pub fn (mut g Gen) handle_undefined_symbols(call_targets []CallTarget, rela_text
     	    for s in g.symbols {
     	        if s.symbol_name == r.uses {
     	            r_addend = s.addr - 4
+					section := if s.section == .data {2} else {1}
+					r_info = (u64(section) << 32) + gen.r_x86_64_pc32
 					break
     	        }
     	    }
-			r_info = (u64(1) << 32) + gen.r_x86_64_pc32
-			//            ^ index of .text
     	}
 		g.relatext << gen.Elf64_Rela{
     	    r_offset: r_offset,

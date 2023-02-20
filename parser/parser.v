@@ -32,8 +32,7 @@ fn (mut p Parser) next() {
 
 fn (mut p Parser) expect(exp token.TokenKind) {
 	if p.tok.kind != exp {
-		exp_tok_str := token.token_kind_str(exp)
-		error.print(p.tok.pos, 'expected `${exp_tok_str}` but got `${p.tok.lit}`')
+		error.print(p.tok.pos, 'unexpected token `${p.tok.lit}`')
 		exit(1)
 	}
 	p.next()
@@ -55,41 +54,54 @@ fn (mut p Parser) parse_register() gen.Register {
 }
 
 fn (mut p Parser) parse_expr() gen.Expr {
-	pos := p.tok.pos
 	match p.tok.kind {
-		.dolor { // immediates
-			p.next()
-			num := p.tok.lit
-			p.next()
-			return gen.Immediate{
-				lit: num
-				pos: pos
-			}
-		}
-		.percent { // register
-			return p.parse_register()
-		}
-		.ident, .number {
+		.number {
 			lit := p.tok.lit
 			p.next()
-			expr := gen.IdentExpr{lit: lit, pos: pos}
-
-			if p.tok.kind == .lpar {
-				p.next()
-				regi := p.parse_register()
-				p.expect(.rpar)
-
-				return gen.Indirection{
-					expr: expr
-					regi: regi
-					pos: pos
-				}
-			}
-			return expr
+			return gen.Number{pos: p.tok.pos, lit: lit}
 		}
-		else {}
+		.ident {
+			lit := p.tok.lit
+			p.next()
+			return gen.IdentExpr{pos: p.tok.pos, lit: lit}
+		}
+		else {
+			error.print(p.tok.pos, 'unexpected token `${p.tok.lit}`')
+    		exit(1)
+		}
 	}
-	error.print(p.tok.pos, 'expected expression but got `${p.tok.lit}`')
+}
+
+fn (mut p Parser) parse_operand() gen.Expr {
+    pos := p.tok.pos
+    
+    match p.tok.kind {
+        .dolor {
+            p.next()
+            return gen.Immediate{
+                expr: p.parse_expr(),
+                pos: pos,
+            }
+        }
+        .percent {
+            return p.parse_register()
+        }
+		else {
+			expr := p.parse_expr()
+			if p.tok.kind != .lpar {
+        	    return expr
+        	}
+			p.next()
+			regi := p.parse_register()
+            p.expect(.rpar)
+            return gen.Indirection{
+                expr: expr,
+                regi: regi,
+                pos: pos,
+            }
+        }
+    }
+	error.print(p.tok.pos, 'unexpected token `${p.tok.lit}`')
 	exit(1)
 }
 
@@ -111,6 +123,12 @@ fn (mut p Parser) parse_instr() {
 	}
 
 	match name.to_upper() {
+		'.TEXT' {
+			instr.kind = .text
+		}
+		'.DATA' {
+			instr.kind = .data
+		}
 		'.GLOBAL' {
 			instr.kind = .global
 			instr.symbol_name = p.tok.lit
@@ -130,33 +148,33 @@ fn (mut p Parser) parse_instr() {
 		}
 		'MOVQ' {
 			instr.kind = .movq
-			left_expr := p.parse_expr()
+			left_expr := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_expr()
+			right_expr := p.parse_operand()
 			instr.code = gen.encode_movq(left_expr, right_expr, pos)
 		}
 		'POPQ' {
 			instr.kind = .popq
-			expr := p.parse_expr()
+			expr := p.parse_operand()
 			instr.code = gen.encode_popq(expr)
 		}
 		'PUSHQ' {
 			instr.kind = .pushq
-			expr := p.parse_expr()
+			expr := p.parse_operand()
 			instr.code = gen.encode_pushq(expr)
 		}
 		'ADDQ' {
 			instr.kind = .addq
-			left_expr := p.parse_expr()
+			left_expr := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_expr()
+			right_expr := p.parse_operand()
 			instr.code = gen.encode_addq(left_expr, right_expr, pos)
 		}
 		'SUBQ' {
 			instr.kind = .subq
-			left_expr := p.parse_expr()
+			left_expr := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_expr()
+			right_expr := p.parse_operand()
 			instr.code = gen.encode_subq(left_expr, right_expr, pos)
 		}
 		'RETQ' {
@@ -169,9 +187,9 @@ fn (mut p Parser) parse_instr() {
 		}
 		'XORQ' {
 			instr.kind = .xorq
-			left_expr := p.parse_expr()
+			left_expr := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_expr()
+			right_expr := p.parse_operand()
 			instr.code = gen.encode_xorq(left_expr, right_expr, pos)
 		}
 		'NOPQ' {
@@ -187,16 +205,16 @@ fn (mut p Parser) parse_instr() {
 			instr.code = [u8(0xc9)]
 		}
 		'CALLQ' {
-			left_expr := p.parse_expr()
+			left_expr := p.parse_operand()
 			call_instr, call_target := gen.encode_callq(left_expr, pos)
 			p.call_targets << call_target
 			p.instrs << call_instr
 			return
 		}
 		'LEAQ' {
-			left_expr := p.parse_expr()
+			left_expr := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_expr()
+			right_expr := p.parse_operand()
 			leaq_instr, ru := gen.encode_leaq(left_expr, right_expr, pos)
 			p.rela_text_users << ru
 			p.instrs << leaq_instr
