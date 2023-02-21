@@ -99,7 +99,7 @@ fn (mut l Lexer) read_ident() token.Token {
 pub fn (mut l Lexer) lex() token.Token {
 	for l.c != `\0` {
 		mut pos := l.current_pos()
-		if l.c == ` ` {
+		if l.c == ` ` || l.c == `\t` {
 			l.advance()
 		} else if l.c >= `0` && l.c <= `9` {
 			return l.read_number()
