@@ -13,6 +13,7 @@ print_hello:
     leaq msg(%rip), %rsi
     movq $13, %rdx
     syscall
+    retq
 
 _start:
     pushq %rbp
