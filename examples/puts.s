@@ -13,4 +13,4 @@ main:
   leaq msg(%rip), %rdi
   callq puts
   movq $0, %rax
-  ret
+  retq
