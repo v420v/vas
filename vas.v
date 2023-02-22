@@ -3,7 +3,7 @@ module main
 import os
 import flag
 import parser
-import gen
+import elf
 
 fn file_name_without_ext(file_name string) string {
 	ext_len := os.file_ext(file_name).len
@@ -17,7 +17,7 @@ fn main() {
     fp.version('v0.0.0')
     fp.skip_executable()
     mut out_file := fp.string('o', `o`, 'out_file_none', 'set output file name')
-    
+
     additional_args := fp.finalize() or {
         println(fp.usage())
         return
@@ -40,23 +40,22 @@ fn main() {
 	}
 
 	mut p := parser.new(program, file_name)
-	mut g := gen.new(out_file)
-
 	p.parse()
 
-	g.symbols = p.defined_symbols
+	mut e := elf.new(out_file)
 
-	g.assign_instruction_addresses(mut p.instrs)
+	e.symbols = p.defined_symbols
 
-	g.resolve_call_targets(p.call_targets)
+	e.assign_instruction_addresses(mut p.instrs)
 
-	g.handle_undefined_symbols(p.call_targets, p.rela_text_users)
+	e.resolve_call_targets(p.call_targets)
 
-	padding := (gen.align_to(g.code.len, 32) - g.code.len)
-	for _ in 0 .. padding {
-		g.code << 0
-	}
+	e.handle_undefined_symbols(p.rela_text_users)
 
-	g.gen_elf()
+	e.add_padding_to_data_and_code()
+
+	e.elf_symtab_strtab()
+
+	e.gen_elf()
 }
 
