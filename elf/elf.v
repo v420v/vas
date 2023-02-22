@@ -147,12 +147,12 @@ fn (mut e Elf) assign_symbol_binding(symbol_name string, binding u8) {
 }
 
 pub fn (mut e Elf) assign_instruction_addresses(mut instrs  []&parser.Instr) {
-    mut section := parser.InstrKind.text
+    mut section := '.text'
     for mut instr in instrs {
         if instr.kind == .data {
-			section = .data
+			section = '.rodata'
 		} else if instr.kind == .text {
-			section = .text
+			section = '.text'
 		}
 		instr.section = section
 
@@ -165,18 +165,19 @@ pub fn (mut e Elf) assign_instruction_addresses(mut instrs  []&parser.Instr) {
                 e.assign_symbol_binding(instr.symbol_name, elf.stb_local)
             }
             else {
-				if section == .text {
+				if section == '.text' {
 					instr.addr = e.text_addr
 					e.text_addr += instr.code.len
 					e.code << instr.code
-				} else {
+				} else if section == '.rodata' {
 					instr.addr = e.data_addr
 					e.data_addr += instr.code.len
 					e.data << instr.code
+				} else {
+					panic('[internal error] somthing whent wrong...')
 				}
             }
         }
-
     }
 }
 
@@ -227,16 +228,7 @@ pub fn (mut e Elf) handle_undefined_symbols(rela_text_users []parser.RelaTextUse
 		} else if e.symbol_is_defined(r.uses) {
 			s := e.get_defined_symbol(r.uses)
     	    r_addend += s.addr
-			index = match s.section {
-				.data {
-					e.sym_index[".rodata"]
-				}
-				.text {
-					e.sym_index[".text"]
-				} else {
-					panic('PANIC')
-				}
-			}
+			index = e.sym_index[s.section]
 		} else {
 			if r.uses in e.rela_symbols {
 				index = e.sym_index[r.uses]
@@ -266,13 +258,7 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		if !(symbol_name.to_upper().starts_with('.L') && symbol_binding == stb_local) {
 			unsafe { *off += str.len + 1 }
 
-			st_shndx := if symbol.section == .text {
-				u8(1)
-			} else if symbol.section == .data {
-				u8(2)
-			} else {
-				panic('unreachable')
-			}
+			st_shndx := u16(e.sym_index[symbol.section])
 
 			e.symtab << Elf64_Sym{
 				st_name: u32(*off)

@@ -182,54 +182,54 @@ fn (mut p Parser) parse_instr() {
 			instr.kind = .leave
 			instr.code = [u8(0xc9)]
 		}
-		'MOVQ' {
-			left_expr := p.parse_operand()
-			p.expect(.comma)
-			right_expr := p.parse_operand()
-			p.instr_movq(left_expr, right_expr, pos)
-			return
-		}
 		'POPQ' {
-			expr := p.parse_operand()
-			p.instr_popq(expr)
+			source := p.parse_operand()
+			p.instr_popq(source)
 			return
 		}
 		'PUSHQ' {
-			expr := p.parse_operand()
-			p.instr_pushq(expr)
+			source := p.parse_operand()
+			p.instr_pushq(source)
+			return
+		}
+		'MOVQ' {
+			source := p.parse_operand()
+			p.expect(.comma)
+			destination := p.parse_operand()
+			p.instr_movq(source, destination, pos)
 			return
 		}
 		'ADDQ' {
-			left_expr := p.parse_operand()
+			source := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_operand()
-			p.instr_addq(left_expr, right_expr, pos)
+			destination := p.parse_operand()
+			p.instr_addq(source, destination, pos)
 			return
 		}
 		'SUBQ' {
-			left_expr := p.parse_operand()
+			source := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_operand()
-			p.instr_subq(left_expr, right_expr, pos)
+			destination := p.parse_operand()
+			p.instr_subq(source, destination, pos)
 			return
 		}
 		'XORQ' {
-			left_expr := p.parse_operand()
+			source := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_operand()
-			p.instr_xorq(left_expr, right_expr, pos)
+			destination := p.parse_operand()
+			p.instr_xorq(source, destination, pos)
 			return
 		}
 		'CALLQ' {
-			left_expr := p.parse_operand()
-			p.instr_callq(left_expr, pos)
+			source := p.parse_operand()
+			p.instr_callq(source, pos)
 			return
 		}
 		'LEAQ' {
-			left_expr := p.parse_operand()
+			source := p.parse_operand()
 			p.expect(.comma)
-			right_expr := p.parse_operand()
-			p.instr_leaq(left_expr, right_expr, pos)
+			destination := p.parse_operand()
+			p.instr_leaq(source, destination, pos)
 			return
 		}
 		else {

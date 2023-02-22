@@ -33,7 +33,7 @@ pub mut:
 	kind          InstrKind
 	code          []u8
 	symbol_name   string
-	section       InstrKind
+	section       string
 	symbol_number int
 	addr          i64
 }
@@ -119,7 +119,7 @@ pub const (
 	r_x86_64_pc64	   = 24
 )
 
-pub fn reg_bits(reg string) int {
+pub fn reg_bits(reg string) u8 {
 	match reg {
 		'EAX', 'RAX' {
 			return 0
@@ -146,23 +146,13 @@ pub fn reg_bits(reg string) int {
 			return 7
 		}
 		else {
-			panic('unreachable')
+			panic('[internal error] somthing whent wrong...')
 		}
 	}
 }
 
 pub fn align_to(n int, align int) int {
 	return (n + align - 1) / align * align
-}
-
-fn calc_rm(dest string, src string) u8 {
-	mut d_n := -1
-	mut s_n := -1
-
-	d_n = reg_bits(dest)
-	s_n = reg_bits(src)
-
-	return u8(0xc0 + (8 * s_n) + d_n)
 }
 
 pub fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
@@ -189,7 +179,7 @@ fn eval_expr(expr Expr) int {
 				.minus {
 					eval_expr(expr.left_hs) - eval_expr(expr.right_hs)
 				} else {
-					panic('PANIC')
+					panic('[internal error] somthing whent wrong...')
 				}
 			}
 		}
@@ -213,25 +203,24 @@ fn (mut p Parser) get_disp_symbol(expr Expr, mut arr []string) {
 	}
 }
 
-pub fn (mut p Parser) instr_movq(left_expr Expr, right_expr Expr, pos token.Position) {
+pub fn (mut p Parser) instr_movq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .movq}
-    if left_expr is Register && right_expr is Register {
+    if source is Register && destination is Register {
 
 		// movq %rax, %rax
-        instr.code = [parser.rex_w, 0x89, u8(calc_rm(right_expr.lit, left_expr.lit))]
+		mod_rm := compose_mod_rm(3, reg_bits(source.lit), reg_bits(destination.lit))
+        instr.code = [parser.rex_w, 0x89, mod_rm]
 
-    } else if left_expr is Register && right_expr is Indirection {
+    } else if source is Register && destination is Indirection {
 		
-		if right_expr.regi.lit == "RIP" {
-			mod := mod_indirection_with_no_displacement
-			reg := u8(reg_bits(left_expr.lit))
-			mod_rm := compose_mod_rm(mod, reg, 0b101)
+		if destination.regi.lit == "RIP" {
+			mod_rm := compose_mod_rm(mod_indirection_with_no_displacement, reg_bits(source.lit), 0b101)
 			instr.code << [parser.rex_w, 0x89, mod_rm]
 
 			// movq %rax, foo + 1(%rip) ... ok
 			// movq %rax, foo + 1 + bar(%rip) ... error
 			mut used_symbols := []string{}
-			p.get_disp_symbol(right_expr.expr, mut &used_symbols)
+			p.get_disp_symbol(destination.expr, mut &used_symbols)
 			if used_symbols.len != 1 {
 				error.print(pos, 'invalid operand for instruction')
 				exit(1)
@@ -241,19 +230,19 @@ pub fn (mut p Parser) instr_movq(left_expr Expr, right_expr Expr, pos token.Posi
 				instr:  &instr,
 				offset: instr.code.len,
 				uses:   used_symbols[0],
-				adjust: eval_expr(right_expr.expr)
+				adjust: eval_expr(destination.expr)
 			}
 
 			p.rela_text_users << rela_text_user
 			instr.code << [u8(0), 0, 0, 0]
 		} else {
-			reg := u8(reg_bits(left_expr.lit))
-	    	num := eval_expr(right_expr.expr)
-			rm := u8(reg_bits(right_expr.regi.lit))
+			reg := u8(reg_bits(source.lit))
+	    	num := eval_expr(destination.expr)
+			rm := u8(reg_bits(destination.regi.lit))
         	mod := mod_indirection_with_displacement8
 
 			// movq %rax, 0-4(%rsp)
-			if right_expr.regi.lit == "RSP" {
+			if destination.regi.lit == "RSP" {
 				mod_rm := compose_mod_rm(mod, reg, rm)
 				sib := compose_sib(0b00, 0b100, 0b100)
 				instr.code = [parser.rex_w, 0x89, mod_rm, sib, u8(num)]
@@ -264,12 +253,12 @@ pub fn (mut p Parser) instr_movq(left_expr Expr, right_expr Expr, pos token.Posi
 			}
 		}
 
-    } else if left_expr is Immediate && right_expr is Register {
+    } else if source is Immediate && destination is Register {
 
-        num := eval_expr(left_expr.expr)
+        num := eval_expr(source.expr)
         mut hex := [u8(0), 0, 0, 0]
         binary.little_endian_put_u32(mut &hex, u32(num))
-        mod_rm := u8(0xc0 + reg_bits(right_expr.lit))
+        mod_rm := u8(0xc0 + reg_bits(destination.lit))
         instr.code = [parser.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
 
     } else {
@@ -316,26 +305,32 @@ pub fn (mut p Parser) instr_pushq(expr Expr) {
 	p.instrs << &instr
 }
 
-pub fn (mut p Parser) instr_addq(left_expr Expr, right_expr Expr, pos token.Position) {
+pub fn (mut p Parser) instr_addq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .addq}
-	if left_expr is Register && right_expr is Register {
-		instr.code = [parser.rex_w, u8(0x01), u8(calc_rm(right_expr.lit, left_expr.lit))]
-	} else if left_expr is Immediate && right_expr is Register {
-		num := eval_expr(left_expr.expr)
-		mod_rm := u8(0xc0 + reg_bits(right_expr.lit))
+	if source is Register && destination is Register {
+
+		// addq %rax, %rax
+		mod_rm := compose_mod_rm(3, reg_bits(source.lit), reg_bits(destination.lit))
+		instr.code = [parser.rex_w, 0x01, mod_rm]
+
+	} else if source is Immediate && destination is Register {
+
+		// addq $10, %rax
+		num := eval_expr(source.expr)
+		mod_rm := u8(0xc0 + reg_bits(destination.lit))
 
 		if -128 <= num && num <= 127 {
 			instr.code = [parser.rex_w, 0x83, mod_rm, u8(num)]
 		} else if num < 1 << 31 {
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(num))
-			if right_expr.lit == 'RAX' {
+			if destination.lit == 'RAX' {
 				instr.code = [parser.rex_w, 0x05, hex[0], hex[1], hex[2], hex[3]]
 			} else {
 				instr.code = [parser.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
 			}
 		} else {
-			panic('internal error')
+			panic('[internal error] somthing whent wrong...')
 		}
 	} else {
 		error.print(pos, 'invalid operand for instruction')
@@ -344,15 +339,15 @@ pub fn (mut p Parser) instr_addq(left_expr Expr, right_expr Expr, pos token.Posi
 	p.instrs << &instr
 }
 
-pub fn (mut p Parser) instr_callq(left_expr Expr, pos token.Position) {
+pub fn (mut p Parser) instr_callq(source Expr, pos token.Position) {
 	instr := Instr{
 		kind: .callq
 		code: [u8(0xe8), 0, 0, 0, 0]
 	}
 	
-	target_sym_name := match left_expr {
+	target_sym_name := match source {
 		Ident, Number {
-			left_expr.lit
+			source.lit
 		} else {
 			error.print(pos, 'invalid operand for instruction')
 			exit(1)
@@ -376,13 +371,13 @@ pub fn (mut p Parser) instr_callq(left_expr Expr, pos token.Position) {
 	p.call_targets << call_target
 }
 
-pub fn (mut p Parser) instr_leaq(left_expr Expr, right_expr Expr, pos token.Position) {
+pub fn (mut p Parser) instr_leaq(source Expr, destination Expr, pos token.Position) {
 	mut instr := parser.Instr{kind: .leaq}
-	if left_expr is Indirection && right_expr is Register {
+	if source is Indirection && destination is Register {
 
 		// leaq msg(%rip), %rax
-		regi := left_expr.regi
-		target_regi := right_expr
+		regi := source.regi
+		target_regi := destination
 		if regi.lit != "RIP" {
 			error.print(regi.pos, 'unexpected expression (not implemented yet...)')
 			exit(1)
@@ -392,7 +387,7 @@ pub fn (mut p Parser) instr_leaq(left_expr Expr, right_expr Expr, pos token.Posi
 		instr.code = [parser.rex_w, 0x8d, mod_rm]
 
 		mut used_symbols := []string{}
-		p.get_disp_symbol(left_expr.expr, mut &used_symbols)
+		p.get_disp_symbol(source.expr, mut &used_symbols)
 		if used_symbols.len != 1 {
 			error.print(pos, 'invalid operand for instruction')
 			exit(1)
@@ -403,7 +398,7 @@ pub fn (mut p Parser) instr_leaq(left_expr Expr, right_expr Expr, pos token.Posi
 			uses:   used_symbols[0],
 			offset: instr.code.len
 			rtype:  parser.r_x86_64_pc32
-			adjust: eval_expr(left_expr.expr)
+			adjust: eval_expr(source.expr)
 		}
 		instr.code << [u8(0), 0, 0, 0]
 		p.rela_text_users << rela_text_user
@@ -414,13 +409,19 @@ pub fn (mut p Parser) instr_leaq(left_expr Expr, right_expr Expr, pos token.Posi
 	p.instrs << &instr
 }
 
-pub fn (mut p Parser) instr_subq(left_expr Expr, right_expr Expr, pos token.Position) {
+pub fn (mut p Parser) instr_subq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .subq}
-	if left_expr is Register && right_expr is Register {
-		instr.code = [parser.rex_w, 0x29, u8(calc_rm(right_expr.lit, left_expr.lit))]
-	} else if left_expr is Immediate && right_expr is Register {
-		num := eval_expr(left_expr.expr)
-		mod_rm := u8(0xe8 + reg_bits(right_expr.lit))
+	if source is Register && destination is Register {
+
+		// subq %rax, %rax
+		mod_rm := compose_mod_rm(3, reg_bits(source.lit), reg_bits(destination.lit))
+		instr.code = [parser.rex_w, 0x29, mod_rm]
+
+	} else if source is Immediate && destination is Register {
+
+		// subq $10, %rax
+		num := eval_expr(source.expr)
+		mod_rm := u8(0xe8 + reg_bits(destination.lit))
 
 		if -128 <= num && num <= 127 {
 			instr.code = [parser.rex_w, 0x83, mod_rm, u8(num)]
@@ -436,13 +437,14 @@ pub fn (mut p Parser) instr_subq(left_expr Expr, right_expr Expr, pos token.Posi
 	p.instrs << &instr
 }
 
-pub fn (mut p Parser) instr_xorq(left_expr Expr, right_expr Expr, pos token.Position) {
+pub fn (mut p Parser) instr_xorq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .xorq}
-	if left_expr is Register && right_expr is Register {
-		instr.code = [parser.rex_w, 0x31, calc_rm(left_expr.lit, right_expr.lit)]
-	} else if left_expr is Immediate && right_expr is Register {
-		num := eval_expr(left_expr.expr)
-		instr.code = [parser.rex_w, 0x83, u8(0xf0 + reg_bits(right_expr.lit)), u8(num)]
+	if source is Register && destination is Register {
+		mod_rm := compose_mod_rm(3, reg_bits(source.lit), reg_bits(destination.lit))
+		instr.code = [parser.rex_w, 0x31, mod_rm]
+	} else if source is Immediate && destination is Register {
+		num := eval_expr(source.expr)
+		instr.code = [parser.rex_w, 0x83, 0xf0 + reg_bits(destination.lit), u8(num)]
 	} else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
