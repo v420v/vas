@@ -158,6 +158,22 @@ pub fn (mut l Lexer) lex() token.Token {
 						pos: pos
 					}
 				}
+				`+` {
+					l.advance()
+					return token.Token{
+						lit: '+'
+						kind: .plus
+						pos: pos
+					}
+				}
+				`-` {
+					l.advance()
+					return token.Token{
+						lit: '-'
+						kind: .minus
+						pos: pos
+					}
+				}
 				`$` {
 					l.advance()
 					return token.Token{

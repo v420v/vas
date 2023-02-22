@@ -16,6 +16,7 @@ pub mut:
 	rela_symbols  []string
 	relatext      []Elf64_Rela
 	symtab        []Elf64_Sym
+	sym_index     map[string]int
 	strtab        []u8
 }
 
@@ -30,7 +31,29 @@ pub fn new(out_file string) &Elf {
 		rela_symbols:  []string{}
 		globals_count: 0
 		relatext:      []Elf64_Rela{}
-		symtab:        []Elf64_Sym{}
+		symtab: [
+			Elf64_Sym{
+				st_name: u32(0) // null_nameofs
+				st_info: ((elf.stb_local << 4) + (elf.stt_notype & 0xf))
+			},
+			// .text
+			Elf64_Sym{
+				st_name: u32(0) // null_nameofs
+				st_info: ((elf.stb_local << 4) + (elf.stt_section & 0xf))
+				st_shndx: 1
+			},
+			// .rodata
+			Elf64_Sym{
+				st_name: u32(0) // null_nameofs
+				st_info: ((elf.stb_local << 4) + (elf.stt_section & 0xf))
+				st_shndx: 2
+			},
+		]
+		sym_index: {
+			"null":    0
+			".text":   1
+			".rodata": 2
+		}
 		strtab:        []u8{}
 	}
 	return e
@@ -181,24 +204,13 @@ fn (mut e Elf) symbol_is_defined(name string) bool {
 	return false
 }
 
-fn (mut e Elf) rela_symbol_pos(symbol_name string) int {
-	mut pos := 0
-	for s in e.rela_symbols {
-		if s == symbol_name {
-			break
-		}
-		pos++
-	}
-	return pos
-}
-
 fn (mut e Elf) get_defined_symbol(name string) parser.Instr {
 	for s in e.symbols {
         if s.symbol_name == name {
             return *s
         }
     }
-	panic('PANIC')
+	panic('internal error')
 }
 
 pub fn (mut e Elf) handle_undefined_symbols(rela_text_users []parser.RelaTextUser) {
@@ -208,31 +220,38 @@ pub fn (mut e Elf) handle_undefined_symbols(rela_text_users []parser.RelaTextUse
 
 	for r in rela_text_users {
 		mut r_addend := i64(0 - 4)
-		mut r_info := u64(0)
-    	r_offset := u64(r.instr.addr + r.offset)
+		mut index := 0
 
-    	if !e.symbol_is_defined(r.uses) {
-			mut index := 0
-    	    if r.uses in e.rela_symbols {
-				index = e.rela_symbol_pos(r.uses) + local_symbols_count
+    	if r.rtype == parser.r_x86_64_plt32 && e.symbol_is_defined(r.uses) {
+			continue
+		} else if e.symbol_is_defined(r.uses) {
+			s := e.get_defined_symbol(r.uses)
+    	    r_addend += s.addr
+			index = match s.section {
+				.data {
+					e.sym_index[".rodata"]
+				}
+				.text {
+					e.sym_index[".text"]
+				} else {
+					panic('PANIC')
+				}
+			}
+		} else {
+			if r.uses in e.rela_symbols {
+				index = e.sym_index[r.uses]
     	    } else {
     	        e.rela_symbols << r.uses
+				e.sym_index[r.uses] = pos
 				index = pos
     	        pos++
     	    }
-			r_info = (u64(index) << 32) + r.rtype
-    	} else if r.rtype == parser.r_x86_64_plt32 && e.symbol_is_defined(r.uses) {
-			continue
-		} else {
-			s := e.get_defined_symbol(r.uses)
-    	    r_addend += s.addr
-			section := if s.section == .data {2} else {1}
-			r_info = (u64(section) << 32) + r.rtype
     	}
+
 		e.relatext << elf.Elf64_Rela{
-    	    r_offset: r_offset,
-    	    r_info: r_info,
-    	    r_addend: r_addend,
+    	    r_offset: u64(r.instr.addr + r.offset),
+    	    r_info: (u64(index) << 32) + r.rtype,
+    	    r_addend: r_addend + r.adjust,
     	}
 	}
 }
@@ -290,27 +309,9 @@ pub fn (mut e Elf) elf_symtab_strtab() {
 	mut off := 0
 	mut str := ''
 
-	e.symtab = [
-		Elf64_Sym{
-			st_name: u32(0) // null_nameofs
-			st_info: ((elf.stb_local << 4) + (elf.stt_notype & 0xf))
-		},
-		Elf64_Sym{
-			st_name: u32(0) // null_nameofs
-			st_info: ((elf.stb_local << 4) + (elf.stt_section & 0xf))
-			st_shndx: 1
-		},
-		// Section .rodata
-		Elf64_Sym{
-			st_name: u32(0) // null_nameofs
-			st_info: ((elf.stb_local << 4) + (elf.stt_section & 0xf))
-			st_shndx: 2
-		},
-	]
-
-	e.elf_symbol(elf.stb_local, mut &off, mut &str)
-	e.elf_rela_symbol(mut &off, mut &str)
-	e.elf_symbol(elf.stb_global, mut &off, mut &str)
+	e.elf_symbol(elf.stb_local, mut &off, mut &str) // local
+	e.elf_rela_symbol(mut &off, mut &str) // rela local
+	e.elf_symbol(elf.stb_global, mut &off, mut &str) // global
 
 	padding := (parser.align_to(e.strtab.len, 32) - e.strtab.len)
 	for _ in 0 .. padding {

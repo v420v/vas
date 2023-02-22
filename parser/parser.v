@@ -52,7 +52,7 @@ fn (mut p Parser) parse_register() Register {
 	}
 }
 
-fn (mut p Parser) parse_expr() Expr {
+fn (mut p Parser) parse_factor() Expr {
 	match p.tok.kind {
 		.number {
 			lit := p.tok.lit
@@ -69,6 +69,23 @@ fn (mut p Parser) parse_expr() Expr {
     		exit(1)
 		}
 	}
+}
+
+fn (mut p Parser) parse_expr() Expr {
+	expr := p.parse_factor()
+	if p.tok.kind in [.plus, .minus] {
+		op := p.tok.kind
+		pos := p.tok.pos
+		p.next()
+		right_hs := p.parse_expr()
+		return Binop{
+			left_hs: expr,
+			right_hs: right_hs,
+			op: op,
+			pos: pos
+		}
+	}
+	return expr
 }
 
 fn (mut p Parser) parse_operand() Expr {

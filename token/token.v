@@ -28,6 +28,8 @@ pub enum TokenKind {
 	colon
 	lpar
 	rpar
+	plus
+	minus
 	percent
 	dolor
 	eol // enf of line
