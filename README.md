@@ -52,3 +52,9 @@ $ ./a.out
 
 ## License
 MIT
+
+## References
+- https://github.com/DQNEO/goas port of GNU Assembler written in go
+- https://github.com/skx/assembler Basic X86-64 assembler, written in golang
+- https://web.mit.edu/rhel-doc/3/rhel-as-en-3/ 
+
