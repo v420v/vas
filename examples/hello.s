@@ -1,4 +1,7 @@
-# Hello world!
+# ./vas hello.s
+# ld -o hello hello.o
+# ./hello
+# > Hello, world!
 
 .global _start
 
