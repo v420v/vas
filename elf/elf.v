@@ -222,6 +222,9 @@ pub fn (mut e Elf) handle_undefined_symbols(rela_text_users []parser.RelaTextUse
 	for r in rela_text_users {
 		mut r_addend := i64(0 - 4)
 		mut index := 0
+		if r.rtype == parser.r_x86_64_32s {
+			r_addend = 0
+		}
 
     	if r.rtype == parser.r_x86_64_plt32 && e.symbol_is_defined(r.uses) {
 			continue

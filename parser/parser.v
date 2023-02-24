@@ -123,7 +123,7 @@ fn (mut p Parser) parse_operand() Expr {
 
 fn (mut p Parser) parse_instr() {
 	pos := p.tok.pos
-	mut instr := Instr{}
+	mut instr := Instr{kind: .not_defined}
 
 	name := p.tok.lit
 	p.next()
@@ -157,9 +157,8 @@ fn (mut p Parser) parse_instr() {
 		}
 		'.STRING' {
 			instr.kind = .string
-			lit := p.tok.lit
+			instr.code = p.tok.lit.bytes()
 			p.expect(.string)
-			instr.code = lit.bytes()
 			instr.code << 0
 		}
 		'RETQ' {
