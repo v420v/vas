@@ -6,7 +6,6 @@ import strconv
 import token
 
 pub enum InstrKind {
-	not_defined
 	text
 	data
 	global
@@ -30,13 +29,13 @@ pub enum InstrKind {
 
 pub struct Instr {
 pub mut:
-	binding       u8
-	kind          InstrKind [required]
+	kind          InstrKind
 	code          []u8
 	symbol_name   string
 	section       string
-	symbol_number int
 	addr          i64
+	binding       u8
+	symbol_type   u8
 }
 
 pub struct CallTarget {
@@ -97,10 +96,10 @@ pub:
 
 pub const (
 	mod_indirection_with_no_displacement = u8(0b00)
-	mod_indirection_with_displacement8 = u8(0b01)
-	mod_indirection_with_displacement32 = u8(0b10)
+	mod_indirection_with_displacement8   = u8(0b01)
+	mod_indirection_with_displacement32  = u8(0b10)
 	mod_regi = u8(0b11)
-	rex_w = u8(0x48)
+	rex_w    = u8(0x48)
 
 	r_x86_64_none	   = 0
 	r_x86_64_64		   = 1

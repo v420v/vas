@@ -42,20 +42,14 @@ fn main() {
 	mut p := parser.new(program, file_name)
 	p.parse()
 
-	mut e := elf.new(out_file)
-
-	e.symbols = p.defined_symbols
+	mut e := elf.new(out_file, p.defined_symbols)
 
 	e.assign_instruction_addresses(mut p.instrs)
-
 	e.resolve_call_targets(p.call_targets)
-
-	e.handle_undefined_symbols(p.rela_text_users)
-
-	e.add_padding_to_data_and_code()
-
-	e.elf_symtab_strtab()
+	e.rela_text_users(p.rela_text_users)
 
 	e.gen_elf()
+
+	e.write_elf()
 }
 

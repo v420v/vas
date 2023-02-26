@@ -123,7 +123,7 @@ fn (mut p Parser) parse_operand() Expr {
 
 fn (mut p Parser) parse_instr() {
 	pos := p.tok.pos
-	mut instr := Instr{kind: .not_defined}
+	mut instr := Instr{}
 
 	name := p.tok.lit
 	p.next()
@@ -141,9 +141,11 @@ fn (mut p Parser) parse_instr() {
 	match name.to_upper() {
 		'.TEXT' {
 			instr.kind = .text
+			instr.section = '.text'
 		}
 		'.DATA' {
 			instr.kind = .data
+			instr.section = '.data'
 		}
 		'.GLOBAL' {
 			instr.kind = .global

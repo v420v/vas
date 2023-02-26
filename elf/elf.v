@@ -7,55 +7,58 @@ import encoding.binary
 pub struct Elf {
 	out_file string
 pub mut:
-	text_addr     i64
-	data_addr     i64
-	globals_count int
-	code          []u8 // text section
-	data          []u8 // data section
-	symbols       []&parser.Instr
-	rela_symbols  []string
-	relatext      []Elf64_Rela
-	symtab        []Elf64_Sym
-	sym_index     map[string]int
-	strtab        []u8
+	text_addr       i64
+	data_addr       i64
+	globals_count   int
+	symbols         []&parser.Instr
+	sym_index       map[string]int
+	rela_symbols    []string
+mut:
+	ehdr            Elf64_Ehdr
+	text            []u8 // text section
+	data            []u8 // data section
+	relatext        []Elf64_Rela
+	symtab          []Elf64_Sym
+	strtab          []u8
+	shstrtab        []u8
+	section_headers []Elf64_Shdr
 }
 
-pub fn new(out_file string) &Elf {
+fn (mut e Elf) add_symbol(symbol &parser.Instr, symbol_name string) {
+	e.symbols << symbol
+	e.sym_index[symbol_name] = e.sym_index.len
+}
+
+pub fn new(out_file string, symbols []&parser.Instr) &Elf {
 	mut e := &Elf{
-		out_file:      out_file
-		code:          []u8{} // text section
-		data:          []u8{} // data section
-		text_addr:     0
-		data_addr:     0
-		symbols:       []&parser.Instr{}
-		rela_symbols:  []string{}
-		globals_count: 0
-		relatext:      []Elf64_Rela{}
-		symtab: [
-			Elf64_Sym{
-				st_name: u32(0) // null_nameofs
-				st_info: ((elf.stb_local << 4) + (elf.stt_notype & 0xf))
-			},
-			// .text
-			Elf64_Sym{
-				st_name: u32(0) // null_nameofs
-				st_info: ((elf.stb_local << 4) + (elf.stt_section & 0xf))
-				st_shndx: 1
-			},
-			// .rodata
-			Elf64_Sym{
-				st_name: u32(0) // null_nameofs
-				st_info: ((elf.stb_local << 4) + (elf.stt_section & 0xf))
-				st_shndx: 2
-			},
+		out_file:        out_file
+		text_addr:       0
+		data_addr:       0
+		globals_count:   0
+		symbols:         [
+			&parser.Instr {kind: .label, binding: stb_local},
+			&parser.Instr {kind: .label, binding: stb_local, section: '.text', symbol_type: stt_section},
+			&parser.Instr {kind: .label, binding: stb_local, section: '.data', symbol_type: stt_section},
 		]
-		sym_index: {
-			"null":    0
-			".text":   1
-			".rodata": 2
+		sym_index:       {
+			'null': 0
+			'.text': 1
+			'.data': 2
 		}
-		strtab:        []u8{}
+		rela_symbols:    []string{}
+
+		ehdr:            Elf64_Ehdr{}
+		text:            []u8{} // text section
+		data:            []u8{} // data section
+		relatext:        []Elf64_Rela{}
+		symtab:          []Elf64_Sym{}
+		strtab:          []u8{}
+		shstrtab:        []u8{}
+		section_headers: []Elf64_Shdr{}
 	}
+
+	e.symbols << symbols
+
 	return e
 }
 
@@ -120,21 +123,39 @@ struct Elf64_Phdr {
 }
 
 pub const (
-	stb_local          = 0
-	stb_global         = 1
+	stb_local            = 0
+	stb_global           = 1
 
-	stt_notype         = 0
-	stt_section        = 3
+	stt_notype 			 = 0
+	stt_object 			 = 1
+	stt_func 			 = 2
+	stt_section 		 = 3
+	stt_file 			 = 4
+	stt_common 			 = 5
+	stt_tls 			 = 6
+	stt_relc 			 = 8
+	stt_srelc 			 = 9
+	stt_loos 			 = 10
+	stt_hios 			 = 12
+	stt_loproc 			 = 13
+	stt_hiproc 			 = 14
 
-	sht_null           = 0
-	sht_progbits       = 1
-	sht_symtab         = 2
-	sht_strtab         = 3
-	sht_rela           = 4
+	sht_null             = 0
+	sht_progbits         = 1
+	sht_symtab           = 2
+	sht_strtab           = 3
+	sht_rela             = 4
 
-	shf_alloc          = 0x2
-	shf_execinstr      = 0x4
-	shf_info_link      = 0x40
+	shf_write            = 0x1
+	shf_alloc            = 0x2
+	shf_execinstr        = 0x4
+	shf_merge            = 0x10
+	shf_strings          = 0x20
+	shf_info_link        = 0x40
+	shf_link_order       = 0x80
+	shf_os_nonconforming = 0x100
+	shf_group            = 0x200
+	shf_tls              = 0x400
 )
 
 fn (mut e Elf) assign_symbol_binding(symbol_name string, binding u8) {
@@ -149,12 +170,11 @@ fn (mut e Elf) assign_symbol_binding(symbol_name string, binding u8) {
 pub fn (mut e Elf) assign_instruction_addresses(mut instrs  []&parser.Instr) {
     mut section := '.text'
     for mut instr in instrs {
-        if instr.kind == .data {
-			section = '.rodata'
-		} else if instr.kind == .text {
-			section = '.text'
+        if instr.kind in [.text, .data] {
+			section = instr.section
+		} else {
+			instr.section = section
 		}
-		instr.section = section
 
 		match instr.kind {
             .global  {
@@ -168,8 +188,8 @@ pub fn (mut e Elf) assign_instruction_addresses(mut instrs  []&parser.Instr) {
 				if section == '.text' {
 					instr.addr = e.text_addr
 					e.text_addr += instr.code.len
-					e.code << instr.code
-				} else if section == '.rodata' {
+					e.text << instr.code
+				} else if section == '.data' {
 					instr.addr = e.data_addr
 					e.data_addr += instr.code.len
 					e.data << instr.code
@@ -179,6 +199,16 @@ pub fn (mut e Elf) assign_instruction_addresses(mut instrs  []&parser.Instr) {
             }
         }
     }
+
+	mut padding := (parser.align_to(e.data.len, 16) - e.data.len)
+	for _ in 0 .. padding {
+		e.data << 0
+	}
+
+	padding = (parser.align_to(e.text.len, 32) - e.text.len)
+	for _ in 0 .. padding {
+		e.text << 0
+	}
 }
 
 pub fn (mut e Elf) resolve_call_targets(call_targets []parser.CallTarget) {
@@ -187,10 +217,11 @@ pub fn (mut e Elf) resolve_call_targets(call_targets []parser.CallTarget) {
 			if symbol.symbol_name == call_target.target_symbol {
 				mut buf := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
-				e.code[call_target.caller.addr+1] = buf[0]
-				e.code[call_target.caller.addr+2] = buf[1]
-				e.code[call_target.caller.addr+3] = buf[2]
-				e.code[call_target.caller.addr+4] = buf[3]
+				e.text[call_target.caller.addr+1] = buf[0]
+				e.text[call_target.caller.addr+2] = buf[1]
+				e.text[call_target.caller.addr+3] = buf[2]
+				e.text[call_target.caller.addr+4] = buf[3]
+				break
 			}
 		}
 	}
@@ -211,17 +242,16 @@ fn (mut e Elf) get_defined_symbol(name string) parser.Instr {
             return *s
         }
     }
-	panic('internal error')
+	panic('PANIC')
 }
 
-pub fn (mut e Elf) handle_undefined_symbols(rela_text_users []parser.RelaTextUser) {
-	local_symbols_count := e.symbols.len - e.globals_count + 3
-	//                                                       ^ null, text, rodata
+pub fn (mut e Elf) rela_text_users(rela_text_users []parser.RelaTextUser) {
+	local_symbols_count := e.symbols.len - e.globals_count
 	mut pos := local_symbols_count
 
 	for r in rela_text_users {
-		mut r_addend := i64(0 - 4)
 		mut index := 0
+		mut r_addend := i64(0 - 4)
 		if r.rtype == parser.r_x86_64_32s {
 			r_addend = 0
 		}
@@ -232,15 +262,13 @@ pub fn (mut e Elf) handle_undefined_symbols(rela_text_users []parser.RelaTextUse
 			s := e.get_defined_symbol(r.uses)
     	    r_addend += s.addr
 			index = e.sym_index[s.section]
-		} else {
-			if r.uses in e.rela_symbols {
-				index = e.sym_index[r.uses]
-    	    } else {
-    	        e.rela_symbols << r.uses
-				e.sym_index[r.uses] = pos
-				index = pos
-    	        pos++
-    	    }
+		} else if r.uses in e.rela_symbols {
+			index = e.sym_index[r.uses]
+    	} else {
+    	    e.rela_symbols << r.uses
+			e.sym_index[r.uses] = pos
+			index = pos
+    	    pos++
     	}
 
 		e.relatext << elf.Elf64_Rela{
@@ -258,14 +286,21 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		}
 
 		mut symbol_name := symbol.symbol_name
+		mut st_name := u32(0)
+
 		if !(symbol_name.to_upper().starts_with('.L') && symbol_binding == stb_local) {
 			unsafe { *off += str.len + 1 }
-
 			st_shndx := u16(e.sym_index[symbol.section])
 
+			if symbol.symbol_type == stt_section {
+				st_name = 0
+			} else {
+				st_name = u32(*off)
+			}
+
 			e.symtab << Elf64_Sym{
-				st_name: u32(*off)
-				st_info: u8((symbol.binding << 4) + (elf.stt_notype & 0xf))
+				st_name: st_name
+				st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
 				st_shndx: st_shndx
 				st_value: symbol.addr
 			}
@@ -278,18 +313,16 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 }
 
 fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
-	for symbol in e.rela_symbols {
-		unsafe {
-			*off += str.len + 1
-		}
+	for symbol_name in e.rela_symbols {
+		unsafe {*off += str.len + 1}
 		e.symtab << Elf64_Sym{
 			st_name: u32(*off)
 			st_info: u8((elf.stb_global << 4) + (elf.stt_notype & 0xf))
 			st_shndx: 0
 		}
-		e.strtab << symbol.bytes()
+		e.strtab << symbol_name.bytes()
 		e.strtab << 0x00
-		str = symbol
+		str = symbol_name
 	}
 }
 
@@ -308,25 +341,15 @@ pub fn (mut e Elf) elf_symtab_strtab() {
 	}
 }
 
-pub fn (mut e Elf) add_padding_to_data_and_code() {
-	mut padding := (parser.align_to(e.data.len, 16) - e.data.len)
-	for _ in 0 .. padding {
-		e.data << 0
-	}
-
-	padding = (parser.align_to(e.code.len, 32) - e.code.len)
-	for _ in 0 .. padding {
-		e.code << 0
-	}
-}
-
 pub fn (mut e Elf) gen_elf() {
-	mut shstrtab := [
+	e.elf_symtab_strtab()
+
+	e.shstrtab << [
 		u8(0x00),
 		// .text\0
 		0x2e, 0x74, 0x65, 0x78, 0x74, 0x00,
-		// .rodata\0
-		0x2e, 0x72, 0x6f, 0x64, 0x61, 0x74, 0x61, 0x00,
+		// .data\0
+		0x2e, 0x64, 0x61, 0x74, 0x61, 0x00,
 		// .rela.text\0
 		0x2e, 0x72, 0x65, 0x6c, 0x61, 0x2e, 0x74, 0x65, 0x78, 0x74, 0x00,
 		// .strtab\0
@@ -337,40 +360,34 @@ pub fn (mut e Elf) gen_elf() {
 		0x2e, 0x73, 0x68, 0x73, 0x74, 0x72, 0x74, 0x61, 0x62, 0x00,
 	]
 
-	padding := (parser.align_to(shstrtab.len, 32) - shstrtab.len)
+	padding := (parser.align_to(e.shstrtab.len, 32) - e.shstrtab.len)
 	for _ in 0 .. padding {
-		shstrtab << 0
+		e.shstrtab << 0
 	}
 
 	null_nameofs := 0
 	text_nameofs := null_nameofs + ''.len + 1
-	rodata_nameofs := text_nameofs + '.text'.len + 1
-	relatext_nameofs := rodata_nameofs + '.rodata'.len + 1
+	data_nameofs := text_nameofs + '.text'.len + 1
+	relatext_nameofs := data_nameofs + '.data'.len + 1
 	strtab_nameofs :=   relatext_nameofs + '.rela.text'.len + 1
 	symtab_nameofs := strtab_nameofs + '.strtab'.len + 1
 	shstrtab_nameofs := symtab_nameofs + '.symtab'.len + 1
 
-	code_ofs := sizeof(Elf64_Ehdr)
-	code_size := u32(e.code.len)
-
-	rodata_ofs := code_ofs + code_size
-	rodata_size := u32(e.data.len)
-
-	strtab_ofs := rodata_ofs + rodata_size
+	text_ofs := sizeof(Elf64_Ehdr)
+	text_size := u32(e.text.len)
+	data_ofs := text_ofs + text_size
+	data_size := u32(e.data.len)
+	strtab_ofs := data_ofs + data_size
 	strtab_size := u32(e.strtab.len)
-
 	symtab_ofs := strtab_ofs + strtab_size
 	symtab_size := sizeof(Elf64_Sym) * u32(e.symtab.len)
-
 	relatext_ofs := symtab_ofs + symtab_size
   	relatext_size := sizeof(Elf64_Rela) * u32(e.relatext.len)
-
 	shstrtab_ofs := relatext_ofs + relatext_size
-	shstrtab_size := u32(shstrtab.len)
-
+	shstrtab_size := u32(e.shstrtab.len)
 	sectionheader_ofs := shstrtab_ofs + shstrtab_size
 
-	section_headers := [
+	e.section_headers << [
 		// NULL
 		Elf64_Shdr{
 			sh_name: u32(null_nameofs)
@@ -382,21 +399,21 @@ pub fn (mut e Elf) gen_elf() {
 			sh_type: elf.sht_progbits
 			sh_flags: elf.shf_alloc | elf.shf_execinstr
 			sh_addr: 0
-			sh_offset: code_ofs
-			sh_size: code_size
+			sh_offset: text_ofs
+			sh_size: text_size
 			sh_link: 0
 			sh_info: 0
 			sh_addralign: 1
 			sh_entsize: 0
 		},
-		// .rodata
+		// .data
 		Elf64_Shdr{
-			sh_name: u32(rodata_nameofs)
+			sh_name: u32(data_nameofs)
 			sh_type: elf.sht_progbits
-			sh_flags: elf.shf_alloc
+			sh_flags: elf.shf_alloc | shf_write
 			sh_addr: 0
-			sh_offset: rodata_ofs
-			sh_size: rodata_size
+			sh_offset: data_ofs
+			sh_size: data_size
 			sh_link: 0
 			sh_info: 0
 			sh_addralign: 1
@@ -424,8 +441,7 @@ pub fn (mut e Elf) gen_elf() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: 3 // section number of .strtab
-			sh_info: u32(e.symbols.len - e.globals_count + 3) // Number of local symbols
-			//                                             ^ null + rodata + text
+			sh_info: u32(e.symbols.len - e.globals_count) // Number of local symbols
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		},
@@ -455,9 +471,9 @@ pub fn (mut e Elf) gen_elf() {
 			sh_addralign: 1
 			sh_entsize: 0
 		},
-	]!
+	]
 
-	ehdr := Elf64_Ehdr{
+	e.ehdr = Elf64_Ehdr{
 		e_ident: [
 			u8(0x7f), 0x45, 0x4c, 0x46, // Magic number ' ELF' in ascii format
 			0x02, // 2 = 64-bit
@@ -484,35 +500,28 @@ pub fn (mut e Elf) gen_elf() {
 		e_phentsize: u16(sizeof(Elf64_Phdr))
 		e_phnum: 0
 		e_shentsize: u16(sizeof(Elf64_Shdr))
-		e_shnum: u16(section_headers.len)
-		e_shstrndx: u16(section_headers.len - 1)
-	}
-
-	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }
-
-	os.truncate(e.out_file, 0) or { panic('error truncate file `${e.out_file}`') }
-
-	fp.write_struct(ehdr) or { panic('error writing `Elf64_Ehdr`') }
-
-	fp.write(e.code) or { panic('error writing `code`') }
-
-	fp.write(e.data) or { panic('error writing `.rodata`') }
-
-	fp.write(e.strtab) or { panic('error writing `.strtab`') }
-
-	for s in e.symtab {
-		fp.write_struct(s) or { panic('error writing `.symtab`') }
-	}
-
-	for r in e.relatext {
-		fp.write_struct(r) or { panic('error writing `.rela.text`') }
-	}
-
-	fp.write(shstrtab) or { panic('error writing `.shstrtab`') }
-
-	for sh in section_headers {
-		fp.write_struct(sh) or { panic('error writing `Elf64_Shdr`') }
+		e_shnum: u16(e.section_headers.len)
+		e_shstrndx: u16(e.section_headers.len - 1)
 	}
 }
 
+pub fn (mut e Elf) write_elf() {
+	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }
+	os.truncate(e.out_file, 0) or { panic('error truncate file `${e.out_file}`') }
+
+	fp.write_struct(e.ehdr) or { panic('error writing `elf header`') }
+	fp.write(e.text) or { panic('error writing `.text`') }
+	fp.write(e.data) or { panic('error writing `.data`') }
+	fp.write(e.strtab) or { panic('error writing `.strtab`') }
+	for s in e.symtab {
+		fp.write_struct(s) or { panic('error writing `.symtab`') }
+	}
+	for r in e.relatext {
+		fp.write_struct(r) or { panic('error writing `.rela.text`') }
+	}
+	fp.write(e.shstrtab) or { panic('error writing `.shstrtab`') }
+	for sh in e.section_headers {
+		fp.write_struct(sh) or { panic('error writing `section_headers`') }
+	}
+}
 
