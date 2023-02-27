@@ -16,12 +16,39 @@ mut:
 	ehdr            Elf64_Ehdr
 	text            []u8
 	data            []u8
-	relatext        []Elf64_Rela
 	strtab          []u8
 	symtab          []Elf64_Sym
+	relatext        []Elf64_Rela
 	shstrtab        []u8
 	section_headers []Elf64_Shdr
 }
+
+/*
+
+Elf format
+ - https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+ - https://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/docs/elf.pdf
+
+---------------------
+     Elf header
+---------------------
+       .text
+---------------------
+       .data
+---------------------
+       strtab
+---------------------
+       symtab
+---------------------
+      rela.text
+---------------------
+	   shstrtab
+---------------------
+       section
+	   headers
+---------------------
+
+*/
 
 struct Elf64_Ehdr {
 	e_ident     [16]u8
