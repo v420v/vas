@@ -5,66 +5,23 @@ import parser
 import encoding.binary
 
 pub struct Elf {
-	out_file string
-pub mut:
-	text_addr       i64
-	data_addr       i64
-	globals_count   int
-	symbols         []&parser.Instr
-	sym_index       map[string]int
-	rela_symbols    []string
 mut:
+	out_file        string
+	globals_count   int
+	defined_symbols []&parser.Instr
+	rela_symbols    []string
+	sym_index       map[string]int
+
+	// ----------------------------
 	ehdr            Elf64_Ehdr
-	text            []u8 // text section
-	data            []u8 // data section
+	text            []u8
+	data            []u8
 	relatext        []Elf64_Rela
-	symtab          []Elf64_Sym
 	strtab          []u8
+	symtab          []Elf64_Sym
 	shstrtab        []u8
 	section_headers []Elf64_Shdr
 }
-
-fn (mut e Elf) add_symbol(symbol &parser.Instr, symbol_name string) {
-	e.symbols << symbol
-	e.sym_index[symbol_name] = e.sym_index.len
-}
-
-pub fn new(out_file string, symbols []&parser.Instr) &Elf {
-	mut e := &Elf{
-		out_file:        out_file
-		text_addr:       0
-		data_addr:       0
-		globals_count:   0
-		symbols:         [
-			&parser.Instr {kind: .label, binding: stb_local},
-			&parser.Instr {kind: .label, binding: stb_local, section: '.text', symbol_type: stt_section},
-			&parser.Instr {kind: .label, binding: stb_local, section: '.data', symbol_type: stt_section},
-		]
-		sym_index:       {
-			'null': 0
-			'.text': 1
-			'.data': 2
-		}
-		rela_symbols:    []string{}
-
-		ehdr:            Elf64_Ehdr{}
-		text:            []u8{} // text section
-		data:            []u8{} // data section
-		relatext:        []Elf64_Rela{}
-		symtab:          []Elf64_Sym{}
-		strtab:          []u8{}
-		shstrtab:        []u8{}
-		section_headers: []Elf64_Shdr{}
-	}
-
-	e.symbols << symbols
-
-	return e
-}
-
-//
-// ELF Struct
-//
 
 struct Elf64_Ehdr {
 	e_ident     [16]u8
@@ -158,63 +115,94 @@ pub const (
 	shf_tls              = 0x400
 )
 
-fn (mut e Elf) assign_symbol_binding(symbol_name string, binding u8) {
-	for mut symbol in e.symbols {
-		if symbol.symbol_name == symbol_name {
-			symbol.binding = binding
+pub fn new(out_file string) &Elf {
+	return &Elf{
+		out_file: out_file
+	}
+}
+
+fn (mut e Elf) set_symbol_binding(name string, mut defined_symbols []&parser.Instr, set_binding u8) {
+	for mut symbol in defined_symbols {
+		if symbol.symbol_name == name {
+			if symbol.binding == stb_local && set_binding == stb_global {
+				e.globals_count++
+			}
+			if symbol.binding == stb_global && set_binding == stb_local {
+				e.globals_count--
+			}
+			symbol.binding = set_binding
 			break
 		}
 	}
 }
 
-pub fn (mut e Elf) assign_instruction_addresses(mut instrs  []&parser.Instr) {
-    mut section := '.text'
-    for mut instr in instrs {
-        if instr.kind in [.text, .data] {
-			section = instr.section
-		} else {
-			instr.section = section
+fn add_padding(mut code []u8) {
+	mut padding := (parser.align_to(code.len, 16) - code.len)
+	for _ in 0 .. padding {
+		code << 0
+	}
+}
+
+pub fn (mut e Elf) assign_addresses_and_set_bindings(mut instrs  []&parser.Instr, mut defined_symbols []&parser.Instr) {
+	mut curr_section := '.text'
+	mut text_addr, mut data_addr := 0, 0
+
+	for mut i in instrs {
+		if i.kind == .section {
+			curr_section = i.section
 		}
 
-		match instr.kind {
-            .global  {
-                e.globals_count++
-                e.assign_symbol_binding(instr.symbol_name, elf.stb_global)
-            }
-            .local  {
-                e.assign_symbol_binding(instr.symbol_name, elf.stb_local)
-            }
-            else {
-				if section == '.text' {
-					instr.addr = e.text_addr
-					e.text_addr += instr.code.len
-					e.text << instr.code
-				} else if section == '.data' {
-					instr.addr = e.data_addr
-					e.data_addr += instr.code.len
-					e.data << instr.code
-				} else {
-					panic('[internal error] somthing whent wrong...')
-				}
-            }
-        }
-    }
+		if i.kind == .global {
+			e.set_symbol_binding(i.symbol_name, mut defined_symbols, stb_global)
+		}
 
-	mut padding := (parser.align_to(e.data.len, 16) - e.data.len)
-	for _ in 0 .. padding {
-		e.data << 0
+		if i.kind == .local {
+			e.set_symbol_binding(i.symbol_name, mut defined_symbols, stb_local)
+		}
+
+		i.section = curr_section
+
+		match curr_section {
+			'.text' {
+				i.addr = text_addr
+				e.text << i.code
+				text_addr += i.code.len
+			}
+			'.data' {
+				i.addr = data_addr
+				e.data << i.code
+				data_addr += i.code.len
+			} else {
+				panic('unreachable')
+			}
+		}
 	}
 
-	padding = (parser.align_to(e.text.len, 32) - e.text.len)
-	for _ in 0 .. padding {
-		e.text << 0
-	}
+	add_padding(mut e.data)
+	add_padding(mut e.text)
+
+	e.defined_symbols << [
+		&parser.Instr {kind: .label, binding: stb_local}, // null
+		&parser.Instr {kind: .label, binding: stb_local, section: '.text', symbol_type: stt_section}, // .text
+		&parser.Instr {kind: .label, binding: stb_local, section: '.data', symbol_type: stt_section}, // .data
+	]
+	e.sym_index['null'] = 0
+	e.sym_index['.text'] = 1
+	e.sym_index['.data'] = 2
+
+	e.defined_symbols << defined_symbols
 }
 
 pub fn (mut e Elf) resolve_call_targets(call_targets []parser.CallTarget) {
 	for call_target in call_targets {
-		for mut symbol in e.symbols {
+		for mut symbol in e.defined_symbols {
 			if symbol.symbol_name == call_target.target_symbol {
+
+				// canot call symbol from a different section. need to relocate.
+				if call_target.caller.section != symbol.section {
+					panic('TODO: this instruction needs to be in rela.text\ncanot call symbol from a different section. need to relocate.')
+				}
+
 				mut buf := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
 				e.text[call_target.caller.addr+1] = buf[0]
@@ -228,7 +216,7 @@ pub fn (mut e Elf) resolve_call_targets(call_targets []parser.CallTarget) {
 }
 
 fn (mut e Elf) symbol_is_defined(name string) bool {
-	for symbol in e.symbols {
+	for symbol in e.defined_symbols {
 		if symbol.symbol_name == name {
 			return true
 		}
@@ -237,17 +225,16 @@ fn (mut e Elf) symbol_is_defined(name string) bool {
 }
 
 fn (mut e Elf) get_defined_symbol(name string) parser.Instr {
-	for s in e.symbols {
+	for s in e.defined_symbols {
         if s.symbol_name == name {
             return *s
         }
     }
-	panic('PANIC')
+	panic('unreachable')
 }
 
 pub fn (mut e Elf) rela_text_users(rela_text_users []parser.RelaTextUser) {
-	local_symbols_count := e.symbols.len - e.globals_count
-	mut pos := local_symbols_count
+	mut pos := e.defined_symbols.len - e.globals_count
 
 	for r in rela_text_users {
 		mut index := 0
@@ -257,6 +244,7 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []parser.RelaTextUser) {
 		}
 
     	if r.rtype == parser.r_x86_64_plt32 && e.symbol_is_defined(r.uses) {
+			// already resolved call instruction
 			continue
 		} else if e.symbol_is_defined(r.uses) {
 			s := e.get_defined_symbol(r.uses)
@@ -280,7 +268,7 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []parser.RelaTextUser) {
 }
 
 fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
-	for symbol in e.symbols {
+	for symbol in e.defined_symbols {
 		if symbol.binding != symbol_binding {
 			continue
 		}
@@ -331,19 +319,14 @@ pub fn (mut e Elf) elf_symtab_strtab() {
 	mut off := 0
 	mut str := ''
 
-	e.elf_symbol(elf.stb_local, mut &off, mut &str) // local
-	e.elf_rela_symbol(mut &off, mut &str) // rela local
+	e.elf_symbol(elf.stb_local, mut &off, mut &str)  // local
+	e.elf_rela_symbol(mut &off, mut &str)            // rela local
 	e.elf_symbol(elf.stb_global, mut &off, mut &str) // global
 
-	padding := (parser.align_to(e.strtab.len, 32) - e.strtab.len)
-	for _ in 0 .. padding {
-		e.strtab << 0
-	}
+	add_padding(mut e.strtab)
 }
 
-pub fn (mut e Elf) gen_elf() {
-	e.elf_symtab_strtab()
-
+pub fn (mut e Elf) elf_rest() {
 	e.shstrtab << [
 		u8(0x00),
 		// .text\0
@@ -360,10 +343,7 @@ pub fn (mut e Elf) gen_elf() {
 		0x2e, 0x73, 0x68, 0x73, 0x74, 0x72, 0x74, 0x61, 0x62, 0x00,
 	]
 
-	padding := (parser.align_to(e.shstrtab.len, 32) - e.shstrtab.len)
-	for _ in 0 .. padding {
-		e.shstrtab << 0
-	}
+	add_padding(mut e.shstrtab)
 
 	null_nameofs := 0
 	text_nameofs := null_nameofs + ''.len + 1
@@ -441,7 +421,7 @@ pub fn (mut e Elf) gen_elf() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: 3 // section number of .strtab
-			sh_info: u32(e.symbols.len - e.globals_count) // Number of local symbols
+			sh_info: u32(e.defined_symbols.len - e.globals_count) // Number of local symbols
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		},

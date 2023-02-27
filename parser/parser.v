@@ -140,11 +140,11 @@ fn (mut p Parser) parse_instr() {
 
 	match name.to_upper() {
 		'.TEXT' {
-			instr.kind = .text
+			instr.kind = .section
 			instr.section = '.text'
 		}
 		'.DATA' {
-			instr.kind = .data
+			instr.kind = .section
 			instr.section = '.data'
 		}
 		'.GLOBAL' {

@@ -6,8 +6,7 @@ import strconv
 import token
 
 pub enum InstrKind {
-	text
-	data
+	section
 	global
 	local
 	string
