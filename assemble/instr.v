@@ -1,4 +1,4 @@
-module parser
+module assemble
 
 import error
 import encoding.binary
@@ -19,6 +19,8 @@ pub enum InstrKind {
 	callq
 	xorq
 	jmp
+	jne
+	je
 	retq
 	syscall
 	nopq
@@ -218,11 +220,11 @@ fn eval_expr(expr Expr) int {
 	}
 }
 
-fn (mut p Parser) get_disp_symbol(expr Expr, mut arr []string) {
+fn (mut a Assemble) get_disp_symbol(expr Expr, mut arr []string) {
 	match expr {
 		Binop {
-			p.get_disp_symbol(expr.left_hs, mut arr)
-			p.get_disp_symbol(expr.right_hs, mut arr)
+			a.get_disp_symbol(expr.left_hs, mut arr)
+			a.get_disp_symbol(expr.right_hs, mut arr)
 		}
 		Ident {
 			arr << expr.lit
@@ -232,7 +234,7 @@ fn (mut p Parser) get_disp_symbol(expr Expr, mut arr []string) {
 	}
 }
 
-fn (mut p Parser) encode_indirection_register(op_code []u8, indirection Indirection, register Register, mut instr &Instr, pos token.Position) {
+fn (mut a Assemble) encode_indirection_register(op_code []u8, indirection Indirection, register Register, mut instr &Instr, pos token.Position) {
 	// disp(base)
 
 	disp := eval_expr(indirection.expr)
@@ -241,7 +243,7 @@ fn (mut p Parser) encode_indirection_register(op_code []u8, indirection Indirect
 	base_is_rbp := indirection.regi.lit == 'RBP'
 
 	mut used_symbols := []string{}
-	p.get_disp_symbol(indirection.expr, mut &used_symbols)
+	a.get_disp_symbol(indirection.expr, mut &used_symbols)
 	if used_symbols.len >= 2 {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
@@ -263,7 +265,7 @@ fn (mut p Parser) encode_indirection_register(op_code []u8, indirection Indirect
 		panic('[internal eror] something whent wrong...')
 	}
 
-	instr.code << parser.rex_w
+	instr.code << assemble.rex_w
 	instr.code << op_code
 	instr.code << mod_rm
 
@@ -274,11 +276,11 @@ fn (mut p Parser) encode_indirection_register(op_code []u8, indirection Indirect
 
 	if need_rela {
 		rtype := if base_is_rip {
-			parser.r_x86_64_pc32
+			assemble.r_x86_64_pc32
 		} else {
-			parser.r_x86_64_32s
+			assemble.r_x86_64_32s
 		}
-		rela_text_user := parser.RelaTextUser{
+		rela_text_user := assemble.RelaTextUser{
 			instr:  unsafe {instr},
 			uses:   used_symbols[0],
 			offset: instr_code_len
@@ -286,7 +288,7 @@ fn (mut p Parser) encode_indirection_register(op_code []u8, indirection Indirect
 			adjust: eval_expr(indirection.expr)
 		}
 		instr.code << [u8(0), 0, 0, 0]
-		p.rela_text_users << rela_text_user
+		a.rela_text_users << rela_text_user
 	} else {
 		if disp != 0 || base_is_rip || base_is_rbp {
 			if base_is_rip {
@@ -306,48 +308,48 @@ fn (mut p Parser) encode_indirection_register(op_code []u8, indirection Indirect
 	}
 }
 
-fn (mut p Parser) encode_regi_regi(op_code []u8, source Register, destination Register, mut instr &Instr, pos token.Position) {
+fn (mut a Assemble) encode_regi_regi(op_code []u8, source Register, destination Register, mut instr &Instr, pos token.Position) {
 	mod_rm := compose_mod_rm(mod_regi, reg_bits(source), reg_bits(destination))
-    instr.code << parser.rex_w
+    instr.code << assemble.rex_w
 	instr.code << op_code
 	instr.code << mod_rm
 }
 
-fn (mut p Parser) instr_string(value string) {
+fn (mut a Assemble) instr_string(value string) {
 	mut instr := Instr{kind: .string}
 	arr := value.bytes()
 	instr.code = arr
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_movq(source Expr, destination Expr, pos token.Position) {
+fn (mut a Assemble) instr_movq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .movq}
     if source is Register && destination is Register {
 
-		p.encode_regi_regi([u8(0x89)], source, destination, mut &instr, pos)
+		a.encode_regi_regi([u8(0x89)], source, destination, mut &instr, pos)
 
 	} else if source is Indirection && destination is Register {
 
-		p.encode_indirection_register([u8(0x8b)], source, destination, mut &instr, pos)
+		a.encode_indirection_register([u8(0x8b)], source, destination, mut &instr, pos)
 
     } else if source is Register && destination is Indirection {
 
-		p.encode_indirection_register([u8(0x89)], destination, source, mut &instr, pos)
+		a.encode_indirection_register([u8(0x89)], destination, source, mut &instr, pos)
 
     } else if source is Immediate && destination is Register {
         num := eval_expr(source.expr)
         mut hex := [u8(0), 0, 0, 0]
         binary.little_endian_put_u32(mut &hex, u32(num))
         mod_rm := u8(0xc0 + reg_bits(destination))
-        instr.code = [parser.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
+        instr.code = [assemble.rex_w, u8(0xc7), mod_rm, hex[0], hex[1], hex[2], hex[3]]
     } else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_popq(expr Expr) {
+fn (mut a Assemble) instr_popq(expr Expr) {
 	mut instr := Instr{kind: .popq}
 	if expr is Register {
 		instr.code = [u8(0x58 + reg_bits(expr))]
@@ -355,10 +357,10 @@ fn (mut p Parser) instr_popq(expr Expr) {
 		error.print(expr.pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_pushq(expr Expr) {
+fn (mut a Assemble) instr_pushq(expr Expr) {
 	mut instr := Instr{kind: .pushq}
 	if expr is Register {
 		instr.code = [u8(0x50 + reg_bits(expr))]
@@ -379,28 +381,28 @@ fn (mut p Parser) instr_pushq(expr Expr) {
 		error.print(expr.pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_addq(source Expr, destination Expr, pos token.Position) {
+fn (mut a Assemble) instr_addq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .addq}
 	if source is Register && destination is Register {
 
-		p.encode_regi_regi([u8(0x01)], source, destination, mut &instr, pos)
+		a.encode_regi_regi([u8(0x01)], source, destination, mut &instr, pos)
 
 	} else if source is Immediate && destination is Register {
 
 		num := eval_expr(source.expr)
 		mod_rm := 0xc0 + reg_bits(destination)
 		if is_in_i8_range(num) {
-			instr.code = [parser.rex_w, 0x83, mod_rm, u8(num)]
+			instr.code = [assemble.rex_w, 0x83, mod_rm, u8(num)]
 		} else if is_in_i32_range(num) {
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(num))
 			if destination.lit == 'RAX' {
-				instr.code = [parser.rex_w, 0x05, hex[0], hex[1], hex[2], hex[3]]
+				instr.code = [assemble.rex_w, 0x05, hex[0], hex[1], hex[2], hex[3]]
 			} else {
-				instr.code = [parser.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
+				instr.code = [assemble.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
 			}
 		} else {
 			panic('[internal error] somthing whent wrong...')
@@ -408,16 +410,16 @@ fn (mut p Parser) instr_addq(source Expr, destination Expr, pos token.Position) 
 
 	} else if source is Indirection && destination is Register {
 
-		p.encode_indirection_register([u8(0x3)], source, destination, mut &instr, pos)
+		a.encode_indirection_register([u8(0x3)], source, destination, mut &instr, pos)
 
 	} else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_callq(source Expr, pos token.Position) {
+fn (mut a Assemble) instr_callq(source Expr, pos token.Position) {
 	instr := Instr{kind: .callq, code: [u8(0xe8), 0, 0, 0, 0]}
 	
 	target_sym_name := match source {
@@ -434,36 +436,36 @@ fn (mut p Parser) instr_callq(source Expr, pos token.Position) {
 		caller: &instr
 	}
 
-	rela_text_user := parser.RelaTextUser{
+	rela_text_user := assemble.RelaTextUser{
 		instr:  &instr,
 		offset: 1,
 		uses:   target_sym_name,
-		rtype:   parser.r_x86_64_plt32
+		rtype:   assemble.r_x86_64_plt32
 	}
 
-	p.rela_text_users << rela_text_user
-	p.instrs << &instr
-	p.call_targets << call_target
+	a.rela_text_users << rela_text_user
+	a.instrs << &instr
+	a.call_targets << call_target
 }
 
-fn (mut p Parser) instr_leaq(source Expr, destination Expr, pos token.Position) {
-	mut instr := parser.Instr{kind: .leaq}
+fn (mut a Assemble) instr_leaq(source Expr, destination Expr, pos token.Position) {
+	mut instr := assemble.Instr{kind: .leaq}
 	if source is Indirection && destination is Register {
 
-		p.encode_indirection_register([u8(0x8d)], source, destination, mut &instr, pos)
+		a.encode_indirection_register([u8(0x8d)], source, destination, mut &instr, pos)
 
 	} else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_subq(source Expr, destination Expr, pos token.Position) {
+fn (mut a Assemble) instr_subq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .subq}
 	if source is Register && destination is Register {
 
-		p.encode_regi_regi([u8(0x29)], source, destination, mut &instr, pos)
+		a.encode_regi_regi([u8(0x29)], source, destination, mut &instr, pos)
 
 	} else if source is Immediate && destination is Register {
 
@@ -471,29 +473,29 @@ fn (mut p Parser) instr_subq(source Expr, destination Expr, pos token.Position) 
 		mod_rm := 0xe8 + reg_bits(destination)
 
 		if is_in_i8_range(num) {
-			instr.code = [parser.rex_w, 0x83, mod_rm, u8(num)]
+			instr.code = [assemble.rex_w, 0x83, mod_rm, u8(num)]
 		} else if is_in_i32_range(num) {
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(num))
-			instr.code = [parser.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
+			instr.code = [assemble.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
 		}
 
 	} else if source is Indirection && destination is Register {
 
-		p.encode_indirection_register([u8(0x2b)], source, destination, mut &instr, pos)
+		a.encode_indirection_register([u8(0x2b)], source, destination, mut &instr, pos)
 
 	} else if source is Register && destination is Indirection {
 
-		p.encode_indirection_register([u8(0x29)], destination, source, mut &instr, pos)
+		a.encode_indirection_register([u8(0x29)], destination, source, mut &instr, pos)
 
 	} else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_jmp(destination Expr, pos token.Position) {
+fn (mut a Assemble) instr_jmp(destination Expr, pos token.Position) {
 	mut instr := Instr{is_len_decided: false, kind: .jmp}
 
 	target_sym_name := match destination {
@@ -515,27 +517,83 @@ fn (mut p Parser) instr_jmp(destination Expr, pos token.Position) {
 
 	instr.varcode = varcode
 
-	p.variable_instrs << &instr
-	p.instrs << &instr
+	a.variable_instrs << &instr
+	a.instrs << &instr
 }
 
-fn (mut p Parser) instr_xorq(source Expr, destination Expr, pos token.Position) {
+fn (mut a Assemble) instr_jne(destination Expr, pos token.Position) {
+	mut instr := Instr{is_len_decided: false, kind: .jne}
+	target_sym_name := match destination {
+		Ident, Number {
+			destination.lit
+		} else {
+			error.print(pos, 'invalid operand for instruction')
+			exit(1)
+		}
+	}
+
+	varcode := &VariableCode{
+		trgt_symbol: target_sym_name,
+		rel8_code:   [u8(0x75), 0],
+		rel8_offset: 1,
+		rel32_code:   [u8(0x0f), 0x85, 0, 0, 0],
+		rel32_offset: 2,
+	}
+
+	instr.varcode = varcode
+
+	a.variable_instrs << &instr
+	a.instrs << &instr
+}
+
+fn (mut a Assemble) instr_je(destination Expr, pos token.Position) {
+	mut instr := Instr{is_len_decided: false, kind: .je}
+	target_sym_name := match destination {
+		Ident, Number {
+			destination.lit
+		} else {
+			error.print(pos, 'invalid operand for instruction')
+			exit(1)
+		}
+	}
+
+	varcode := &VariableCode{
+		trgt_symbol: target_sym_name,
+		rel8_code:   [u8(0x74), 0],
+		rel8_offset: 1,
+		rel32_code:   [u8(0x0f), 0x84, 0, 0, 0],
+		rel32_offset: 2,
+	}
+
+	instr.varcode = varcode
+
+	a.variable_instrs << &instr
+	a.instrs << &instr
+}
+
+fn (mut a Assemble) instr_xorq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .xorq}
 	if source is Register && destination is Register {
 
-		p.encode_regi_regi([u8(0x31)], source, destination, mut &instr, pos)
+		a.encode_regi_regi([u8(0x31)], source, destination, mut &instr, pos)
 
 	} else if source is Immediate && destination is Register {
 
 		num := eval_expr(source.expr)
-		instr.code = [parser.rex_w, 0x83, 0xf0 + reg_bits(destination), u8(num)]
+		instr.code = [assemble.rex_w, 0x83, 0xf0 + reg_bits(destination), u8(num)]
 
 	} else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	p.instrs << &instr
+	a.instrs << &instr
 }
+
+
+//-----------------------------------------------------------
+//------- Functions for variable length instructions --------
+//-----------------------------------------------------------
+// jmp jne je ... 
 
 fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
     mut from, mut to := &Instr{}, &Instr{}
@@ -572,23 +630,23 @@ fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, i
     return diff, min, max, !has_variable_length
 }
 
-fn (mut p Parser) get_defined_symbol(name string) Instr {
-	for s in p.defined_symbols {
+fn (mut a Assemble) get_defined_symbol(name string) Instr {
+	for s in a.defined_symbols {
         if s.symbol_name == name {
             return *s
         }
     }
-	panic('unreachable')
+	panic('[internal error] this should not happen.') // TODO: do somthing...
 }
 
-pub fn (mut p Parser) resolve_variable_length_instrs(mut instrs []&Instr) []&Instr {
+pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) []&Instr {
 	mut todos := []&Instr{}
 	for index := 0; index < instrs.len; index++ {
 		name := instrs[index].varcode.trgt_symbol
-		s := p.get_defined_symbol(name)
-		diff, min, max, is_len_decided := calc_distance(instrs[index], s, p.instrs)
+		s := a.get_defined_symbol(name)
+		diff, min, max, is_len_decided := calc_distance(instrs[index], s, a.instrs)
 		if is_len_decided {
-			if parser.is_in_i8_range(diff) {
+			if assemble.is_in_i8_range(diff) {
 				instrs[index].code = instrs[index].varcode.rel8_code
 				instrs[index].code[instrs[index].varcode.rel8_offset] = u8(diff)
 			} else {
@@ -605,11 +663,11 @@ pub fn (mut p Parser) resolve_variable_length_instrs(mut instrs []&Instr) []&Ins
 			}
 			instrs[index].is_len_decided = true
 		} else {
-			if parser.is_in_i8_range(max) {
+			if assemble.is_in_i8_range(max) {
 				instrs[index].is_len_decided = true
 				instrs[index].varcode.rel32_code = []u8{}
 				instrs[index].code = instrs[index].varcode.rel8_code
-			} else if !parser.is_in_i8_range(min) {
+			} else if !assemble.is_in_i8_range(min) {
 				instrs[index].is_len_decided = true
 				instrs[index].varcode.rel8_code = []u8{}
 				instrs[index].code = instrs[index].varcode.rel32_code
@@ -619,4 +677,5 @@ pub fn (mut p Parser) resolve_variable_length_instrs(mut instrs []&Instr) []&Ins
 	}
 	return todos
 }
+
 

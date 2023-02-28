@@ -1,14 +1,14 @@
 module elf
 
 import os
-import parser
+import assemble
 import encoding.binary
 
 pub struct Elf {
 mut:
 	out_file        string
 	globals_count   int
-	defined_symbols []&parser.Instr
+	defined_symbols []&assemble.Instr
 	rela_symbols    []string
 	sym_index       map[string]int
 
@@ -148,7 +148,7 @@ pub fn new(out_file string) &Elf {
 	}
 }
 
-fn (mut e Elf) set_symbol_binding(name string, mut defined_symbols []&parser.Instr, set_binding u8) {
+fn (mut e Elf) set_symbol_binding(name string, mut defined_symbols []&assemble.Instr, set_binding u8) {
 	for mut symbol in defined_symbols {
 		if symbol.symbol_name == name {
 			if symbol.binding == stb_local && set_binding == stb_global {
@@ -164,13 +164,13 @@ fn (mut e Elf) set_symbol_binding(name string, mut defined_symbols []&parser.Ins
 }
 
 fn add_padding(mut code []u8) {
-	mut padding := (parser.align_to(code.len, 16) - code.len)
+	mut padding := (assemble.align_to(code.len, 16) - code.len)
 	for _ in 0 .. padding {
 		code << 0
 	}
 }
 
-pub fn (mut e Elf) assign_addresses_and_set_bindings(mut instrs  []&parser.Instr, mut defined_symbols []&parser.Instr) {
+pub fn (mut e Elf) assign_addresses_and_set_bindings(mut instrs  []&assemble.Instr, mut defined_symbols []&assemble.Instr) {
 	mut curr_section := '.text'
 	mut text_addr, mut data_addr := 0, 0
 
@@ -209,9 +209,9 @@ pub fn (mut e Elf) assign_addresses_and_set_bindings(mut instrs  []&parser.Instr
 	add_padding(mut e.text)
 
 	e.defined_symbols << [
-		&parser.Instr {kind: .label, binding: stb_local}, // null
-		&parser.Instr {kind: .label, binding: stb_local, section: '.text', symbol_type: stt_section}, // .text
-		&parser.Instr {kind: .label, binding: stb_local, section: '.data', symbol_type: stt_section}, // .data
+		&assemble.Instr {kind: .label, binding: stb_local}, // null
+		&assemble.Instr {kind: .label, binding: stb_local, section: '.text', symbol_type: stt_section}, // .text
+		&assemble.Instr {kind: .label, binding: stb_local, section: '.data', symbol_type: stt_section}, // .data
 	]
 	e.sym_index['null'] = 0
 	e.sym_index['.text'] = 1
@@ -220,7 +220,7 @@ pub fn (mut e Elf) assign_addresses_and_set_bindings(mut instrs  []&parser.Instr
 	e.defined_symbols << defined_symbols
 }
 
-pub fn (mut e Elf) resolve_call_targets(call_targets []parser.CallTarget) {
+pub fn (mut e Elf) resolve_call_targets(call_targets []assemble.CallTarget) {
 	for call_target in call_targets {
 		for mut symbol in e.defined_symbols {
 			if symbol.symbol_name == call_target.target_symbol {
@@ -251,7 +251,7 @@ fn (mut e Elf) symbol_is_defined(name string) bool {
 	return false
 }
 
-fn (mut e Elf) get_defined_symbol(name string) parser.Instr {
+fn (mut e Elf) get_defined_symbol(name string) assemble.Instr {
 	for s in e.defined_symbols {
         if s.symbol_name == name {
             return *s
@@ -260,17 +260,17 @@ fn (mut e Elf) get_defined_symbol(name string) parser.Instr {
 	panic('unreachable')
 }
 
-pub fn (mut e Elf) rela_text_users(rela_text_users []parser.RelaTextUser) {
+pub fn (mut e Elf) rela_text_users(rela_text_users []assemble.RelaTextUser) {
 	mut pos := e.defined_symbols.len - e.globals_count
 
 	for r in rela_text_users {
 		mut index := 0
 		mut r_addend := i64(0 - 4)
-		if r.rtype == parser.r_x86_64_32s {
+		if r.rtype == assemble.r_x86_64_32s {
 			r_addend = 0
 		}
 
-    	if r.rtype == parser.r_x86_64_plt32 && e.symbol_is_defined(r.uses) {
+    	if r.rtype == assemble.r_x86_64_plt32 && e.symbol_is_defined(r.uses) {
 			// already resolved call instruction
 			continue
 		} else if e.symbol_is_defined(r.uses) {

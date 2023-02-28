@@ -2,7 +2,7 @@ module main
 
 import os
 import flag
-import parser
+import assemble
 import elf
 
 fn file_name_without_ext(file_name string) string {
@@ -39,23 +39,23 @@ fn main() {
 		exit(1)
 	}
 
-	mut p := parser.new(program, file_name)
-	p.parse()
+	mut a := assemble.new(program, file_name)
+	a.parse()
 
 	// add index to instructions
-	for i := 0; i < p.instrs.len; i++ {
-		p.instrs[i].index = i
+	for i := 0; i < a.instrs.len; i++ {
+		a.instrs[i].index = i
 	}
 
-	for p.variable_instrs.len > 0 {
-		p.variable_instrs = p.resolve_variable_length_instrs(mut p.variable_instrs)
+	for a.variable_instrs.len > 0 {
+		a.variable_instrs = a.resolve_variable_length_instrs(mut a.variable_instrs)
 	}
 
 	mut e := elf.new(out_file)
 
-	e.assign_addresses_and_set_bindings(mut p.instrs, mut p.defined_symbols)
-	e.resolve_call_targets(p.call_targets)
-	e.rela_text_users(p.rela_text_users)
+	e.assign_addresses_and_set_bindings(mut a.instrs, mut a.defined_symbols)
+	e.resolve_call_targets(a.call_targets)
+	e.rela_text_users(a.rela_text_users)
 	e.elf_symtab_strtab()
 	e.elf_rest()
 	e.write_elf()
