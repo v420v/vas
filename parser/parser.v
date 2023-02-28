@@ -11,6 +11,7 @@ pub mut:
 	instrs          []&Instr
 	call_targets    []CallTarget
 	rela_text_users []RelaTextUser
+	variable_instrs []&Instr
 	defined_symbols []&Instr
 }
 
@@ -139,106 +140,104 @@ fn (mut p Parser) parse_instr() {
 	}
 
 	match name.to_upper() {
-		'.TEXT' {
+		'.TEXT', '.DATA' {
 			instr.kind = .section
-			instr.section = '.text'
+			instr.section = name
+			p.instrs << &instr
 		}
-		'.DATA' {
-			instr.kind = .section
-			instr.section = '.data'
+		'RETQ' {
+			instr.kind = .retq
+			instr.code = [u8(0xc3)]
+			p.instrs << &instr
+		}
+		'SYSCALL' {
+			instr.kind = .syscall
+			instr.code = [u8(0x0f), 0x05]
+			p.instrs << &instr
+		}
+		'NOPQ' {
+			instr.kind = .nopq
+			instr.code = [u8(0x90)]
+			p.instrs << &instr
+		}
+		'HLT' {
+			instr.kind = .hlt
+			instr.code = [u8(0xf4)]
+			p.instrs << &instr
+		}
+		'LEAVE' {
+			instr.kind = .leave
+			instr.code = [u8(0xc9)]
+			p.instrs << &instr
 		}
 		'.GLOBAL' {
 			instr.kind = .global
 			instr.symbol_name = p.tok.lit
 			p.next()
+			p.instrs << &instr
 		}
 		'.LOCAL' {
 			instr.kind = .local
 			instr.symbol_name = p.tok.lit
 			p.next()
+			p.instrs << &instr
 		}
 		'.STRING' {
-			instr.kind = .string
-			instr.code = p.tok.lit.bytes()
+			value := p.tok.lit
 			p.expect(.string)
-			instr.code << 0
-		}
-		'RETQ' {
-			instr.kind = .retq
-			instr.code = [u8(0xc3)]
-		}
-		'SYSCALL' {
-			instr.kind = .syscall
-			instr.code = [u8(0x0f), 0x05]
-		}
-		'NOPQ' {
-			instr.kind = .nopq
-			instr.code = [u8(0x90)]
-		}
-		'HLT' {
-			instr.kind = .hlt
-			instr.code = [u8(0xf4)]
-		}
-		'LEAVE' {
-			instr.kind = .leave
-			instr.code = [u8(0xc9)]
+			p.instr_string(value)
 		}
 		'POPQ' {
 			source := p.parse_operand()
 			p.instr_popq(source)
-			return
 		}
 		'PUSHQ' {
 			source := p.parse_operand()
 			p.instr_pushq(source)
-			return
 		}
 		'MOVQ' {
 			source := p.parse_operand()
 			p.expect(.comma)
 			destination := p.parse_operand()
 			p.instr_movq(source, destination, pos)
-			return
 		}
 		'ADDQ' {
 			source := p.parse_operand()
 			p.expect(.comma)
 			destination := p.parse_operand()
 			p.instr_addq(source, destination, pos)
-			return
 		}
 		'SUBQ' {
 			source := p.parse_operand()
 			p.expect(.comma)
 			destination := p.parse_operand()
 			p.instr_subq(source, destination, pos)
-			return
 		}
 		'XORQ' {
 			source := p.parse_operand()
 			p.expect(.comma)
 			destination := p.parse_operand()
 			p.instr_xorq(source, destination, pos)
-			return
+		}
+		'JMP' {
+			destination := p.parse_operand()
+			p.instr_jmp(destination, pos)
 		}
 		'CALLQ' {
 			source := p.parse_operand()
 			p.instr_callq(source, pos)
-			return
 		}
 		'LEAQ' {
 			source := p.parse_operand()
 			p.expect(.comma)
 			destination := p.parse_operand()
 			p.instr_leaq(source, destination, pos)
-			return
 		}
 		else {
-			error.print(pos, 'unkwoun instruction `${name}`')
+			error.print(pos, 'unkwoun instruction `$name`')
 			exit(1)
 		}
 	}
-	p.instrs << &instr
 }
 
 pub fn (mut p Parser) parse() {

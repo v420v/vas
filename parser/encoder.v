@@ -18,6 +18,7 @@ pub enum InstrKind {
 	subq
 	callq
 	xorq
+	jmp
 	retq
 	syscall
 	nopq
@@ -28,13 +29,23 @@ pub enum InstrKind {
 
 pub struct Instr {
 pub mut:
-	kind          InstrKind
-	code          []u8
-	symbol_name   string
-	section       string
-	addr          i64
-	binding       u8
-	symbol_type   u8
+	kind           InstrKind
+	code           []u8
+	symbol_name    string
+	section        string
+	addr           i64
+	binding        u8
+	symbol_type    u8
+	index          int
+	varcode        &VariableCode = unsafe{nil}
+	is_len_decided bool = true
+}
+
+fn new_instr(kind InstrKind, is_len_decided bool) Instr {
+	return Instr {
+		kind: kind,
+		is_len_decided: is_len_decided,
+	}
 }
 
 pub struct CallTarget {
@@ -50,6 +61,15 @@ pub mut:
 	offset i64
 	rtype  u64
 	adjust int
+}
+
+pub struct VariableCode {
+pub mut:
+	trgt_symbol  string
+	rel8_code    []u8
+	rel8_offset  i64
+	rel32_code   []u8
+	rel32_offset i64
 }
 
 pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop
@@ -293,6 +313,13 @@ fn (mut p Parser) encode_regi_regi(op_code []u8, source Register, destination Re
 	instr.code << mod_rm
 }
 
+fn (mut p Parser) instr_string(value string) {
+	mut instr := Instr{kind: .string}
+	arr := value.bytes()
+	instr.code = arr
+	p.instrs << &instr
+}
+
 fn (mut p Parser) instr_movq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .movq}
     if source is Register && destination is Register {
@@ -466,6 +493,32 @@ fn (mut p Parser) instr_subq(source Expr, destination Expr, pos token.Position) 
 	p.instrs << &instr
 }
 
+fn (mut p Parser) instr_jmp(destination Expr, pos token.Position) {
+	mut instr := Instr{is_len_decided: false, kind: .jmp}
+
+	target_sym_name := match destination {
+		Ident, Number {
+			destination.lit
+		} else {
+			error.print(pos, 'invalid operand for instruction')
+			exit(1)
+		}
+	}
+
+	varcode := &VariableCode{
+		trgt_symbol: target_sym_name,
+		rel8_code:   [u8(0xeb), 0],
+		rel8_offset: 1,
+		rel32_code:   [u8(0xe9), 0, 0, 0, 0],
+		rel32_offset: 1,
+	}
+
+	instr.varcode = varcode
+
+	p.variable_instrs << &instr
+	p.instrs << &instr
+}
+
 fn (mut p Parser) instr_xorq(source Expr, destination Expr, pos token.Position) {
 	mut instr := Instr{kind: .xorq}
 	if source is Register && destination is Register {
@@ -482,5 +535,88 @@ fn (mut p Parser) instr_xorq(source Expr, destination Expr, pos token.Position) 
 		exit(1)
 	}
 	p.instrs << &instr
+}
+
+fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
+    mut from, mut to := &Instr{}, &Instr{}
+    forward := user_instr.index <= symdef.index
+
+	unsafe {
+    	if forward {
+    	    from, to = instrs[user_instr.index+1], symdef
+    	} else {
+    	    from, to = symdef, instrs[user_instr.index+1]
+    	}
+	}
+
+    mut has_variable_length := false
+    mut diff, mut min, mut max := 0, 0, 0
+
+    for instr := from; instr != to; instr = instrs[instr.index+1] {
+        if !instr.is_len_decided {
+            has_variable_length = true
+            len_short, len_large := instr.varcode.rel8_code.len, instr.varcode.rel32_code.len
+            min += len_short
+            max += len_large
+            diff += len_large
+        } else {
+            length := instr.code.len
+            diff += length
+            min += length
+            max += length
+        }
+    }
+    if !forward {
+        diff, min, max = -diff, -min, -max
+    }
+    return diff, min, max, !has_variable_length
+}
+
+fn (mut p Parser) get_defined_symbol(name string) Instr {
+	for s in p.defined_symbols {
+        if s.symbol_name == name {
+            return *s
+        }
+    }
+	panic('unreachable')
+}
+
+pub fn (mut p Parser) resolve_variable_length_instrs(mut instrs []&Instr) []&Instr {
+	mut todos := []&Instr{}
+	for index := 0; index < instrs.len; index++ {
+		name := instrs[index].varcode.trgt_symbol
+		s := p.get_defined_symbol(name)
+		diff, min, max, is_len_decided := calc_distance(instrs[index], s, p.instrs)
+		if is_len_decided {
+			if parser.is_in_i8_range(diff) {
+				instrs[index].code = instrs[index].varcode.rel8_code
+				instrs[index].code[instrs[index].varcode.rel8_offset] = u8(diff)
+			} else {
+				diff_int32 := i32(diff)
+				mut hex := [u8(0), 0, 0, 0]
+				binary.little_endian_put_u32(mut &hex, u32(diff_int32))
+
+				mut code, offset := instrs[index].varcode.rel32_code.clone(), instrs[index].varcode.rel32_offset
+				code[offset] = hex[0]
+				code[offset+1] = hex[1]
+				code[offset+2] = hex[2]
+				code[offset+3] = hex[3]
+				instrs[index].code = code
+			}
+			instrs[index].is_len_decided = true
+		} else {
+			if parser.is_in_i8_range(max) {
+				instrs[index].is_len_decided = true
+				instrs[index].varcode.rel32_code = []u8{}
+				instrs[index].code = instrs[index].varcode.rel8_code
+			} else if !parser.is_in_i8_range(min) {
+				instrs[index].is_len_decided = true
+				instrs[index].varcode.rel8_code = []u8{}
+				instrs[index].code = instrs[index].varcode.rel32_code
+			}
+			todos << instrs[index]
+		}
+	}
+	return todos
 }
 

@@ -42,7 +42,17 @@ fn main() {
 	mut p := parser.new(program, file_name)
 	p.parse()
 
+	// add index to instructions
+	for i := 0; i < p.instrs.len; i++ {
+		p.instrs[i].index = i
+	}
+
+	for p.variable_instrs.len > 0 {
+		p.variable_instrs = p.resolve_variable_length_instrs(mut p.variable_instrs)
+	}
+
 	mut e := elf.new(out_file)
+
 	e.assign_addresses_and_set_bindings(mut p.instrs, mut p.defined_symbols)
 	e.resolve_call_targets(p.call_targets)
 	e.rela_text_users(p.rela_text_users)
