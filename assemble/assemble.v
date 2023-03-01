@@ -218,6 +218,12 @@ fn (mut a Assemble) parse_instr() {
 			destination := a.parse_operand()
 			a.instr_xorq(source, destination, pos)
 		}
+		'CMP' {
+			source := a.parse_operand()
+			a.expect(.comma)
+			destination := a.parse_operand()
+			a.instr_cmp(source, destination, pos)
+		}
 		'JMP' {
 			destination := a.parse_operand()
 			a.instr_jmp(destination, pos)

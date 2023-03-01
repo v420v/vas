@@ -21,6 +21,7 @@ pub enum InstrKind {
 	jmp
 	jne
 	je
+	cmp
 	retq
 	syscall
 	nopq
@@ -470,7 +471,7 @@ fn (mut a Assemble) instr_subq(source Expr, destination Expr, pos token.Position
 	} else if source is Immediate && destination is Register {
 
 		num := eval_expr(source.expr)
-		mod_rm := 0xe8 + reg_bits(destination)
+		mod_rm := compose_mod_rm(mod_regi, 5, reg_bits(destination))
 
 		if is_in_i8_range(num) {
 			instr.code = [assemble.rex_w, 0x83, mod_rm, u8(num)]
@@ -488,6 +489,32 @@ fn (mut a Assemble) instr_subq(source Expr, destination Expr, pos token.Position
 
 		a.encode_indirection_register([u8(0x29)], destination, source, mut &instr, pos)
 
+	} else {
+		error.print(pos, 'invalid operand for instruction')
+		exit(1)
+	}
+	a.instrs << &instr
+}
+
+fn (mut a Assemble) instr_cmp(source Expr, destination Expr, pos token.Position) {
+	mut instr := Instr{kind: .cmp}
+	if source is Register && destination is Register {
+		a.encode_regi_regi([u8(0x39)], source, destination, mut &instr, pos)
+	} else if source is Immediate && destination is Register {
+		num := eval_expr(source.expr)
+		mod_rm := compose_mod_rm(mod_regi, 7, reg_bits(destination))
+		instr.code << [assemble.rex_w, 0x83, mod_rm, u8(num)]
+		if is_in_i8_range(num) {
+			instr.code = [assemble.rex_w, 0x83, mod_rm, u8(num)]
+		} else if is_in_i32_range(num) {
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(num))
+			if destination.lit == 'RAX' {
+				instr.code = [assemble.rex_w, 0x3D, hex[0], hex[1], hex[2], hex[3]]
+			} else {
+				instr.code = [assemble.rex_w, 0x81, mod_rm, hex[0], hex[1], hex[2], hex[3]]
+			}
+		}
 	} else {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
