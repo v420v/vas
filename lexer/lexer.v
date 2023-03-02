@@ -108,15 +108,43 @@ pub fn (mut l Lexer) lex() token.Token {
 			return l.read_ident()
 		} else if l.c == `"` {
 			l.advance()
-			start := l.idx
+			mut lit := []u8{}
 			for l.c != `"` {
-				l.advance()
+				if l.c == `\\` {
+					l.advance()
+					match l.c {
+						`n` {
+							lit << `\n`
+						}
+						`t` {
+							lit << `\t`
+						}
+						`a` {
+							lit << `\a`
+						}
+						`b` {
+							lit << `\b`
+						}
+						`f` {
+							lit << `\f`
+						}
+						`v` {
+							lit << `\v`
+						} else {
+							lit << `\\`
+							lit << l.c
+						}
+					}
+					l.advance()
+				} else {
+					lit << l.c
+					l.advance()
+				}
 			}
-			lit := l.text[start..l.idx]
 			pos.len = lit.len + 2
 			l.advance()
 			return token.Token{
-				lit: lit
+				lit: lit.bytestr()
 				kind: .string
 				pos: pos
 			}
