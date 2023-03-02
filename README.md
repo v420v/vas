@@ -53,6 +53,9 @@ $ ./a.out
 ## License
 MIT
 
+## Contributing
+Welcome!
+
 ## References
 - https://github.com/DQNEO/goas port of GNU Assembler written in go
 - https://github.com/skx/assembler Basic X86-64 assembler, written in golang
