@@ -10,6 +10,15 @@ pub const registers = [
 	'RSI',
 	'RDI',
 	'RIP',
+
+	'EAX',
+	'ECX',
+	'EDX',
+	'EBX',
+	'ESP',
+	'EBP',
+	'ESI',
+	'EDI',
 ]
 
 pub struct Position {

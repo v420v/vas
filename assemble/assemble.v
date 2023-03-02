@@ -38,8 +38,8 @@ fn (mut a Assemble) expect(exp token.TokenKind) {
 }
 
 fn (mut a Assemble) parse_register() Register {
-	pos := a.tok.pos
 	a.expect(.percent)
+	pos := a.tok.pos
 	reg_name := a.tok.lit.to_upper()
 	if reg_name !in token.registers {
 		error.print(a.tok.pos, 'invalid register name')
@@ -121,6 +121,19 @@ fn (mut a Assemble) parse_operand() Expr {
 	exit(1)
 }
 
+fn get_size_by_suffix(name string) int {
+	return match name.to_upper()[name.len-1] {
+		`Q` {
+			64
+		}
+		`L` {
+			32
+		} else {
+			panic('PANIC')
+		}
+	}
+}
+
 fn (mut a Assemble) parse_instr() {
 	pos := a.tok.pos
 	mut instr := Instr{}
@@ -144,8 +157,8 @@ fn (mut a Assemble) parse_instr() {
 			instr.section = name
 			a.instrs << &instr
 		}
-		'RETQ' {
-			instr.kind = .retq
+		'RETQ', 'RET' {
+			instr.kind = .ret
 			instr.code = [u8(0xc3)]
 			a.instrs << &instr
 		}
@@ -154,8 +167,8 @@ fn (mut a Assemble) parse_instr() {
 			instr.code = [u8(0x0f), 0x05]
 			a.instrs << &instr
 		}
-		'NOPQ' {
-			instr.kind = .nopq
+		'NOPQ', 'NOP' {
+			instr.kind = .nop
 			instr.code = [u8(0x90)]
 			a.instrs << &instr
 		}
@@ -186,65 +199,47 @@ fn (mut a Assemble) parse_instr() {
 			a.expect(.string)
 			a.instr_string(value)
 		}
-		'POPQ' {
-			source := a.parse_operand()
-			a.instr_popq(source)
+		'POP', 'POPQ' {
+			a.instr_pop(pos)
 		}
-		'PUSHQ' {
-			source := a.parse_operand()
-			a.instr_pushq(source)
+		'PUSHQ', 'PUSH' {
+			a.instr_push(pos)
 		}
-		'MOVQ' {
-			source := a.parse_operand()
-			a.expect(.comma)
-			destination := a.parse_operand()
-			a.instr_movq(source, destination, pos)
+		'MOVQ', 'MOVL' {
+			size := get_size_by_suffix(name)
+			a.instr_mov(size, pos)
 		}
-		'ADDQ' {
-			source := a.parse_operand()
-			a.expect(.comma)
-			destination := a.parse_operand()
-			a.instr_addq(source, destination, pos)
+		'LEAQ', 'LEAL' {
+			size := get_size_by_suffix(name)
+			a.instr_leaq(size, pos)
 		}
-		'SUBQ' {
-			source := a.parse_operand()
-			a.expect(.comma)
-			destination := a.parse_operand()
-			a.instr_subq(source, destination, pos)
+		'ADDQ', 'ADDL' {
+			size := get_size_by_suffix(name)
+			a.instr_addq(size, pos)
 		}
-		'XORQ' {
-			source := a.parse_operand()
-			a.expect(.comma)
-			destination := a.parse_operand()
-			a.instr_xorq(source, destination, pos)
+		'SUBQ', 'SUBL' {
+			size := get_size_by_suffix(name)
+			a.instr_subq(size, pos)
 		}
-		'CMP' {
-			source := a.parse_operand()
-			a.expect(.comma)
-			destination := a.parse_operand()
-			a.instr_cmp(source, destination, pos)
+		'XORQ', 'XORL' {
+			size := get_size_by_suffix(name)
+			a.instr_xorq(size, pos)
 		}
-		'JMP' {
-			destination := a.parse_operand()
-			a.instr_jmp(destination, pos)
+		'CMPQ', 'CMPL' {
+			size := get_size_by_suffix(name)
+			a.instr_cmp(size, pos)
+		}
+		'CALLQ', 'CALL' {
+			a.instr_call(pos)
+		}
+		'JMP', 'JMPQ' {
+			a.instr_jmp(pos)
 		}
 		'JNE' {
-			destination := a.parse_operand()
-			a.instr_jne(destination, pos)
+			a.instr_jne(pos)
 		}
 		'JE' {
-			destination := a.parse_operand()
-			a.instr_je(destination, pos)
-		}
-		'CALLQ' {
-			source := a.parse_operand()
-			a.instr_callq(source, pos)
-		}
-		'LEAQ' {
-			source := a.parse_operand()
-			a.expect(.comma)
-			destination := a.parse_operand()
-			a.instr_leaq(source, destination, pos)
+			a.instr_je(pos)
 		}
 		else {
 			error.print(pos, 'unkwoun instruction `$name`')
