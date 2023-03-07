@@ -152,9 +152,13 @@ fn (mut a Assemble) parse_instr() {
 	}
 
 	match name.to_upper() {
-		'.TEXT', '.DATA' {
+		'.SECTION' {
 			instr.kind = .section
-			instr.section = name
+			instr.section = a.tok.lit
+			a.next()
+			a.expect(.comma)
+			instr.flags = a.tok.lit
+			a.expect(.string)
 			a.instrs << &instr
 		}
 		'RETQ', 'RET' {

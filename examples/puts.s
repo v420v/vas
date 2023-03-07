@@ -3,11 +3,11 @@
 # ./puts
 # > Hello, world!
 
-.data
+.section .data, "wa"
 msg:
   .string "Hello world!"
 
-.text
+.section .text, "ax"
 .global main
 main:
   leaq msg(%rip), %rdi

@@ -5,11 +5,11 @@
 
 .global _start
 
-.data
+.section .data, "wa"
 msg:
 	.string "Hello "
 
-.text
+.section .text, "ax"
 _start:
 	pushq %rbp
 	movq %rsp, %rbp

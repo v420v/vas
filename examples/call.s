@@ -5,7 +5,7 @@
 
 .global _start
 
-.data
+.section .data, "wa"
 msg:
     .string "Hello, world!"
 
@@ -15,7 +15,7 @@ msg2:
 msg3:
     .string " 3 "
 
-.text
+.section .text, "ax"
 print_hello:
     movq $1, %rax
     movq $1, %rdi

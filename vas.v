@@ -57,6 +57,7 @@ fn main() {
 	e.resolve_call_targets(a.call_targets)
 	e.rela_text_users(a.rela_text_users)
 	e.elf_symtab_strtab()
+	e.make_shstrtab()
 	e.elf_rest()
 	e.write_elf()
 }

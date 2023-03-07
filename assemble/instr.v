@@ -36,6 +36,7 @@ pub mut:
 	code           []u8
 	symbol_name    string
 	section        string
+	flags          string
 	addr           i64
 	binding        u8
 	symbol_type    u8
