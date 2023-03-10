@@ -9,11 +9,12 @@ mut:
 	tok             token.Token // current token
 	lex             lexer.Lexer
 pub mut:
+	current_section string = '.text'
 	instrs          []&Instr
 	call_targets    []CallTarget
 	rela_text_users []RelaTextUser
-	variable_instrs []&Instr
-	defined_symbols []&Instr
+	variable_instrs []&Instr // variable length instructions jmp, je, jn ...
+	defined_symbols map[string]&Instr
 }
 
 pub fn new(program string, file_name string) &Assemble {
@@ -136,29 +137,49 @@ fn get_size_by_suffix(name string) int {
 
 fn (mut a Assemble) parse_instr() {
 	pos := a.tok.pos
-	mut instr := Instr{}
+	mut instr := Instr{pos: pos, section: a.current_section}
 
-	name := a.tok.lit
+	instr_name := a.tok.lit
 	a.next()
 
 	if a.tok.kind == .colon {
 		instr.kind = .label
-		instr.symbol_name = name
+		instr.symbol_name = instr_name
 		a.expect(.colon)
 
-		a.defined_symbols << &instr
+		if instr_name in a.defined_symbols || instr_name == '.text' {
+			error.print(pos, 'symbol `$instr_name` is already defined')
+			exit(1)
+		}
+		a.defined_symbols[instr_name] = &instr
 		a.instrs << &instr
 		return
 	}
 
-	match name.to_upper() {
+	match instr_name.to_upper() {
 		'.SECTION' {
 			instr.kind = .section
-			instr.section = a.tok.lit
+			name := a.tok.lit
+
+			a.current_section = name
+			instr.section = a.current_section
+
 			a.next()
 			a.expect(.comma)
+			instr.section = name
 			instr.flags = a.tok.lit
 			a.expect(.string)
+			instr.symbol_type = assemble.stt_section
+
+			if s := a.defined_symbols[name] {
+				if s.kind == .label {
+					error.print(pos, 'symbol `$name` is already defined')
+					exit(1)
+				}
+			} else {
+				a.defined_symbols[name] = &instr
+			}
+
 			a.instrs << &instr
 		}
 		'RETQ', 'RET' {
@@ -201,7 +222,7 @@ fn (mut a Assemble) parse_instr() {
 		'.STRING' {
 			value := a.tok.lit
 			a.expect(.string)
-			a.instr_string(value)
+			a.instr_string(value, pos)
 		}
 		'POP', 'POPQ' {
 			a.instr_pop(pos)
@@ -210,27 +231,27 @@ fn (mut a Assemble) parse_instr() {
 			a.instr_push(pos)
 		}
 		'MOVQ', 'MOVL' {
-			size := get_size_by_suffix(name)
+			size := get_size_by_suffix(instr_name)
 			a.instr_mov(size, pos)
 		}
 		'LEAQ', 'LEAL' {
-			size := get_size_by_suffix(name)
+			size := get_size_by_suffix(instr_name)
 			a.instr_leaq(size, pos)
 		}
 		'ADDQ', 'ADDL' {
-			size := get_size_by_suffix(name)
+			size := get_size_by_suffix(instr_name)
 			a.instr_addq(size, pos)
 		}
 		'SUBQ', 'SUBL' {
-			size := get_size_by_suffix(name)
+			size := get_size_by_suffix(instr_name)
 			a.instr_subq(size, pos)
 		}
 		'XORQ', 'XORL' {
-			size := get_size_by_suffix(name)
+			size := get_size_by_suffix(instr_name)
 			a.instr_xorq(size, pos)
 		}
 		'CMPQ', 'CMPL' {
-			size := get_size_by_suffix(name)
+			size := get_size_by_suffix(instr_name)
 			a.instr_cmp(size, pos)
 		}
 		'CALLQ', 'CALL' {
@@ -246,7 +267,7 @@ fn (mut a Assemble) parse_instr() {
 			a.instr_je(pos)
 		}
 		else {
-			error.print(pos, 'unkwoun instruction `$name`')
+			error.print(pos, 'unkwoun instruction `$instr_name`')
 			exit(1)
 		}
 	}

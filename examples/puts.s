@@ -14,3 +14,5 @@ main:
   callq puts
   movq $0, %rax
   retq
+
+.section .note.GNU-stack, ""

@@ -35,21 +35,15 @@ pub mut:
 	kind           InstrKind
 	code           []u8
 	symbol_name    string
-	section        string
 	flags          string
 	addr           i64
 	binding        u8
 	symbol_type    u8
+	section        string [required]
 	index          int
 	varcode        &VariableCode = unsafe{nil}
 	is_len_decided bool = true
-}
-
-fn new_instr(kind InstrKind, is_len_decided bool) Instr {
-	return Instr {
-		kind: kind,
-		is_len_decided: is_len_decided,
-	}
+	pos token.Position
 }
 
 pub struct CallTarget {
@@ -141,6 +135,20 @@ pub const (
 	r_x86_64_8		   = 14
 	r_x86_64_pc8	   = 15
 	r_x86_64_pc64	   = 24
+
+	stt_notype 			 = 0
+	stt_object 			 = 1
+	stt_func 			 = 2
+	stt_section 		 = 3
+	stt_file 			 = 4
+	stt_common 			 = 5
+	stt_tls 			 = 6
+	stt_relc 			 = 8
+	stt_srelc 			 = 9
+	stt_loos 			 = 10
+	stt_hios 			 = 12
+	stt_loproc 			 = 13
+	stt_hiproc 			 = 14
 )
 
 fn regi_size(regi Register) int {
@@ -376,15 +384,16 @@ fn (mut a Assemble) encode_regi_regi(op_code u8, regi Register, regi2 Register, 
 	instr.code << mod_rm
 }
 
-fn (mut a Assemble) instr_string(value string) {
-	mut instr := Instr{kind: .string}
+fn (mut a Assemble) instr_string(value string, pos token.Position) {
+	mut instr := Instr{kind: .string, pos: pos, section: a.current_section}
 	arr := value.bytes()
 	instr.code = arr
+	instr.code << 0x00
 	a.instrs << &instr
 }
 
 fn (mut a Assemble) instr_mov(size int, pos token.Position) {
-	mut instr := Instr{kind: .mov}
+	mut instr := Instr{kind: .mov, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	a.expect(.comma)
@@ -418,7 +427,7 @@ fn (mut a Assemble) instr_mov(size int, pos token.Position) {
 }
 
 fn (mut a Assemble) instr_pop(pos token.Position) {
-	mut instr := Instr{kind: .pop}
+	mut instr := Instr{kind: .pop, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 
@@ -434,7 +443,7 @@ fn (mut a Assemble) instr_pop(pos token.Position) {
 }
 
 fn (mut a Assemble) instr_push(pos token.Position) {
-	mut instr := Instr{kind: .push}
+	mut instr := Instr{kind: .push, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 
@@ -460,7 +469,7 @@ fn (mut a Assemble) instr_push(pos token.Position) {
 }
 
 fn (mut a Assemble) instr_addq(size int, pos token.Position) {
-	mut instr := Instr{kind: .add}
+	mut instr := Instr{kind: .add, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	a.expect(.comma)
@@ -484,7 +493,7 @@ fn (mut a Assemble) instr_addq(size int, pos token.Position) {
 }
 
 fn (mut a Assemble) instr_subq(size int, pos token.Position) {
-	mut instr := Instr{kind: .sub}
+	mut instr := Instr{kind: .sub, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	a.expect(.comma)
@@ -508,7 +517,7 @@ fn (mut a Assemble) instr_subq(size int, pos token.Position) {
 }
 
 fn (mut a Assemble) instr_leaq(size int, pos token.Position) {
-	mut instr := assemble.Instr{kind: .lea}
+	mut instr := assemble.Instr{kind: .lea, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	a.expect(.comma)
@@ -524,7 +533,7 @@ fn (mut a Assemble) instr_leaq(size int, pos token.Position) {
 }
 
 fn (mut a Assemble) instr_cmp(size int, pos token.Position) {
-	mut instr := Instr{kind: .cmp}
+	mut instr := Instr{kind: .cmp, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	a.expect(.comma)
@@ -544,7 +553,7 @@ fn (mut a Assemble) instr_cmp(size int, pos token.Position) {
 }
 
 fn (mut a Assemble) instr_xorq(size int, pos token.Position) {
-	mut instr := Instr{kind: .xor}
+	mut instr := Instr{kind: .xor, pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	a.expect(.comma)
@@ -565,7 +574,7 @@ fn (mut a Assemble) instr_xorq(size int, pos token.Position) {
 }
 
 fn (mut a Assemble) instr_call(pos token.Position) {
-	instr := Instr{kind: .call, code: [u8(0xe8), 0, 0, 0, 0]}
+	instr := Instr{kind: .call, code: [u8(0xe8), 0, 0, 0, 0], pos: pos, section: a.current_section}
 
 	source := a.parse_operand()
 	
@@ -596,7 +605,7 @@ fn (mut a Assemble) instr_call(pos token.Position) {
 }
 
 fn (mut a Assemble) instr_jmp(pos token.Position) {
-	mut instr := Instr{is_len_decided: false, kind: .jmp}
+	mut instr := Instr{is_len_decided: false, kind: .jmp, pos: pos, section: a.current_section}
 
 	destination := a.parse_operand()
 
@@ -624,7 +633,7 @@ fn (mut a Assemble) instr_jmp(pos token.Position) {
 }
 
 fn (mut a Assemble) instr_jne(pos token.Position) {
-	mut instr := Instr{is_len_decided: false, kind: .jne}
+	mut instr := Instr{is_len_decided: false, kind: .jne, pos: pos, section: a.current_section}
 
 	destination := a.parse_operand()
 
@@ -652,7 +661,7 @@ fn (mut a Assemble) instr_jne(pos token.Position) {
 }
 
 fn (mut a Assemble) instr_je(pos token.Position) {
-	mut instr := Instr{is_len_decided: false, kind: .je}
+	mut instr := Instr{is_len_decided: false, kind: .je, pos: pos, section: a.current_section}
 
 	destination := a.parse_operand()
 
@@ -684,55 +693,64 @@ fn (mut a Assemble) instr_je(pos token.Position) {
 //-----------------------------------------------------------
 // jmp jne je ... 
 
-fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
-    mut from, mut to := &Instr{}, &Instr{}
-    forward := user_instr.index <= symdef.index
+pub fn (mut a Assemble) add_index_to_instrs() {
+	for i := 0; i < a.instrs.len; i++ {
+		a.instrs[i].index = i
+	}
+}
 
+fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
 	unsafe {
+    	mut from, mut to := symdef, instrs[user_instr.index+1]
+    	forward := user_instr.index <= symdef.index
+
     	if forward {
     	    from, to = instrs[user_instr.index+1], symdef
-    	} else {
-    	    from, to = symdef, instrs[user_instr.index+1]
     	}
+
+    	mut has_variable_length := false
+    	mut diff, mut min, mut max := 0, 0, 0
+
+    	for instr := from; instr != to; instr = instrs[instr.index+1] {
+    	    if !instr.is_len_decided {
+    	        has_variable_length = true
+    	        len_short, len_large := instr.varcode.rel8_code.len, instr.varcode.rel32_code.len
+    	        min += len_short
+    	        max += len_large
+    	        diff += len_large
+    	    } else {
+    	        length := instr.code.len
+    	        diff += length
+    	        min += length
+    	        max += length
+    	    }
+    	}
+
+    	if !forward {
+    	    diff, min, max = -diff, -min, -max
+    	}
+	
+    	return diff, min, max, !has_variable_length
 	}
-
-    mut has_variable_length := false
-    mut diff, mut min, mut max := 0, 0, 0
-
-    for instr := from; instr != to; instr = instrs[instr.index+1] {
-        if !instr.is_len_decided {
-            has_variable_length = true
-            len_short, len_large := instr.varcode.rel8_code.len, instr.varcode.rel32_code.len
-            min += len_short
-            max += len_large
-            diff += len_large
-        } else {
-            length := instr.code.len
-            diff += length
-            min += length
-            max += length
-        }
-    }
-    if !forward {
-        diff, min, max = -diff, -min, -max
-    }
-    return diff, min, max, !has_variable_length
 }
 
-fn (mut a Assemble) get_defined_symbol(name string) Instr {
-	for s in a.defined_symbols {
-        if s.symbol_name == name {
-            return *s
-        }
-    }
-	panic('[internal error] this should not happen.') // TODO: do somthing...
-}
-
-pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) []&Instr {
+pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) {
 	mut todos := []&Instr{}
 	for index := 0; index < instrs.len; index++ {
 		name := instrs[index].varcode.trgt_symbol
-		s := a.get_defined_symbol(name)
+		s := a.defined_symbols[name] or {
+			// Relocation
+			rela_text_user := assemble.RelaTextUser{
+				instr:  instrs[index],
+				offset: 1,
+				uses:   name,
+				rtype:   assemble.r_x86_64_plt32
+			}
+			a.rela_text_users << rela_text_user
+			instrs[index].code = [u8(0xe9), 0x00, 0x00, 0x00, 0x00]
+			instrs[index].is_len_decided = true
+			continue
+		}
 		diff, min, max, is_len_decided := calc_distance(instrs[index], s, a.instrs)
 		if is_len_decided {
 			if assemble.is_in_i8_range(diff) {
@@ -764,7 +782,10 @@ pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) []&I
 			todos << instrs[index]
 		}
 	}
-	return todos
+	a.variable_instrs = todos
+	if a.variable_instrs.len > 0 {
+		a.resolve_variable_length_instrs(mut a.variable_instrs)
+	}
 }
 
 
