@@ -10,19 +10,21 @@ mut:
 	lex             lexer.Lexer
 pub mut:
 	current_section string = '.text'
-	instrs          []&Instr
+	instrs          map[string][]&Instr
 	call_targets    []CallTarget
 	rela_text_users []RelaTextUser
 	variable_instrs []&Instr // variable length instructions jmp, je, jn ...
 	defined_symbols map[string]&Instr
+	sections        map[string]&UserDefinedSection
+	globals_count   int
 }
 
 pub fn new(program string, file_name string) &Assemble {
 	mut l := lexer.new(file_name, program)
 
-	return &Assemble{
-		tok:             l.lex()
-		lex:             l
+	return &Assemble {
+		tok: l.lex()
+		lex: l
 	}
 }
 
@@ -135,6 +137,10 @@ fn get_size_by_suffix(name string) int {
 	}
 }
 
+fn (mut a Assemble) add_instr(instr &Instr) {
+	a.instrs[a.current_section] << instr
+}
+
 fn (mut a Assemble) parse_instr() {
 	pos := a.tok.pos
 	mut instr := Instr{pos: pos, section: a.current_section}
@@ -152,7 +158,7 @@ fn (mut a Assemble) parse_instr() {
 			exit(1)
 		}
 		a.defined_symbols[instr_name] = &instr
-		a.instrs << &instr
+		a.add_instr(&instr)
 		return
 	}
 
@@ -180,44 +186,44 @@ fn (mut a Assemble) parse_instr() {
 				a.defined_symbols[name] = &instr
 			}
 
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'RETQ', 'RET' {
 			instr.kind = .ret
 			instr.code = [u8(0xc3)]
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'SYSCALL' {
 			instr.kind = .syscall
 			instr.code = [u8(0x0f), 0x05]
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'NOPQ', 'NOP' {
 			instr.kind = .nop
 			instr.code = [u8(0x90)]
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'HLT' {
 			instr.kind = .hlt
 			instr.code = [u8(0xf4)]
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'LEAVE' {
 			instr.kind = .leave
 			instr.code = [u8(0xc9)]
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'.GLOBAL' {
 			instr.kind = .global
 			instr.symbol_name = a.tok.lit
 			a.next()
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'.LOCAL' {
 			instr.kind = .local
 			instr.symbol_name = a.tok.lit
 			a.next()
-			a.instrs << &instr
+			a.add_instr(&instr)
 		}
 		'.STRING' {
 			value := a.tok.lit

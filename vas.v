@@ -47,15 +47,14 @@ fn main() {
 	a.parse()
 	a.add_index_to_instrs()
 	a.resolve_variable_length_instrs(mut a.variable_instrs)
+	a.assign_addresses()
+	a.resolve_call_targets()
 
-	mut e := elf.new(out_file)
-
-	e.assign_addresses_and_set_bindings(mut a.instrs, a.defined_symbols)
-	e.resolve_call_targets(a.call_targets)
+	mut e := elf.new(out_file, a.sections, a.defined_symbols, a.globals_count)
 	e.rela_text_users(a.rela_text_users)
 	e.elf_symtab_strtab()
-	e.make_shstrtab()
-	e.elf_rest()
+	e.build_shstrtab()
+	e.build_headers()
 	e.write_elf()
 }
 

@@ -389,7 +389,8 @@ fn (mut a Assemble) instr_string(value string, pos token.Position) {
 	arr := value.bytes()
 	instr.code = arr
 	instr.code << 0x00
-	a.instrs << &instr
+
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_mov(size int, pos token.Position) {
@@ -423,7 +424,7 @@ fn (mut a Assemble) instr_mov(size int, pos token.Position) {
 		exit(1)
 	}
 
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_pop(pos token.Position) {
@@ -439,7 +440,7 @@ fn (mut a Assemble) instr_pop(pos token.Position) {
 		exit(1)
 	}
 
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_push(pos token.Position) {
@@ -465,7 +466,7 @@ fn (mut a Assemble) instr_push(pos token.Position) {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_addq(size int, pos token.Position) {
@@ -489,7 +490,7 @@ fn (mut a Assemble) instr_addq(size int, pos token.Position) {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_subq(size int, pos token.Position) {
@@ -513,7 +514,8 @@ fn (mut a Assemble) instr_subq(size int, pos token.Position) {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	a.instrs << &instr
+
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_leaq(size int, pos token.Position) {
@@ -529,7 +531,8 @@ fn (mut a Assemble) instr_leaq(size int, pos token.Position) {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	a.instrs << &instr
+
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_cmp(size int, pos token.Position) {
@@ -549,7 +552,8 @@ fn (mut a Assemble) instr_cmp(size int, pos token.Position) {
 		error.print(pos, 'invalid operand for instruction')
 		exit(1)
 	}
-	a.instrs << &instr
+
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_xorq(size int, pos token.Position) {
@@ -570,7 +574,7 @@ fn (mut a Assemble) instr_xorq(size int, pos token.Position) {
 		exit(1)
 	}
 
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_call(pos token.Position) {
@@ -600,7 +604,7 @@ fn (mut a Assemble) instr_call(pos token.Position) {
 	}
 
 	a.rela_text_users << rela_text_user
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 	a.call_targets << call_target
 }
 
@@ -629,7 +633,7 @@ fn (mut a Assemble) instr_jmp(pos token.Position) {
 	instr.varcode = varcode
 
 	a.variable_instrs << &instr
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_jne(pos token.Position) {
@@ -650,14 +654,14 @@ fn (mut a Assemble) instr_jne(pos token.Position) {
 		trgt_symbol: target_sym_name,
 		rel8_code:   [u8(0x75), 0],
 		rel8_offset: 1,
-		rel32_code:   [u8(0x0f), 0x85, 0, 0, 0],
+		rel32_code:   [u8(0x0f), 0x85, 0, 0, 0, 0],
 		rel32_offset: 2,
 	}
 
 	instr.varcode = varcode
 
 	a.variable_instrs << &instr
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 fn (mut a Assemble) instr_je(pos token.Position) {
@@ -678,14 +682,14 @@ fn (mut a Assemble) instr_je(pos token.Position) {
 		trgt_symbol: target_sym_name,
 		rel8_code:   [u8(0x74), 0],
 		rel8_offset: 1,
-		rel32_code:   [u8(0x0f), 0x84, 0, 0, 0],
+		rel32_code:   [u8(0x0f), 0x84, 0, 0, 0, 0],
 		rel32_offset: 2,
 	}
 
 	instr.varcode = varcode
 
 	a.variable_instrs << &instr
-	a.instrs << &instr
+	a.instrs[a.current_section] << &instr
 }
 
 //-----------------------------------------------------------
@@ -694,8 +698,12 @@ fn (mut a Assemble) instr_je(pos token.Position) {
 // jmp jne je ... 
 
 pub fn (mut a Assemble) add_index_to_instrs() {
-	for i := 0; i < a.instrs.len; i++ {
-		a.instrs[i].index = i
+	for name, _ in a.instrs {
+		for i := 0; i < a.instrs[name].len; i++ {
+			mut instr := a.instrs[name][i]
+			instr.index = i
+			//a.instrs[name][i].index = i
+		}
 	}
 }
 
@@ -739,6 +747,7 @@ pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) {
 	for index := 0; index < instrs.len; index++ {
 		name := instrs[index].varcode.trgt_symbol
 		s := a.defined_symbols[name] or {
+			panic('not implemented yet')
 			// Relocation
 			rela_text_user := assemble.RelaTextUser{
 				instr:  instrs[index],
@@ -751,7 +760,20 @@ pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) {
 			instrs[index].is_len_decided = true
 			continue
 		}
-		diff, min, max, is_len_decided := calc_distance(instrs[index], s, a.instrs)
+		if instrs[index].section != s.section {
+			panic('not implemented yet')
+			rela_text_user := assemble.RelaTextUser{
+				instr:  instrs[index],
+				offset: 1,
+				uses:   name,
+				rtype:   assemble.r_x86_64_plt32
+			}
+			a.rela_text_users << rela_text_user
+			instrs[index].code = [u8(0xe9), 0x00, 0x00, 0x00, 0x00]
+			instrs[index].is_len_decided = true
+			continue
+		}
+		diff, min, max, is_len_decided := calc_distance(instrs[index], s, a.instrs[instrs[index].section])
 		if is_len_decided {
 			if assemble.is_in_i8_range(diff) {
 				instrs[index].code = instrs[index].varcode.rel8_code
@@ -785,6 +807,130 @@ pub fn (mut a Assemble) resolve_variable_length_instrs(mut instrs []&Instr) {
 	a.variable_instrs = todos
 	if a.variable_instrs.len > 0 {
 		a.resolve_variable_length_instrs(mut a.variable_instrs)
+	}
+}
+
+pub struct UserDefinedSection {
+pub mut:
+	code  []u8
+	addr  int
+	flags int
+}
+
+const (
+	elf_shf_write            = 0x1
+	elf_shf_alloc            = 0x2
+	elf_shf_execinstr        = 0x4
+	elf_shf_merge            = 0x10
+	elf_shf_strings          = 0x20
+	elf_shf_info_link        = 0x40
+	elf_shf_link_order       = 0x80
+	elf_shf_os_nonconforming = 0x100
+	elf_shf_group            = 0x200
+	elf_shf_tls              = 0x400
+
+	stb_local            = 0
+	stb_global           = 1
+)
+
+fn section_flags(flags string) int {
+	mut val := 0
+	for c in flags {
+		match c {
+			`a` {
+				val |= elf_shf_alloc
+			}
+			`x` {
+				val |= elf_shf_execinstr
+			}
+			`w` {
+				val |= elf_shf_write
+			} else {
+				panic('unkown attribute $c')
+			}
+		}
+	}
+	return val
+}
+
+fn (mut a Assemble) change_symbol_binding(instr Instr, binding u8) {
+	mut s := a.defined_symbols[instr.symbol_name] or {
+		error.print(instr.pos, 'undefined symbol `$instr.symbol_name`')
+		exit(1)
+	}
+	if binding == stb_global && s.binding == stb_local {
+		a.globals_count++
+	}
+
+	if binding == stb_local && s.binding == stb_global {
+		a.globals_count--
+	}
+
+	if binding == stb_global && s.kind == .section {
+		error.print(instr.pos, 'sections cannot be global')
+		exit(1)
+	}
+
+	s.binding = binding
+}
+
+pub fn (mut a Assemble) assign_addresses() {
+	a.sections['.text'] = &UserDefinedSection{
+		flags: section_flags('ax')
+	}
+	for name, mut instrs in a.instrs {
+		if name !in a.sections {
+			a.sections[name] = &UserDefinedSection{}
+		}
+		mut section := a.sections[name] or {
+			panic('PANIC')
+		}
+
+		for mut i in instrs {
+			match i.kind {
+				.section {
+					section.flags = section_flags(i.flags)
+				}
+				.global {
+					a.change_symbol_binding(*i, stb_global)
+				}
+				.local {
+					a.change_symbol_binding(*i, stb_local)
+				} else {}
+			}
+
+			i.addr = section.addr
+			section.addr += i.code.len
+			section.code << i.code
+		}
+
+		// padding
+		mut padding := (assemble.align_to(section.code.len, 16) - section.code.len)
+		for _ in 0 .. padding {
+			section.code << 0
+		}
+	}
+}
+
+pub fn (mut a Assemble) resolve_call_targets() {
+	for call_target in a.call_targets {
+		symbol := a.defined_symbols[call_target.target_symbol] or {
+			continue
+		}
+
+		caller_section := call_target.caller.section
+
+		// canot call symbol from a different section. need to relocate.
+		if caller_section != symbol.section {
+			panic('TODO: need to Relocate')
+		}
+
+		mut buf := [u8(0), 0, 0, 0]
+		binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
+		a.sections[caller_section].code[call_target.caller.addr+1] = buf[0]
+		a.sections[caller_section].code[call_target.caller.addr+2] = buf[1]
+		a.sections[caller_section].code[call_target.caller.addr+3] = buf[2]
+		a.sections[caller_section].code[call_target.caller.addr+4] = buf[3]
 	}
 }
 

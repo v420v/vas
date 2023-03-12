@@ -6,21 +6,19 @@ module elf
 
 import os
 import assemble
-import error
-import encoding.binary
 
 pub struct Elf {
-mut:
 	out_file             string
-	globals_count        int
-	defined_symbols      map[string]&assemble.Instr
-	rela_symbols         []string
-	sym_index            map[string]int
-	ehdr                 Elf64_Ehdr
-	custom_sections      map[string]&CustomSection
-	custom_section_names []string
-	custom_section_idx   map[string]int
+	globals_count        int   		 						// global symbols count
+	defined_symbols      map[string]&assemble.Instr   		// user-defined symbols
+	custom_sections      map[string]&assemble.UserDefinedSection // user-defined sections
+mut:
+	ehdr                 Elf64_Ehdr    	// Elf header
+	rela_symbols         []string      	// symbols that are not defined
+	custom_section_names []string      	// list of user-defined section names
+	custom_section_idx   map[string]int	// user-defined sections index
 	section_name_offs    map[string]int
+	local_sym_index      map[string]int
 	strtab               []u8
 	symtab               []Elf64_Sym
 	rela                 map[string][]Elf64_Rela
@@ -128,13 +126,34 @@ pub const (
 	shf_tls              = 0x400
 )
 
-pub fn new(out_file string) &Elf {
-	return &Elf{
+pub fn new(out_file string, custom_sections map[string]&assemble.UserDefinedSection, defined_symbols map[string]&assemble.Instr, globals_count int) &Elf {
+	mut e := &Elf{
 		out_file: out_file
-		sym_index: {
+		globals_count: globals_count
+		local_sym_index: {
 			'': 0
 		}
+		custom_sections: custom_sections
+		defined_symbols: defined_symbols
 	}
+
+	mut custom_section_idx := 1
+
+	for name, _ in custom_sections {
+		e.custom_section_names << name
+		e.custom_section_idx[name] = custom_section_idx
+		custom_section_idx++
+	}
+
+	mut idx_count := 1
+	for name, sym in defined_symbols {
+		if sym.binding == stb_local {
+			e.local_sym_index[name] = idx_count
+			idx_count++
+		}
+	}
+
+	return e
 }
 
 fn add_padding(mut code []u8) {
@@ -144,133 +163,11 @@ fn add_padding(mut code []u8) {
 	}
 }
 
-struct CustomSection {
-mut:
-	code  []u8
-	addr  int
-	flags voidptr
-}
-
-fn section_flags(flags string) int {
-	mut val := 0
-	for c in flags {
-		match c {
-			`a` {
-				val |= shf_alloc
-			}
-			`x` {
-				val |= shf_execinstr
-			}
-			`w` {
-				val |= shf_write
-			} else {
-				panic('unkown attribute $c')
-			}
-		}
-	}
-	return val
-}
-
-pub fn (mut e Elf) assign_addresses_and_set_bindings(mut instrs  []&assemble.Instr, defined_symbols map[string]&assemble.Instr) {
-	mut custom_section_idx := 1
-
-	e.custom_sections['.text'] = &CustomSection{
-		flags: section_flags('ax')
-	}
-	e.custom_section_names << '.text'
-	e.custom_section_idx['.text'] = custom_section_idx
-	custom_section_idx++
-
-	for mut i in instrs {
-		match i.kind {
-			.section {
-				if s := e.custom_sections[i.section] {
-					if s.flags != section_flags(i.flags) {
-						error.print(i.pos, 'cannot change section attributes for `$i.section`')
-						exit(1)
-					}
-				}
-			}
-			.global {
-				mut s := defined_symbols[i.symbol_name] or {
-					error.print(i.pos, 'undefined symbol `$i.symbol_name`')
-					exit(1)
-				}
-				if s.binding == stb_local {
-					e.globals_count++
-				}
-				s.binding = elf.stb_global
-				continue
-			}
-			.local {
-				mut s := defined_symbols[i.symbol_name] or {
-					error.print(i.pos, 'undefined symbol `$i.symbol_name`')
-					exit(1)
-				}
-				if s.binding == stb_global {
-					e.globals_count--
-				}
-				s.binding = elf.stb_local
-				continue
-			}
-			else {}
-		}
-
-		if i.section !in e.custom_sections {
-			e.custom_sections[i.section] = &CustomSection{
-				flags: section_flags(i.flags)
-			}
-			e.custom_section_names << i.section
-			e.custom_section_idx[i.section] = custom_section_idx
-			custom_section_idx++
-		}
-
-		mut s := e.custom_sections[i.section] or {
-			panic('section not found `$i.section`')
-		}
-
-		i.addr = s.addr
-		s.code << i.code
-		s.addr += i.code.len
-	}
-
-	for _, mut s in e.custom_sections {
-		add_padding(mut s.code)
-	}
-
-	e.defined_symbols = defined_symbols.clone()
-
-	mut idx_count := 1
-	for name, _ in e.defined_symbols {
-		e.sym_index[name] = idx_count
-		idx_count++
-	}
-}
-
-pub fn (mut e Elf) resolve_call_targets(call_targets []assemble.CallTarget) {
-	for call_target in call_targets {
-		symbol := e.defined_symbols[call_target.target_symbol] or {
-			continue
-		}
-		caller_section := call_target.caller.section
-		// canot call symbol from a different section. need to relocate.
-		if caller_section != symbol.section {
-			panic('TODO: need to Relocate')
-		}
-
-		mut buf := [u8(0), 0, 0, 0]
-		binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
-		e.custom_sections[caller_section].code[call_target.caller.addr+1] = buf[0]
-		e.custom_sections[caller_section].code[call_target.caller.addr+2] = buf[1]
-		e.custom_sections[caller_section].code[call_target.caller.addr+3] = buf[2]
-		e.custom_sections[caller_section].code[call_target.caller.addr+4] = buf[3]
-	}
-}
-
 pub fn (mut e Elf) rela_text_users(rela_text_users []assemble.RelaTextUser) {
 	// Symbols to be relocated are passed to symtab after local symbols.
-	// The index will start at local_symbols.len()
+	// The index will start from local_symbols.len()
 	mut pos := e.defined_symbols.len - e.globals_count + 1 // count of local symbols
+	//                                                   ^ null
 
 	for r in rela_text_users {
 		mut index := 0
@@ -286,14 +183,14 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []assemble.RelaTextUser) {
 
 		if s := e.defined_symbols[r.uses] {
     	    r_addend += s.addr
-			index = e.sym_index[s.section] or {
-				panic('section not found `$s.section')
+			index = e.local_sym_index[s.section] or {
+				panic('section not found `$s.section`')
 			}
 		} else if r.uses in e.rela_symbols {
-			index = e.sym_index[r.uses]
+			index = e.local_sym_index[r.uses]
     	} else {
     	    e.rela_symbols << r.uses
-			e.sym_index[r.uses] = pos
+			e.local_sym_index[r.uses] = pos
 			index = pos
     	    pos++
     	}
@@ -371,7 +268,7 @@ pub fn (mut e Elf) elf_symtab_strtab() {
 	add_padding(mut e.strtab)
 }
 
-pub fn (mut e Elf) make_shstrtab() {
+pub fn (mut e Elf) build_shstrtab() {
 	// null
 	e.shstrtab << [u8(0x00)]
 	e.section_name_offs[''] = 0
@@ -394,7 +291,7 @@ pub fn (mut e Elf) make_shstrtab() {
 		e.shstrtab << 0x00
 	}
 
-	for name, _ in e.rela {
+	for name in e.rela.keys() {
 		e.section_name_offs[name] = name_offs
 		name_offs += name.len + 1
 
@@ -406,7 +303,7 @@ pub fn (mut e Elf) make_shstrtab() {
 }
 
 // TODO: refactor later...
-pub fn (mut e Elf) elf_rest() {
+pub fn (mut e Elf) build_headers() {
 	mut idx := 0
 	mut section_offs := sizeof(Elf64_Ehdr)
 	mut section_idx := {'': idx}

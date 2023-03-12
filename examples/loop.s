@@ -26,8 +26,6 @@
 
 .global msg1
 
-.global .data
-
 .section .data, "wa"
 msg1:
 	.string "message 1"
