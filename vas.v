@@ -6,7 +6,7 @@ module main
 
 import os
 import flag
-import assemble
+import encoder
 import elf
 
 fn file_name_without_ext(file_name string) string {
@@ -43,15 +43,15 @@ fn main() {
 		exit(1)
 	}
 
-	mut a := assemble.new(program, file_name)
-	a.parse()
-	a.add_index_to_instrs()
-	a.resolve_variable_length_instrs(mut a.variable_instrs)
-	a.assign_addresses()
-	a.resolve_call_targets()
+	mut en := encoder.new(program, file_name)
+	en.encode()
+	en.add_index_to_instrs()
+	en.resolve_variable_length_instrs(mut en.variable_instrs)
+	en.assign_addresses()
+	en.resolve_call_targets()
 
-	mut e := elf.new(out_file, a.sections, a.defined_symbols, a.globals_count)
-	e.rela_text_users(a.rela_text_users)
+	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count)
+	e.rela_text_users(en.rela_text_users)
 	e.elf_symtab_strtab()
 	e.build_shstrtab()
 	e.build_headers()

@@ -5,13 +5,13 @@
 module elf
 
 import os
-import assemble
+import encoder
 
 pub struct Elf {
 	out_file             string
 	globals_count        int   		 						// global symbols count
-	defined_symbols      map[string]&assemble.Instr   		// user-defined symbols
-	custom_sections      map[string]&assemble.UserDefinedSection // user-defined sections
+	defined_symbols      map[string]&encoder.Instr   		// user-defined symbols
+	custom_sections      map[string]&encoder.UserDefinedSection // user-defined sections
 mut:
 	ehdr                 Elf64_Ehdr    	// Elf header
 	rela_symbols         []string      	// symbols that are not defined
@@ -126,7 +126,7 @@ pub const (
 	shf_tls              = 0x400
 )
 
-pub fn new(out_file string, custom_sections map[string]&assemble.UserDefinedSection, defined_symbols map[string]&assemble.Instr, globals_count int) &Elf {
+pub fn new(out_file string, custom_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int) &Elf {
 	mut e := &Elf{
 		out_file: out_file
 		globals_count: globals_count
@@ -157,13 +157,13 @@ pub fn new(out_file string, custom_sections map[string]&assemble.UserDefinedSect
 }
 
 fn add_padding(mut code []u8) {
-	mut padding := (assemble.align_to(code.len, 16) - code.len)
+	mut padding := (encoder.align_to(code.len, 16) - code.len)
 	for _ in 0 .. padding {
 		code << 0
 	}
 }
 
-pub fn (mut e Elf) rela_text_users(rela_text_users []assemble.RelaTextUser) {
+pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 	// Symbols to be relocated are passed to symtab after local symbols.
 	// The index will start from local_symbols.len()
 	mut pos := e.defined_symbols.len - e.globals_count + 1 // count of local symbols
@@ -172,12 +172,12 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []assemble.RelaTextUser) {
 	for r in rela_text_users {
 		mut index := 0
 		mut r_addend := i64(0 - 4)
-		if r.rtype == assemble.r_x86_64_32s {
+		if r.rtype == encoder.r_x86_64_32s {
 			r_addend = 0
 		}
 
 		// already resolved call instruction
-    	if r.rtype == assemble.r_x86_64_plt32 && r.uses in e.defined_symbols {
+    	if r.rtype == encoder.r_x86_64_plt32 && r.uses in e.defined_symbols {
 			continue
 		}
 
