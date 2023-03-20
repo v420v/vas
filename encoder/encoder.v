@@ -917,8 +917,9 @@ fn (mut e Encoder) add_instr(instr &Instr) {
 	e.instrs[e.current_section] << instr
 }
 
-
-
+/*
+	functions for variable length instructions
+*/
 fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
 	unsafe {
     	mut from, mut to := symdef, instrs[user_instr.index+1]
@@ -1022,6 +1023,9 @@ pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
 	}
 }
 
+/*
+	Functions for symbols and addresses
+*/
 fn section_flags(flags string) int {
 	mut val := 0
 	for c in flags {
