@@ -542,8 +542,7 @@ fn (mut e Encoder) encode_regi_regi(op_code u8, regi Register, regi2 Register, m
 pub fn (mut e Encoder) add_index_to_instrs() {
 	for name, _ in e.instrs {
 		for i := 0; i < e.instrs[name].len; i++ {
-			mut instr := e.instrs[name][i]
-			instr.index = i
+			e.instrs[name][i].index = i
 		}
 	}
 }
