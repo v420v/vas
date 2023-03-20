@@ -10,11 +10,11 @@ Supports Linux x86-64 AT&T syntax only.
 
 .global _start
 
-.data
+.section .data, "aw"
 msg:
   .string "Hello, world!"
 
-.text
+.section .text, "ax"
 _start:
   pushq %rbp
   movq %rsp, %rbp

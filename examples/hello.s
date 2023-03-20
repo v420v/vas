@@ -5,11 +5,7 @@
 
 .global _start
 
-.data
-msg:
-	.string "Hello, world!"
-
-.text
+.section .text, "ax"
 _start:
 	pushq %rbp
 	movq %rsp, %rbp
@@ -24,4 +20,8 @@ _start:
 	movq $60, %rax
 	movq $0, %rdi
 	syscall
+
+.section .data, "wa"
+msg:
+	.string "Hello, world!"
 

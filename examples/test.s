@@ -8,11 +8,11 @@
 
 .global _start
 
-.data
+.section .data, "wa"
 msg:
 	.string "Hello, world!"
 
-.text
+.section .text, "ax"
 _start:	
 	leaq 1+msg+0-0+0(%rip), %rsi
 	leaq 200+msg(%rsp), %rsi

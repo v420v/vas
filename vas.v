@@ -1,8 +1,12 @@
+// I know the code is messy, but it gets the job done for now.
+// Leaving this comment here to remind myself to refactor it from scratch
+// when I have more time. 
+
 module main
 
 import os
 import flag
-import assemble
+import encoder
 import elf
 
 fn file_name_without_ext(file_name string) string {
@@ -39,25 +43,18 @@ fn main() {
 		exit(1)
 	}
 
-	mut a := assemble.new(program, file_name)
-	a.parse()
+	mut en := encoder.new(program, file_name)
+	en.encode()
+	en.add_index_to_instrs()
+	en.resolve_variable_length_instrs(mut en.variable_instrs)
+	en.assign_addresses()
+	en.resolve_call_targets()
 
-	// add index to instructions
-	for i := 0; i < a.instrs.len; i++ {
-		a.instrs[i].index = i
-	}
-
-	for a.variable_instrs.len > 0 {
-		a.variable_instrs = a.resolve_variable_length_instrs(mut a.variable_instrs)
-	}
-
-	mut e := elf.new(out_file)
-
-	e.assign_addresses_and_set_bindings(mut a.instrs, mut a.defined_symbols)
-	e.resolve_call_targets(a.call_targets)
-	e.rela_text_users(a.rela_text_users)
+	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count)
+	e.rela_text_users(en.rela_text_users)
 	e.elf_symtab_strtab()
-	e.elf_rest()
+	e.build_shstrtab()
+	e.build_headers()
 	e.write_elf()
 }
 
