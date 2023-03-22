@@ -11,12 +11,12 @@ pub struct Elf {
 	out_file             string
 	globals_count        int   		 						// global symbols count
 	defined_symbols      map[string]&encoder.Instr   		// user-defined symbols
-	custom_sections      map[string]&encoder.UserDefinedSection // user-defined sections
+	user_defined_sections      map[string]&encoder.UserDefinedSection // user-defined sections
 mut:
 	ehdr                 Elf64_Ehdr    	// Elf header
 	rela_symbols         []string      	// symbols that are not defined
-	custom_section_names []string      	// list of user-defined section names
-	custom_section_idx   map[string]int	// user-defined sections index
+	user_defined_section_names []string      	// list of user-defined section names
+	user_defined_section_idx   map[string]int	// user-defined sections index
 	section_name_offs    map[string]int
 	local_sym_index      map[string]int
 	strtab               []u8
@@ -126,23 +126,23 @@ pub const (
 	shf_tls              = 0x400
 )
 
-pub fn new(out_file string, custom_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int) &Elf {
+pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int) &Elf {
 	mut e := &Elf{
 		out_file: out_file
 		globals_count: globals_count
 		local_sym_index: {
 			'': 0
 		}
-		custom_sections: custom_sections
+		user_defined_sections: user_defined_sections
 		defined_symbols: defined_symbols
 	}
 
-	mut custom_section_idx := 1
+	mut user_defined_section_idx := 1
 
-	for name, _ in custom_sections {
-		e.custom_section_names << name
-		e.custom_section_idx[name] = custom_section_idx
-		custom_section_idx++
+	for name, _ in user_defined_sections {
+		e.user_defined_section_names << name
+		e.user_defined_section_idx[name] = user_defined_section_idx
+		user_defined_section_idx++
 	}
 
 	mut idx_count := 1
@@ -215,7 +215,7 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 
 
 		unsafe { *off += str.len + 1 }
-		st_shndx := u16(e.custom_section_idx[symbol.section])
+		st_shndx := u16(e.user_defined_section_idx[symbol.section])
 
 		mut st_name := u32(0)
 		if symbol.symbol_type == stt_section {
@@ -275,7 +275,7 @@ pub fn (mut e Elf) build_shstrtab() {
 
 	// custom sections
 	mut name_offs := ''.len + 1
-	for name in e.custom_section_names {
+	for name in e.user_defined_section_names {
 		e.section_name_offs[name] = name_offs
 		name_offs += name.len + 1
 
@@ -316,8 +316,8 @@ pub fn (mut e Elf) build_headers() {
 	}
 
 	// custom sections
-	for name in e.custom_section_names {
-		section := e.custom_sections[name] or { panic('[internal error] unkown section `$name`') }
+	for name in e.user_defined_section_names {
+		section := e.user_defined_sections[name] or { panic('[internal error] unkown section `$name`') }
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
 			sh_type: elf.sht_progbits
@@ -446,12 +446,16 @@ pub fn (mut e Elf) build_headers() {
 pub fn (mut e Elf) write_elf() {
 	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }
 
+	defer {
+		fp.close()
+	}
+
 	fp.write_struct(e.ehdr) or {
 		panic('somthing whent wrong while writing `elf header`')
 	}
 
-	for name in e.custom_section_names {
-		section := e.custom_sections[name] or {
+	for name in e.user_defined_section_names {
+		section := e.user_defined_sections[name] or {
 			panic('unkown section $name')
 		}
 		fp.write(section.code) or {

@@ -28,9 +28,12 @@ pub enum InstrKind {
 	string
 	add
 	sub
+	imul
+	idiv
 	lea
 	mov
 	xor
+	cqto
 	cmp
 	pop
 	push
@@ -421,7 +424,7 @@ fn (mut e Encoder) get_disp_symbol(expr Expr, mut arr []string) {
 	}
 }
 
-fn (mut e Encoder) encode_indir_regi(op_code u8, indir Indirection, regi Register, mut instr &Instr, size int) {
+fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, size int) {
 	// disp(base)
 
 	check_regi_size(regi, size)
@@ -528,7 +531,7 @@ fn (mut e Encoder) encode_imm_regi(slash u8, rax_magic u8, imm Immediate, regi R
 	}
 }
 
-fn (mut e Encoder) encode_regi_regi(op_code u8, regi Register, regi2 Register, mut instr &Instr, size int) {
+fn (mut e Encoder) encode_regi_regi(op_code []u8, regi Register, regi2 Register, mut instr &Instr, size int) {
 	check_regi_size(regi, size)
 	check_regi_size(regi2, size)
 	mod_rm := compose_mod_rm(mod_regi, reg_bits(regi), reg_bits(regi2))
@@ -554,6 +557,13 @@ fn (mut e Encoder) encode_instr() {
 	instr_name := e.tok.lit
 	e.next()
 
+	defer {
+		e.add_instr(&instr)
+		if instr.varcode != unsafe { nil } {
+			instr.is_len_decided = false
+		}
+	}
+
 	if e.tok.kind == .colon {
 		instr.kind = .label
 		instr.symbol_name = instr_name
@@ -564,10 +574,7 @@ fn (mut e Encoder) encode_instr() {
 			exit(1)
 		}
 		e.defined_symbols[instr_name] = &instr
-
-		unsafe {
-			goto end
-		}
+		return
 	}
 
 	match instr_name.to_upper() {
@@ -593,36 +600,49 @@ fn (mut e Encoder) encode_instr() {
 			} else {
 				e.defined_symbols[name] = &instr
 			}
+			return
 		}
 		'RETQ', 'RET' {
 			instr.kind = .ret
 			instr.code = [u8(0xc3)]
+			return
 		}
 		'SYSCALL' {
 			instr.kind = .syscall
 			instr.code = [u8(0x0f), 0x05]
+			return
 		}
 		'NOPQ', 'NOP' {
 			instr.kind = .nop
 			instr.code = [u8(0x90)]
+			return
 		}
 		'HLT' {
 			instr.kind = .hlt
 			instr.code = [u8(0xf4)]
+			return
 		}
 		'LEAVE' {
 			instr.kind = .leave
 			instr.code = [u8(0xc9)]
+			return
+		}
+		'CQTO' {
+			instr.kind = .cqto
+			instr.code = [u8(0x48), 0x99]
+			return
 		}
 		'.GLOBAL' {
 			instr.kind = .global
 			instr.symbol_name = e.tok.lit
 			e.next()
+			return
 		}
 		'.LOCAL' {
 			instr.kind = .local
 			instr.symbol_name = e.tok.lit
 			e.next()
+			return
 		}
 		'.STRING' {
 			value := e.tok.lit
@@ -632,6 +652,7 @@ fn (mut e Encoder) encode_instr() {
 
 			instr.code = value.bytes()
 			instr.code << 0x00
+			return
 		}
 		'POP', 'POPQ' {
 			instr.kind = .pop
@@ -641,9 +662,7 @@ fn (mut e Encoder) encode_instr() {
 			if source is Register {
 				check_regi_size(source, 64)
 				instr.code = [0x58 + reg_bits(source)]
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				return
 			}
 		}
 		'PUSHQ', 'PUSH' {
@@ -654,7 +673,9 @@ fn (mut e Encoder) encode_instr() {
 			if source is Register {
 				check_regi_size(source, 64)
 				instr.code = [0x50 + reg_bits(source)]
-			} else if source is Immediate {
+				return
+			}
+			if source is Immediate {
 				num := eval_expr(source.expr)
 				if is_in_i8_range(num) {
 					instr.code = [u8(0x6a), u8(num)]
@@ -665,9 +686,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					panic('internal error')
 				}
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				return
 			}
 		}
 		'MOVQ', 'MOVL' {
@@ -679,12 +698,18 @@ fn (mut e Encoder) encode_instr() {
 			desti := e.parse_operand()
 
 			if source is Register && desti is Register {
-				e.encode_regi_regi(u8(0x89), source, desti, mut &instr, size)
-			} else if source is Indirection && desti is Register {
-				e.encode_indir_regi(u8(0x8b), source, desti, mut &instr, size)
-			} else if source is Register && desti is Indirection {
-				e.encode_indir_regi(u8(0x89), desti, source, mut &instr, size)
-			} else if source is Immediate && desti is Register {
+				e.encode_regi_regi([u8(0x89)], source, desti, mut &instr, size)
+				return
+			}
+			if source is Indirection && desti is Register {
+				e.encode_indir_regi([u8(0x8b)], source, desti, mut &instr, size)
+				return
+			}
+			if source is Register && desti is Indirection {
+				e.encode_indir_regi([u8(0x89)], desti, source, mut &instr, size)
+				return
+			}
+			if source is Immediate && desti is Register {
 				check_regi_size(desti, size)
 				mut mod_rm := u8(0)
 				if size == 64 {
@@ -697,9 +722,7 @@ fn (mut e Encoder) encode_instr() {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(num))
 				instr.code << [mod_rm, hex[0], hex[1], hex[2], hex[3]]
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				return
 			}
 		}
 		'LEAQ', 'LEAL' {
@@ -711,10 +734,8 @@ fn (mut e Encoder) encode_instr() {
 			destination := e.parse_operand()
 
 			if source is Indirection && destination is Register {
-				e.encode_indir_regi(u8(0x8d), source, destination, mut &instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				e.encode_indir_regi([u8(0x8d)], source, destination, mut &instr, size)
+				return
 			}
 		}
 		'ADDQ', 'ADDL' {
@@ -726,17 +747,21 @@ fn (mut e Encoder) encode_instr() {
 			desti := e.parse_operand()
 
 			if source is Register && desti is Register {
-				e.encode_regi_regi(u8(0x01), source, desti, mut &instr, size)
-			} else if source is Immediate && desti is Register {
+				e.encode_regi_regi([u8(0x01)], source, desti, mut &instr, size)
+				return
+			}
+			if source is Immediate && desti is Register {
 				e.encode_imm_regi(0, 0x05, source, desti, mut instr, size)
-			} else if source is Indirection && desti is Register {
-				e.encode_indir_regi(u8(0x3), source, desti, mut &instr, size)
-			} else if source is Register && desti is Indirection {
-				e.encode_indir_regi(u8(0x1), desti, source, mut &instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}		
+				return
+			}
+			if source is Indirection && desti is Register {
+				e.encode_indir_regi([u8(0x3)], source, desti, mut &instr, size)
+				return
+			}
+			if source is Register && desti is Indirection {
+				e.encode_indir_regi([u8(0x1)], desti, source, mut &instr, size)
+				return
+			}	
 		}
 		'SUBQ', 'SUBL' {
 			size := get_size_by_suffix(instr_name)
@@ -747,16 +772,86 @@ fn (mut e Encoder) encode_instr() {
 			desti := e.parse_operand()
 
 			if source is Register && desti is Register {
-				e.encode_regi_regi(u8(0x29), source, desti, mut &instr, size)
-			} else if source is Immediate && desti is Register {
+				e.encode_regi_regi([u8(0x29)], source, desti, mut &instr, size)
+				return
+			}
+			if source is Immediate && desti is Register {
 				e.encode_imm_regi(5, 0x2D, source, desti, mut instr, size)
-			} else if source is Indirection && desti is Register {
-				e.encode_indir_regi(u8(0x2b), source, desti, mut &instr, size)
-			} else if source is Register && desti is Indirection {
-				e.encode_indir_regi(u8(0x29), desti, source, mut &instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				return
+			}
+			if source is Indirection && desti is Register {
+				e.encode_indir_regi([u8(0x2b)], source, desti, mut &instr, size)
+				return
+			}
+			if source is Register && desti is Indirection {
+				e.encode_indir_regi([u8(0x29)], desti, source, mut &instr, size)
+				return
+			}
+		}
+		'IDIVQ', 'IDIVL' {
+			size := get_size_by_suffix(instr_name)
+			instr.kind = .idiv
+			source := e.parse_operand()
+			if source is Register {
+				if size == 64 {
+					instr.code = [encoder.rex_w]
+				}
+				check_regi_size(source, size)
+				instr.code << [u8(0xf7), 0xf8 + reg_bits(source)]
+				return
+			}
+		}
+		'IMULQ', 'IMULL' {
+			size := get_size_by_suffix(instr_name)
+			instr.kind = .imul
+
+			source := e.parse_operand()
+
+			if e.tok.kind != .comma && source is Register {
+				if size == 64 {
+					instr.code = [encoder.rex_w]
+				}
+				check_regi_size(source, size)
+				instr.code << [u8(0xf7), 0xe8 + reg_bits(source)]
+				return
+			}
+			
+			e.expect(.comma)
+			desti_operand_1 := e.parse_operand()
+
+			if source is Indirection && desti_operand_1 is Register {
+				e.encode_indir_regi([u8(0x0f), 0xaf], source, desti_operand_1, mut &instr, size)
+				return
+			}
+			
+			if source is Register && desti_operand_1 is Register {
+				e.encode_regi_regi([u8(0x0f), 0xaf], source, desti_operand_1, mut &instr, size)
+				return
+			}
+
+			e.expect(.comma)
+			desti_operand_2 := e.parse_operand()
+
+			if source is Immediate && desti_operand_1 is Register && desti_operand_2 is Register {
+				check_regi_size(desti_operand_1, size)
+				check_regi_size(desti_operand_2, size)
+				mod_rm := compose_mod_rm(mod_regi, reg_bits(desti_operand_2), reg_bits(desti_operand_1))
+				if size == 64 {
+					instr.code << encoder.rex_w
+				}
+				num := eval_expr(source.expr)
+				if is_in_i8_range(num) {
+					instr.code << 0x6b
+					instr.code << mod_rm
+					instr.code << u8(num)
+				} else {
+					instr.code << 0x69
+					instr.code << mod_rm
+					mut hex := [u8(0), 0, 0, 0]
+					binary.little_endian_put_u32(mut &hex, u32(num))
+					instr.code << hex
+				}
+				return
 			}
 		}
 		'XORQ', 'XORL' {
@@ -768,12 +863,13 @@ fn (mut e Encoder) encode_instr() {
 			destination := e.parse_operand()
 
 			if source is Register && destination is Register {
-				e.encode_regi_regi(u8(0x31), source, destination, mut &instr, size)
-			} else if source is Immediate && destination is Register {
+				e.encode_regi_regi([u8(0x31)], source, destination, mut &instr, size)
+				return
+			}
+			
+			if source is Immediate && destination is Register {
 				e.encode_imm_regi(6, 0x35, source, destination, mut instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				return
 			}
 		}
 		'CMPQ', 'CMPL' {
@@ -785,12 +881,13 @@ fn (mut e Encoder) encode_instr() {
 			destination := e.parse_operand()
 
 			if source is Register && destination is Register {
-				e.encode_regi_regi(u8(0x39), source, destination, mut &instr, size)
-			} else if source is Immediate && destination is Register {
+				e.encode_regi_regi([u8(0x39)], source, destination, mut &instr, size)
+				return
+			}
+			
+			if source is Immediate && destination is Register {
 				e.encode_imm_regi(7, 0x3D, source, destination, mut instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
+				return
 			}
 		}
 		'CALLQ', 'CALL' {
@@ -819,6 +916,7 @@ fn (mut e Encoder) encode_instr() {
 				uses:   target_sym_name,
 				rtype:   encoder.r_x86_64_plt32
 			}
+			return
 		}
 		'JMP', 'JMPQ' {
 			instr.kind = .jmp
@@ -843,6 +941,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 
 			e.variable_instrs << &instr
+			return
 		}
 		'JNE' {
 			instr.kind = .jne
@@ -866,6 +965,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 
 			e.variable_instrs << &instr
+			return
 		}
 		'JE' {
 			instr.kind = .je
@@ -889,18 +989,15 @@ fn (mut e Encoder) encode_instr() {
 			}
 
 			e.variable_instrs << &instr
+			return
 		}
 		else {
 			error.print(pos, 'unkwoun instruction `$instr_name`')
 			exit(1)
 		}
 	}
-
-	end:
-	e.add_instr(&instr)
-	if instr.varcode != unsafe { nil } {
-		instr.is_len_decided = false
-	}
+	error.print(pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 pub fn (mut e Encoder) encode() {
@@ -955,6 +1052,7 @@ fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, i
 	}
 }
 
+// TODO: catch infinite loop
 pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
 	mut todos := []&Instr{}
 	for index := 0; index < instrs.len; index++ {
@@ -1018,6 +1116,7 @@ pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
 		}
 	}
 	e.variable_instrs = todos
+
 	if e.variable_instrs.len > 0 {
 		e.resolve_variable_length_instrs(mut e.variable_instrs)
 	}
