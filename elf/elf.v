@@ -8,22 +8,22 @@ import os
 import encoder
 
 pub struct Elf {
-	out_file             string
-	globals_count        int   		 						// global symbols count
-	defined_symbols      map[string]&encoder.Instr   		// user-defined symbols
-	user_defined_sections      map[string]&encoder.UserDefinedSection // user-defined sections
+	out_file              string
+	globals_count         int										// global symbols count
+	defined_symbols       map[string]&encoder.Instr					// user-defined symbols
+	user_defined_sections map[string]&encoder.UserDefinedSection 	// user-defined sections
 mut:
-	ehdr                 Elf64_Ehdr    	// Elf header
-	rela_symbols         []string      	// symbols that are not defined
-	user_defined_section_names []string      	// list of user-defined section names
-	user_defined_section_idx   map[string]int	// user-defined sections index
-	section_name_offs    map[string]int
-	local_sym_index      map[string]int
-	strtab               []u8
-	symtab               []Elf64_Sym
-	rela                 map[string][]Elf64_Rela
-	shstrtab             []u8
-	section_headers      []Elf64_Shdr
+	ehdr                       Elf64_Ehdr     // Elf header
+	rela_symbols               []string       // symbols that are not defined
+	user_defined_section_names []string       // list of user-defined section names
+	user_defined_section_idx   map[string]int // user-defined sections index
+	section_name_offs          map[string]int
+	local_sym_index            map[string]int
+	strtab                     []u8
+	symtab                     []Elf64_Sym
+	rela                       map[string][]Elf64_Rela
+	shstrtab                   []u8
+	section_headers            []Elf64_Shdr
 }
 
 /*
@@ -167,7 +167,7 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 	// Symbols to be relocated are passed to symtab after local symbols.
 	// The index will start from local_symbols.len()
 	mut pos := e.defined_symbols.len - e.globals_count + 1 // count of local symbols
-	//                                                   ^ null
+	//                                                   ^ null symbol
 
 	for r in rela_text_users {
 		mut index := 0
