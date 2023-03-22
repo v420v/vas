@@ -177,7 +177,7 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 		}
 
 		// already resolved call instruction
-    	if r.rtype == encoder.r_x86_64_plt32 && r.uses in e.defined_symbols {
+    	if r.instr.is_already_resolved {
 			continue
 		}
 

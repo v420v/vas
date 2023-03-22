@@ -51,17 +51,18 @@ pub enum InstrKind {
 
 pub struct Instr {
 pub mut:
-	kind           InstrKind
-	code           []u8
-	symbol_name    string
-	flags          string
-	addr           i64
-	binding        u8
-	symbol_type    u8
-	section        string [required]
-	index          int
-	varcode        &VariableCode = unsafe{nil}
-	is_len_decided bool = true
+	kind           		InstrKind
+	code           		[]u8
+	symbol_name    		string
+	flags          		string
+	addr           		i64
+	binding        		u8
+	symbol_type    		u8
+	section        		string [required]
+	index          		int
+	varcode        		&VariableCode = unsafe{nil}
+	is_len_decided 		bool = true
+	is_already_resolved bool
 	pos token.Position
 }
 
@@ -1057,33 +1058,36 @@ pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
 	mut todos := []&Instr{}
 	for index := 0; index < instrs.len; index++ {
 		name := instrs[index].varcode.trgt_symbol
+
+		// check if the symbol is defined
 		s := e.defined_symbols[name] or {
-			panic('not implemented yet')
 			// Relocation
 			rela_text_user := encoder.RelaTextUser{
 				instr:  instrs[index],
-				offset: 1,
+				offset: instrs[index].varcode.rel32_offset,
 				uses:   name,
-				rtype:   encoder.r_x86_64_plt32
+				rtype:  encoder.r_x86_64_plt32
 			}
 			e.rela_text_users << rela_text_user
-			instrs[index].code = [u8(0xe9), 0x00, 0x00, 0x00, 0x00]
+			instrs[index].code = instrs[index].varcode.rel32_code
 			instrs[index].is_len_decided = true
 			continue
 		}
+
+		// Check if the symbol and instruction are declared in the same section
 		if instrs[index].section != s.section {
-			panic('not implemented yet')
 			rela_text_user := encoder.RelaTextUser{
 				instr:  instrs[index],
-				offset: 1,
+				offset: instrs[index].varcode.rel32_offset,
 				uses:   name,
-				rtype:   encoder.r_x86_64_plt32
+				rtype:  encoder.r_x86_64_plt32
 			}
 			e.rela_text_users << rela_text_user
-			instrs[index].code = [u8(0xe9), 0x00, 0x00, 0x00, 0x00]
+			instrs[index].code = instrs[index].varcode.rel32_code
 			instrs[index].is_len_decided = true
 			continue
 		}
+
 		diff, min, max, is_len_decided := calc_distance(instrs[index], s, e.instrs[instrs[index].section])
 		if is_len_decided {
 			if encoder.is_in_i8_range(diff) {
@@ -1205,7 +1209,7 @@ pub fn (mut e Encoder) assign_addresses() {
 }
 
 pub fn (mut e Encoder) resolve_call_targets() {
-	for call_target in e.call_targets {
+	for mut call_target in e.call_targets {
 		symbol := e.defined_symbols[call_target.target_symbol] or {
 			continue
 		}
@@ -1223,6 +1227,8 @@ pub fn (mut e Encoder) resolve_call_targets() {
 		e.sections[caller_section].code[call_target.caller.addr+2] = buf[1]
 		e.sections[caller_section].code[call_target.caller.addr+3] = buf[2]
 		e.sections[caller_section].code[call_target.caller.addr+4] = buf[3]
+
+		call_target.caller.is_already_resolved = true
 	}
 }
 
