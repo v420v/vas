@@ -81,7 +81,7 @@ Hello, world!
 
 VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Intel syntax (which is used by some other assemblers) are:
 
-    Operand order: in AT&T syntax, the source operand is on the right and the destination operand is on the left.
+    Operand order: in AT&T syntax, the source operand is on the left and the destination operand is on the right.
     Register naming: in AT&T syntax, registers are named with a % character before the name (e.g. %rax, %rbp, %rsp).
     Immediate values: in AT&T syntax, immediate values are prefixed with a $ character (e.g. $1, $13).
 
