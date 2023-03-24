@@ -1,3 +1,7 @@
+// I know the code is messy, but it gets the job done for now.
+// Leaving this comment here to remind myself to refactor it from scratch
+// when I have more time. 
+
 module encoder
 
 import error
@@ -13,7 +17,6 @@ mut:
 pub mut:
 	current_section string = '.text'
 	instrs          map[string][]&Instr
-	call_targets    []CallTarget
 	rela_text_users []RelaTextUser
 	variable_instrs []&Instr // variable length instructions jmp, je, jn ...
 	defined_symbols map[string]&Instr
@@ -64,12 +67,6 @@ pub mut:
 	is_len_decided 		bool = true
 	is_already_resolved bool
 	pos token.Position
-}
-
-pub struct CallTarget {
-pub mut:
-	target_symbol string
-	caller      &Instr
 }
 
 pub struct RelaTextUser {
@@ -411,11 +408,11 @@ fn eval_expr(expr Expr) int {
 	}
 }
 
-fn (mut e Encoder) get_disp_symbol(expr Expr, mut arr []string) {
+fn (mut e Encoder) get_symbol_from_binop(expr Expr, mut arr []string) {
 	match expr {
 		Binop {
-			e.get_disp_symbol(expr.left_hs, mut arr)
-			e.get_disp_symbol(expr.right_hs, mut arr)
+			e.get_symbol_from_binop(expr.left_hs, mut arr)
+			e.get_symbol_from_binop(expr.right_hs, mut arr)
 		}
 		Ident {
 			arr << expr.lit
@@ -436,7 +433,7 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 	base_is_bp := indir.regi.lit in ['RBP', 'EBP']
 
 	mut used_symbols := []string{}
-	e.get_disp_symbol(indir.expr, mut &used_symbols)
+	e.get_symbol_from_binop(indir.expr, mut &used_symbols)
 	if used_symbols.len >= 2 {
 		error.print(indir.expr.pos, 'invalid operand for instruction')
 		exit(1)
@@ -896,25 +893,20 @@ fn (mut e Encoder) encode_instr() {
 			instr.code = [u8(0xe8), 0, 0, 0, 0]
 
 			source := e.parse_operand()
-	
-			target_sym_name := match source {
-				Ident, Number {
-					source.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
+			adjust := eval_expr(source)
 
-			e.call_targets << CallTarget{
-				target_symbol: target_sym_name
-				caller: &instr
+			mut used_symbols := []string{}
+			e.get_symbol_from_binop(source, mut &used_symbols)
+			if used_symbols.len >= 2 || used_symbols.len == 0 {
+				error.print(source.pos, 'invalid operand for instruction')
+				exit(1)
 			}
 
 			e.rela_text_users << encoder.RelaTextUser{
 				instr:  &instr,
 				offset: 1,
-				uses:   target_sym_name,
+				uses:   used_symbols[0],
+				adjust: adjust,
 				rtype:   encoder.r_x86_64_plt32
 			}
 			return
@@ -925,7 +917,7 @@ fn (mut e Encoder) encode_instr() {
 			destination := e.parse_operand()
 
 			target_sym_name := match destination {
-				Ident, Number {
+				Ident {
 					destination.lit
 				} else {
 					error.print(pos, 'invalid operand for instruction')
@@ -949,7 +941,7 @@ fn (mut e Encoder) encode_instr() {
 			destination := e.parse_operand()
 
 			target_sym_name := match destination {
-				Ident, Number {
+				Ident {
 					destination.lit
 				} else {
 					error.print(pos, 'invalid operand for instruction')
@@ -973,7 +965,7 @@ fn (mut e Encoder) encode_instr() {
 			destination := e.parse_operand()
 
 			target_sym_name := match destination {
-				Ident, Number {
+				Ident {
 					destination.lit
 				} else {
 					error.print(pos, 'invalid operand for instruction')
@@ -1208,28 +1200,21 @@ pub fn (mut e Encoder) assign_addresses() {
 	}
 }
 
-pub fn (mut e Encoder) resolve_call_targets() {
-	for mut call_target in e.call_targets {
-		symbol := e.defined_symbols[call_target.target_symbol] or {
-			continue
+pub fn (mut e Encoder) fix_same_section_relocations() {
+	for mut rela in e.rela_text_users {
+		if symbol := e.defined_symbols[rela.uses] {
+			if symbol.section != rela.instr.section {
+				continue
+			}
+			num := ((symbol.addr - rela.instr.addr) - rela.offset - 4) + rela.adjust
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(num))
+			e.sections[rela.instr.section].code[rela.instr.addr + rela.offset] = hex[0]
+			e.sections[rela.instr.section].code[rela.instr.addr + rela.offset+1] = hex[1]
+			e.sections[rela.instr.section].code[rela.instr.addr + rela.offset+2] = hex[2]
+			e.sections[rela.instr.section].code[rela.instr.addr + rela.offset+3] = hex[3]
+			rela.instr.is_already_resolved = true
 		}
-
-		caller_section := call_target.caller.section
-
-		// canot call symbol from a different section. need to relocate.
-		if caller_section != symbol.section {
-			panic('TODO: Needs to be relocated')
-		}
-
-		mut buf := [u8(0), 0, 0, 0]
-		binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
-		e.sections[caller_section].code[call_target.caller.addr+1] = buf[0]
-		e.sections[caller_section].code[call_target.caller.addr+2] = buf[1]
-		e.sections[caller_section].code[call_target.caller.addr+3] = buf[2]
-		e.sections[caller_section].code[call_target.caller.addr+4] = buf[3]
-
-		call_target.caller.is_already_resolved = true
 	}
 }
-
 

@@ -1,7 +1,3 @@
-// I know the code is messy, but it gets the job done for now.
-// Leaving this comment here to remind myself to refactor it from scratch
-// when I have more time. 
-
 module main
 
 import os
@@ -48,7 +44,7 @@ fn main() {
 	en.add_index_to_instrs()
 	en.resolve_variable_length_instrs(mut en.variable_instrs)
 	en.assign_addresses()
-	en.resolve_call_targets()
+	en.fix_same_section_relocations()
 
 	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count)
 	e.rela_text_users(en.rela_text_users)
