@@ -3,6 +3,14 @@ module encoder
 import encoding.binary
 import error
 
+pub fn (mut e Encoder) add_index_to_instrs() {
+	for name, _ in e.instrs {
+		for i := 0; i < e.instrs[name].len; i++ {
+			e.instrs[name][i].index = i
+		}
+	}
+}
+
 // function for variable length instructions
 fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
 	unsafe {

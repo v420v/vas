@@ -19,6 +19,7 @@ pub const registers = [
 	'EBP',
 	'ESI',
 	'EDI',
+	'EIP',
 ]
 
 pub struct Position {

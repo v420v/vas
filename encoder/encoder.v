@@ -116,10 +116,13 @@ pub:
 }
 
 pub struct Indirection {
-pub:
-	expr Expr
-	regi Register
-	pos token.Position
+pub mut:
+	expr 			Expr
+	regi 			Register
+	index 			Register
+	scale 			Expr
+	pos 			token.Position
+	has_index_scale bool
 }
 
 pub struct Ident {
@@ -143,9 +146,9 @@ pub const (
 	stb_local            	             = 0
 	stb_global           	             = 1
 
-	mod_indirection_with_no_displacement = u8(0b00)
-	mod_indirection_with_displacement8   = u8(0b01)
-	mod_indirection_with_displacement32  = u8(0b10)
+	mod_indirection_with_no_disp = u8(0b00)
+	mod_indirection_with_disp8   = u8(0b01)
+	mod_indirection_with_disp32  = u8(0b10)
 	mod_regi							 = u8(0b11)
 	rex_w   							 = u8(0x48)
 
@@ -282,12 +285,21 @@ fn (mut e Encoder) parse_operand() Expr {
         	}
 			e.next()
 			regi := e.parse_register()
-            e.expect(.rpar)
-            return Indirection{
+			mut indirection := Indirection{
                 expr: expr,
                 regi: regi,
                 pos: pos,
             }
+			// has index and scale
+			if e.tok.kind == .comma {
+				indirection.has_index_scale = true
+				e.next()
+				indirection.index = e.parse_register()
+				e.expect(.comma)
+				indirection.scale = e.parse_expr()
+			}
+            e.expect(.rpar)
+			return indirection
         }
     }
 	error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
@@ -422,13 +434,30 @@ fn (mut e Encoder) get_symbol_from_binop(expr Expr, mut arr []string) {
 	}
 }
 
-fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, size int) {
-	// disp(base)
+fn scale(n u8) u8 {
+	match n {
+		1 {
+			return 0
+		}
+		2 {
+			return 1
+		}
+		4 {
+			return 2
+		}
+		8 {
+			return 3
+		} else {
+			panic('unreachable')
+		}
+	}
+}
 
+fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, size int) {
 	check_regi_size(regi, size)
 
 	disp := eval_expr(indir.expr)
-	base_is_rip := indir.regi.lit == 'RIP'
+	base_is_ip := indir.regi.lit in ['RIP', 'EIP']
 	base_is_sp := indir.regi.lit in ['RSP', 'ESP']
 	base_is_bp := indir.regi.lit in ['RBP', 'EBP']
 
@@ -440,19 +469,45 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 	}
 
 	need_rela := used_symbols.len == 1
+	mut mod_rm := u8(0)
 
-	mod_rm := if base_is_rip {
-		compose_mod_rm(mod_indirection_with_no_displacement, reg_bits(regi), 0b101) // rip relative
-	} else if need_rela {
-		compose_sib(mod_indirection_with_displacement32, reg_bits(regi), reg_bits(indir.regi))
-	} else if disp == 0 && !base_is_bp {
-		compose_mod_rm(mod_indirection_with_no_displacement, reg_bits(regi), reg_bits(indir.regi))
-	} else if is_in_i8_range(disp) {
-		compose_sib(mod_indirection_with_displacement8, reg_bits(regi), reg_bits(indir.regi))
-	} else if is_in_i32_range(disp) {
-		compose_sib(mod_indirection_with_displacement32, reg_bits(regi), reg_bits(indir.regi))
+	if indir.has_index_scale {
+		if base_is_ip {
+			error.print(indir.index.pos, '%$indir.regi.lit.to_lower() as base register can not have an index register')
+			exit(1)
+		}
+
+		if regi_size(indir.regi) != regi_size(indir.index) {
+			base_regi_size := regi_size(indir.regi)
+			error.print(indir.regi.pos, 'base register is $base_regi_size-bit, but index register is not')
+			exit(1)
+		}
+
+		if need_rela {
+			mod_rm = compose_mod_rm(mod_indirection_with_disp32, reg_bits(regi), 0b100)
+		} else if disp == 0 && !base_is_bp {
+			mod_rm = compose_mod_rm(mod_indirection_with_no_disp, reg_bits(regi), 0b100)
+		} else if is_in_i8_range(disp) {
+			mod_rm = compose_mod_rm(mod_indirection_with_disp8, reg_bits(regi), 0b100)
+		} else if is_in_i32_range(disp) {
+			mod_rm = compose_mod_rm(mod_indirection_with_disp32, reg_bits(regi), 0b100)
+		} else {
+			panic('disp out range!')
+		}
 	} else {
-		panic('disp out range!')
+		if base_is_ip {
+			mod_rm = compose_mod_rm(mod_indirection_with_no_disp, reg_bits(regi), 0b101) // rip relative
+		} else if need_rela {
+			mod_rm = compose_sib(mod_indirection_with_disp32, reg_bits(regi), reg_bits(indir.regi))
+		} else if disp == 0 && !base_is_bp {
+			mod_rm = compose_mod_rm(mod_indirection_with_no_disp, reg_bits(regi), reg_bits(indir.regi))
+		} else if is_in_i8_range(disp) {
+			mod_rm = compose_sib(mod_indirection_with_disp8, reg_bits(regi), reg_bits(indir.regi))
+		} else if is_in_i32_range(disp) {
+			mod_rm = compose_sib(mod_indirection_with_disp32, reg_bits(regi), reg_bits(indir.regi))
+		} else {
+			panic('disp out range!')
+		}
 	}
 
 	if regi_size(indir.regi) == 32 {
@@ -466,14 +521,24 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 	instr.code << op_code
 	instr.code << mod_rm
 
-	if base_is_sp {
+	if indir.has_index_scale {
+		scale_num := u8(eval_expr(indir.scale))
+		if scale_num !in [1, 2, 4, 8] {
+			error.print(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
+			exit(0)
+		}
+		sib := reg_bits(indir.regi) + (reg_bits(indir.index) << 3) + (scale(scale_num) << 6)
+		instr.code << sib
+	}
+
+	if base_is_sp && !indir.has_index_scale {
 		instr.code << 0x24
 	}
 
 	instr_code_len := instr.code.len
 
 	if need_rela {
-		rtype := if base_is_rip {
+		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
 		} else {
 			encoder.r_x86_64_32s
@@ -488,8 +553,8 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 		instr.code << [u8(0), 0, 0, 0]
 		e.rela_text_users << rela_text_user
 	} else {
-		if disp != 0 || base_is_rip || base_is_bp {
-			if base_is_rip {
+		if disp != 0 || base_is_ip || base_is_bp {
+			if base_is_ip {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(disp))
 				instr.code << hex
@@ -540,14 +605,6 @@ fn (mut e Encoder) encode_regi_regi(op_code []u8, regi Register, regi2 Register,
 	instr.code << mod_rm
 }
 
-pub fn (mut e Encoder) add_index_to_instrs() {
-	for name, _ in e.instrs {
-		for i := 0; i < e.instrs[name].len; i++ {
-			e.instrs[name][i].index = i
-		}
-	}
-}
-
 fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
 	mut instr := Instr{pos: pos, section: e.current_section}
@@ -556,7 +613,7 @@ fn (mut e Encoder) encode_instr() {
 	e.next()
 
 	defer {
-		e.add_instr(&instr)
+		e.instrs[e.current_section] << &instr
 		if instr.varcode != unsafe { nil } {
 			instr.is_len_decided = false
 		}
@@ -1001,9 +1058,5 @@ pub fn (mut e Encoder) encode() {
 			e.encode_instr()
 		}
 	}
-}
-
-fn (mut e Encoder) add_instr(instr &Instr) {
-	e.instrs[e.current_section] << instr
 }
 
