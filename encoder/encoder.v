@@ -117,8 +117,8 @@ pub:
 
 pub struct Indirection {
 pub mut:
-	expr 			Expr
-	regi 			Register
+	disp 			Expr
+	base 			Register
 	index 			Register
 	scale 			Expr
 	pos 			token.Position
@@ -286,8 +286,8 @@ fn (mut e Encoder) parse_operand() Expr {
 			e.next()
 			regi := e.parse_register()
 			mut indirection := Indirection{
-                expr: expr,
-                regi: regi,
+                disp: expr,
+                base: regi,
                 pos: pos,
             }
 			// has index and scale
@@ -456,15 +456,15 @@ fn scale(n u8) u8 {
 fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, size int) {
 	check_regi_size(regi, size)
 
-	disp := eval_expr(indir.expr)
-	base_is_ip := indir.regi.lit in ['RIP', 'EIP']
-	base_is_sp := indir.regi.lit in ['RSP', 'ESP']
-	base_is_bp := indir.regi.lit in ['RBP', 'EBP']
+	disp := eval_expr(indir.disp)
+	base_is_ip := indir.base.lit in ['RIP', 'EIP']
+	base_is_sp := indir.base.lit in ['RSP', 'ESP']
+	base_is_bp := indir.base.lit in ['RBP', 'EBP']
 
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(indir.expr, mut &used_symbols)
+	e.get_symbol_from_binop(indir.disp, mut &used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(indir.expr.pos, 'invalid operand for instruction')
+		error.print(indir.disp.pos, 'invalid operand for instruction')
 		exit(1)
 	}
 
@@ -473,13 +473,13 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 
 	if indir.has_index_scale {
 		if base_is_ip {
-			error.print(indir.index.pos, '%$indir.regi.lit.to_lower() as base register can not have an index register')
+			error.print(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
 			exit(1)
 		}
 
-		if regi_size(indir.regi) != regi_size(indir.index) {
-			base_regi_size := regi_size(indir.regi)
-			error.print(indir.regi.pos, 'base register is $base_regi_size-bit, but index register is not')
+		if regi_size(indir.base) != regi_size(indir.index) {
+			base_regi_size := regi_size(indir.base)
+			error.print(indir.base.pos, 'base register is $base_regi_size-bit, but index register is not')
 			exit(1)
 		}
 
@@ -498,19 +498,19 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 		if base_is_ip {
 			mod_rm = compose_mod_rm(mod_indirection_with_no_disp, reg_bits(regi), 0b101) // rip relative
 		} else if need_rela {
-			mod_rm = compose_sib(mod_indirection_with_disp32, reg_bits(regi), reg_bits(indir.regi))
+			mod_rm = compose_sib(mod_indirection_with_disp32, reg_bits(regi), reg_bits(indir.base))
 		} else if disp == 0 && !base_is_bp {
-			mod_rm = compose_mod_rm(mod_indirection_with_no_disp, reg_bits(regi), reg_bits(indir.regi))
+			mod_rm = compose_mod_rm(mod_indirection_with_no_disp, reg_bits(regi), reg_bits(indir.base))
 		} else if is_in_i8_range(disp) {
-			mod_rm = compose_sib(mod_indirection_with_disp8, reg_bits(regi), reg_bits(indir.regi))
+			mod_rm = compose_sib(mod_indirection_with_disp8, reg_bits(regi), reg_bits(indir.base))
 		} else if is_in_i32_range(disp) {
-			mod_rm = compose_sib(mod_indirection_with_disp32, reg_bits(regi), reg_bits(indir.regi))
+			mod_rm = compose_sib(mod_indirection_with_disp32, reg_bits(regi), reg_bits(indir.base))
 		} else {
 			panic('disp out range!')
 		}
 	}
 
-	if regi_size(indir.regi) == 32 {
+	if regi_size(indir.base) == 32 {
 		instr.code << 0x67
 	}
 
@@ -527,7 +527,7 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 			error.print(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
 			exit(0)
 		}
-		sib := reg_bits(indir.regi) + (reg_bits(indir.index) << 3) + (scale(scale_num) << 6)
+		sib := reg_bits(indir.base) + (reg_bits(indir.index) << 3) + (scale(scale_num) << 6)
 		instr.code << sib
 	}
 
@@ -548,7 +548,7 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 			uses:   used_symbols[0],
 			offset: instr_code_len
 			rtype:  u64(rtype)
-			adjust: eval_expr(indir.expr)
+			adjust: eval_expr(indir.disp)
 		}
 		instr.code << [u8(0), 0, 0, 0]
 		e.rela_text_users << rela_text_user
