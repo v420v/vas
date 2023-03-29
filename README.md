@@ -1,6 +1,8 @@
 
 # vas: Assembler written in V
 
+[Docs](https://github.com/v420v/vas/blob/main/doc/docs.md)
+
 THIS SOFTWARE IS UNFINISHED!!!
 
 Supports Linux x86-64 AT&T syntax only.
@@ -60,4 +62,5 @@ Welcome!
 - https://github.com/DQNEO/goas port of GNU Assembler written in go
 - https://github.com/skx/assembler Basic X86-64 assembler, written in golang
 - https://web.mit.edu/rhel-doc/3/rhel-as-en-3/ 
+- https://docs.oracle.com/cd/E19683-01/817-4912/6mkdg542u/index.html#chapter6-26 オブジェクトファイル形式 (Japanese)
 
