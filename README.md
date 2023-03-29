@@ -1,7 +1,8 @@
 
 # vas: Assembler written in V
 
-[Docs](https://github.com/v420v/vas/blob/main/doc/docs.md)
+[Docs](https://github.com/v420v/vas/blob/main/doc/docs.md) |
+[ドキュメント](https://github.com/v420v/vas/blob/main/doc/ドキュメント.md)
 
 THIS SOFTWARE IS UNFINISHED!!!
 

@@ -89,7 +89,7 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 
 ```
 
-instr source, destination
+	instr source, destination
 
 ```
 
