@@ -89,7 +89,7 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 
 ```
 
-	instr source, destination
+    instr source, destination
 
 ```
 
@@ -143,4 +143,30 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `nop`
 - [x] `syscall`
 - [x] `ret`
+- [ ] ...
+
+## Assembler Directives
+`.string`
+```asm
+.string "Hello, world!"
+```
+
+`.section`
+```asm
+.section .text, "ax"
+```
+section attributes
+- `a` alloc
+- `w` write
+- `x` execute
+
+`.global`
+```asm
+.global symbol_name
+```
+
+`.local`
+```asm
+.local symbol_name
+```
 
