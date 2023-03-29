@@ -193,12 +193,6 @@ pub fn (mut e Encoder) assign_addresses() {
 			section.addr += i.code.len
 			section.code << i.code
 		}
-
-		// padding
-		mut padding := (encoder.align_to(section.code.len, 16) - section.code.len)
-		for _ in 0 .. padding {
-			section.code << 0
-		}
 	}
 }
 
@@ -211,8 +205,8 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			if rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
-			
-			num := ((symbol.addr - rela.instr.addr) - rela.offset - 4) + rela.adjust
+
+			num := ((symbol.addr - rela.instr.addr) - rela.instr.code.len) + rela.adjust
 
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(num))

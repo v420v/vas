@@ -22,13 +22,10 @@ main:
 	subq $16, %rsp
 
 	# int a = 1
-	movq $1, %rax
-	movq %rax, 0-4(%rbp)
+	movq $1, 0-4(%rbp)
 
 loop_start:
-	movq 0-4(%rbp), %rdi
-	movq $101, %rax
-	cmpq %rdi, %rax
+	cmpq $101, 0-4(%rbp)
 	je loop_end
 
 	# check if it's multiple of 15
