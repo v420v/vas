@@ -41,6 +41,12 @@ pub enum InstrKind {
 	pop
 	push
 	call
+	setl
+	setg
+	setle
+	setge
+	sete
+	setne
 	jmp
 	jne
 	je
@@ -1076,6 +1082,78 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x81)
 				}
 				e.encode_imm_indir([op_code], slash_7, source, desti, mut &instr, size)
+				return
+			}
+		}
+		'SETL' {
+			instr.kind = .setl
+
+			regi := e.parse_operand()
+
+			if regi is Register {
+				check_regi_size(regi, 8)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				instr.code = [u8(0x0F), 0x9C, mod_rm]
+				return
+			}
+		}
+		'SETG' {
+			instr.kind = .setg
+
+			regi := e.parse_operand()
+
+			if regi is Register {
+				check_regi_size(regi, 8)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				instr.code = [u8(0x0F), 0x9F, mod_rm]
+				return
+			}
+		}
+		'SETLE' {
+			instr.kind = .setle
+
+			regi := e.parse_operand()
+
+			if regi is Register {
+				check_regi_size(regi, 8)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				instr.code = [u8(0x0F), 0x9E, mod_rm]
+				return
+			}
+		}
+		'SETGE' {
+			instr.kind = .setge
+
+			regi := e.parse_operand()
+
+			if regi is Register {
+				check_regi_size(regi, 8)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				instr.code = [u8(0x0F), 0x9D, mod_rm]
+				return
+			}
+		}
+		'SETE' {
+			instr.kind = .sete
+
+			regi := e.parse_operand()
+
+			if regi is Register {
+				check_regi_size(regi, 8)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				instr.code = [u8(0x0F), 0x94, mod_rm]
+				return
+			}
+		}
+		'SETNE' {
+			instr.kind = .setne
+
+			regi := e.parse_operand()
+
+			if regi is Register {
+				check_regi_size(regi, 8)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				instr.code = [u8(0x0F), 0x95, mod_rm]
 				return
 			}
 		}
