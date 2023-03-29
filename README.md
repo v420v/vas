@@ -7,6 +7,7 @@ THIS SOFTWARE IS UNFINISHED!!!
 
 Supports Linux x86-64 AT&T syntax only.
 
+## Hello world!
 ```asm
 # Hello world!
 
@@ -32,12 +33,11 @@ _start:
   movq $0, %rdi
   syscall
 
-
 ```
 
 [If V is not installed](https://github.com/vlang/v)
 
-## Build
+## Quick Start
 
 ```sh
 $ v vas.v -gc none

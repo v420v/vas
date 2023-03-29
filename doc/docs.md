@@ -81,7 +81,66 @@ Hello, world!
 
 VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Intel syntax (which is used by some other assemblers) are:
 
+```
     Operand order: in AT&T syntax, the source operand is on the left and the destination operand is on the right.
     Register naming: in AT&T syntax, registers are named with a % character before the name (e.g. %rax, %rbp, %rsp).
     Immediate values: in AT&T syntax, immediate values are prefixed with a $ character (e.g. $1, $13).
+```
+
+```
+
+instr source, destination
+
+```
+
+## Supported instructions
+
+- [X] `movq`
+- [x] `movl`
+- [x] `movw`
+- [x] `movb`
+- [x] `leaq`
+- [x] `leal`
+- [x] `leaw`  
+- [x] `addq`
+- [x] `addl`
+- [x] `addw`
+- [x] `addb`
+- [x] `subq`
+- [x] `subl`
+- [x] `subw`
+- [x] `subb`
+- [x] `idivq`
+- [x] `idivl`
+- [x] `idivw`
+- [x] `idivb`
+- [x] `imulq`
+- [x] `imull`
+- [x] `imulw`
+- [x] `xorq`
+- [x] `xorl`
+- [x] `xorw`
+- [x] `xorb`
+- [x] `cmpq`	
+- [x] `cmpl`	
+- [x] `cmpw`	
+- [x] `cmpb`	
+- [x] `setl`
+- [x] `setg`
+- [x] `setle`
+- [x] `setge`
+- [x] `sete`
+- [x] `setne`
+- [x] `call`
+- [x] `jmp`
+- [x] `jne`
+- [x] `je`
+- [x] `push`
+- [x] `pop`
+- [x] `cqto`
+- [x] `leave`
+- [x] `hlt`
+- [x] `nop`
+- [x] `syscall`
+- [x] `ret`
 
