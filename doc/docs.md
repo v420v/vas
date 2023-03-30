@@ -135,6 +135,10 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `jmp`
 - [x] `jne`
 - [x] `je`
+- [x] `jl`
+- [x] `jg`
+- [x] `jle`
+- [x] `jge`
 - [x] `push`
 - [x] `pop`
 - [x] `cqto`

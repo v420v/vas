@@ -50,6 +50,10 @@ pub enum InstrKind {
 	jmp
 	jne
 	je
+	jl
+	jg
+	jle
+	jge
 	ret
 	syscall
 	nop
@@ -561,6 +565,29 @@ fn (mut e Encoder) encode_imm_regi(slash u8, rax_magic u8, imm Immediate, regi R
 	}
 }
 
+fn (mut e Encoder) encode_var_instr(rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64, mut instr &Instr) {
+	desti := e.parse_operand()
+
+	target_sym_name := match desti {
+		Ident {
+			desti.lit
+		} else {
+			error.print(desti.pos, 'invalid operand for instruction')
+			exit(1)
+		}
+	}
+
+	instr.varcode =  &VariableCode{
+		trgt_symbol: target_sym_name,
+		rel8_code:   rel8_code,
+		rel8_offset: rel8_offset,
+		rel32_code:   rel32_code,
+		rel32_offset: rel32_offset,
+	}
+
+	e.variable_instrs << instr
+}
+
 fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
 	mut instr := Instr{pos: pos, section: e.current_section}
@@ -1057,6 +1084,15 @@ fn (mut e Encoder) encode_instr() {
 				e.encode_imm_indir([op_code], slash_6, source, desti, mut &instr, size)
 				return
 			}
+			if source is Indirection && desti is Register {
+				op_code := if size == 8 {
+					u8(0x32)
+				} else {
+					u8(0x33)
+				}
+				e.encode_indir_regi([op_code], source, desti, mut &instr, size)
+				return
+			}
 		}
 		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
 			size := get_size_by_suffix(instr_name)
@@ -1103,6 +1139,15 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x81)
 				}
 				e.encode_imm_indir([op_code], slash_7, source, desti, mut &instr, size)
+				return
+			}
+			if source is Indirection && desti is Register {
+				op_code := if size == 8 {
+					u8(0x3A)
+				} else {
+					u8(0x3B)
+				}
+				e.encode_indir_regi([op_code], source, desti, mut &instr, size)
 				return
 			}
 		}
@@ -1203,75 +1248,37 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'JMP', 'JMPQ' {
 			instr.kind = .jmp
-
-			desti := e.parse_operand()
-
-			target_sym_name := match desti {
-				Ident {
-					desti.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			instr.varcode = &VariableCode{
-				trgt_symbol: target_sym_name,
-				rel8_code:   [u8(0xeb), 0],
-				rel8_offset: 1,
-				rel32_code:   [u8(0xe9), 0, 0, 0, 0],
-				rel32_offset: 1,
-			}
-
-			e.variable_instrs << &instr
+			e.encode_var_instr([u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1, mut instr)
 			return
 		}
 		'JNE' {
 			instr.kind = .jne
-			desti := e.parse_operand()
-
-			target_sym_name := match desti {
-				Ident {
-					desti.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			instr.varcode = &VariableCode{
-				trgt_symbol: target_sym_name,
-				rel8_code:   [u8(0x75), 0],
-				rel8_offset: 1,
-				rel32_code:   [u8(0x0f), 0x85, 0, 0, 0, 0],
-				rel32_offset: 2,
-			}
-
-			e.variable_instrs << &instr
+			e.encode_var_instr([u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2, mut instr)
 			return
 		}
 		'JE' {
 			instr.kind = .je
-			desti := e.parse_operand()
-
-			target_sym_name := match desti {
-				Ident {
-					desti.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			instr.varcode =  &VariableCode{
-				trgt_symbol: target_sym_name,
-				rel8_code:   [u8(0x74), 0],
-				rel8_offset: 1,
-				rel32_code:   [u8(0x0f), 0x84, 0, 0, 0, 0],
-				rel32_offset: 2,
-			}
-
-			e.variable_instrs << &instr
+			e.encode_var_instr([u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2, mut instr)
+			return
+		}
+		'JL' {
+			instr.kind = .jl
+			e.encode_var_instr([u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2, mut instr)
+			return
+		}
+		'JG' {
+			instr.kind = .jg
+			e.encode_var_instr([u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2, mut instr)
+			return
+		}
+		'JLE' {
+			instr.kind = .jle
+			e.encode_var_instr([u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2, mut instr)
+			return
+		}
+		'JGE' {
+			instr.kind = .jge
+			e.encode_var_instr([u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2, mut instr)
 			return
 		}
 		else {
