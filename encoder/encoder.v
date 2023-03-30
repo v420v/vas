@@ -93,7 +93,7 @@ pub mut:
 	rel32_offset i64
 }
 
-pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop
+pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop | Neg
 
 pub struct Number {
 pub:
@@ -106,6 +106,12 @@ pub:
 	left_hs Expr
 	right_hs Expr
 	op token.TokenKind
+	pos token.Position
+}
+
+pub struct Neg {
+pub:
+	expr Expr
 	pos token.Position
 }
 
@@ -263,6 +269,11 @@ fn (mut e Encoder) parse_factor() Expr {
 			e.next()
 			return Ident{pos: e.tok.pos, lit: lit}
 		}
+		.minus {
+			e.next()
+			expr := e.parse_factor()
+			return Neg{pos: e.tok.pos, expr: expr}
+		}
 		else {
 			error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
     		exit(1)
@@ -302,7 +313,11 @@ fn (mut e Encoder) parse_operand() Expr {
             return e.parse_register()
         }
 		else {
-			expr := e.parse_expr()
+			expr := if e.tok.kind == .lpar {
+				Expr(Number{lit: '0', pos: pos})
+			} else {
+				e.parse_expr()
+			}
 			if e.tok.kind != .lpar {
         	    return expr
         	}
@@ -443,6 +458,9 @@ fn eval_expr(expr Expr) int {
 				}
 			}
 		}
+		Neg {
+			eval_expr(expr.expr) * -1
+		}
 		else {
 			0
 		}
@@ -454,6 +472,9 @@ fn (mut e Encoder) get_symbol_from_binop(expr Expr, mut arr []string) {
 		Binop {
 			e.get_symbol_from_binop(expr.left_hs, mut arr)
 			e.get_symbol_from_binop(expr.right_hs, mut arr)
+		}
+		Neg {
+			e.get_symbol_from_binop(expr.expr, mut arr)
 		}
 		Ident {
 			arr << expr.lit

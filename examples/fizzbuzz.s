@@ -22,14 +22,14 @@ main:
 	subq $16, %rsp
 
 	# int a = 1
-	movq $1, 0-4(%rbp)
+	movq $1, -4(%rbp)
 
 loop_start:
-	cmpq $101, 0-4(%rbp)
+	cmpq $101, -4(%rbp)
 	je loop_end
 
 	# check if it's multiple of 15
-	movq 0-4(%rbp), %rax
+	movq -4(%rbp), %rax
 	movq $15, %rbx
 	cqto
 	idivq %rbx
@@ -45,7 +45,7 @@ loop_start:
 
 label_1:
 	# check if it's multiple of 3
-	movq 0-4(%rbp), %rax
+	movq -4(%rbp), %rax
 	movq $3, %rbx
 	cqto
 	idivq %rbx
@@ -58,7 +58,7 @@ label_1:
 
 label_3:
 	# check if it's multiple of 5
-	movq 0-4(%rbp), %rax
+	movq -4(%rbp), %rax
 	movq $5, %rbx
 	cqto
 	idivq %rbx
@@ -71,14 +71,14 @@ label_3:
 label_4:
 	# print number
 	leaq fmt(%rip), %rdi
-	movq 0-4(%rbp), %rsi
+	movq -4(%rbp), %rsi
 	callq printf
 
 label_2:
 	# increment
-	movq 0-4(%rbp), %rax
+	movq -4(%rbp), %rax
 	addq $1, %rax
-	movq %rax, 0-4(%rbp)
+	movq %rax, -4(%rbp)
 	jmp loop_start
 
 loop_end:
