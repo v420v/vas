@@ -1,10 +1,6 @@
 # This file was created to see if it is possible to assemble these instructions correctly.
 
-# ./vas -o main.o main.s
-# ld main.o
-# objdump -D main.o
-# readelf -r main.o
-# readelf -s main.o
+# ../vas -o test.o test.s && ld test.o && objdump -D test.o && readelf -r test.o && readelf -s test.o
 
 .global _start
 

@@ -1,6 +1,4 @@
-# ./vas -o fibonacci.o fibonacci.s
-# gcc -o fibonacci fibonacci.o
-# ./fibonacci
+# ../vas -o fibonacci.o fibonacci.s && gcc -o fibonacci fibonacci.o && ./fibonacci
 # 0
 # 1
 # 1
