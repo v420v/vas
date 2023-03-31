@@ -33,9 +33,12 @@ pub enum InstrKind {
 	sub
 	imul
 	idiv
+	neg
 	lea
 	mov
 	xor
+	and
+	not
 	cqto
 	cmp
 	pop
@@ -977,12 +980,13 @@ fn (mut e Encoder) encode_instr() {
 				}
 				if source is Register {
 					if size == 64 {
-						instr.code = [encoder.rex_w]
+						instr.code << encoder.rex_w
 					} else if size == 16 {
-						instr.code = [encoder.operand_size_prefix16]
+						instr.code << encoder.operand_size_prefix16
 					}
 					check_regi_size(source, size)
-					instr.code << [op_code, 0xe8 + reg_bits(source)]
+					mod_rm := compose_mod_rm(encoder.mod_regi, slash_5, reg_bits(source))
+					instr.code << [op_code, mod_rm]
 					return
 				}
 				if source is Indirection {
@@ -1037,6 +1041,34 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 		}
+		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
+			instr.kind = .neg
+			size := get_size_by_suffix(instr_name)
+			op_code := if size == 8 {
+				u8(0xF6)
+			} else {
+				u8(0xF7)
+			}
+
+			desti := e.parse_operand()
+
+			if desti is Register {
+				check_regi_size(desti, size)
+				if size == 64 {
+					instr.code << encoder.rex_w
+				} else if size == 16 {
+					instr.code << encoder.operand_size_prefix16
+				}
+				mod_rm := compose_mod_rm(encoder.mod_regi, slash_3, reg_bits(desti))
+				instr.code << [op_code, mod_rm]
+				return
+			}
+
+			if desti is Indirection {
+				e.encode_indir([op_code], slash_3, desti, mut &instr, size)
+				return
+			}
+		}
 		'XORQ', 'XORL', 'XORW', 'XORB' {
 			size := get_size_by_suffix(instr_name)
 			instr.kind = .xor
@@ -1060,7 +1092,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x35)
 				}
-				e.encode_imm_regi(slash_6, rax_magic, source, desti, mut instr, size)
+				e.encode_imm_regi(slash_6, rax_magic, source, desti, mut &instr, size)
 				return
 			}
 			if source is Register && desti is Indirection {
@@ -1094,9 +1126,94 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 		}
-		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
+		'ANDQ', 'ANDL', 'ANDW', 'ANDB' {
+			instr.kind = .and
+
 			size := get_size_by_suffix(instr_name)
+			source := e.parse_operand()
+			e.expect(.comma)
+			desti := e.parse_operand()
+
+			if source is Immediate && desti is Register {
+				rax_magic := if size == 8 {
+					u8(0x24)
+				} else {
+					u8(0x25)
+				}
+				e.encode_imm_regi(slash_4, rax_magic, source, desti, mut &instr, size)
+				return
+			}
+			if source is Immediate && desti is Indirection {
+				imm_val := eval_expr(source.expr)
+				op_code := if size == 8 {
+					u8(0x80)
+				} else if is_in_i8_range(imm_val) {
+					u8(0x83)
+				} else {
+					u8(0x81)
+				}
+				e.encode_imm_indir([op_code], slash_4, source, desti, mut &instr, size)
+				return
+			}
+			if source is Register && desti is Register {
+				op_code := if size == 8 {
+					u8(0x20)
+				} else {
+					u8(0x21)
+				}
+				e.encode_regi_regi([op_code], source, desti, mut &instr, size)
+				return
+			}
+			if source is Register && desti is Indirection {
+				op_code := if size == 8 {
+					u8(0x20)
+				} else {
+					u8(0x21)
+				}
+				e.encode_indir_regi([op_code], desti, source, mut &instr, size)
+				return
+			}
+			if source is Indirection && desti is Register {
+				op_code := if size == 8 {
+					u8(0x22)
+				} else {
+					u8(0x23)
+				}
+				e.encode_indir_regi([op_code], source, desti, mut &instr, size)
+				return
+			}
+		}
+		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
+			instr.kind = .not
+
+			size := get_size_by_suffix(instr_name)
+			op_code := if size == 8 {
+				u8(0xF6)
+			} else {
+				u8(0xF7)
+			}
+
+			desti := e.parse_operand()
+
+			if desti is Register {
+				check_regi_size(desti, size)
+				if size == 64 {
+					instr.code << encoder.rex_w
+				} else if size == 16 {
+					instr.code << encoder.operand_size_prefix16
+				}
+				mod_rm := compose_mod_rm(encoder.mod_regi, slash_2, reg_bits(desti))
+				instr.code << [op_code, mod_rm]
+				return
+			}
+			if desti is Indirection {
+				e.encode_indir([op_code], slash_2, desti, mut &instr, size)
+				return
+			}
+		}
+		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
 			instr.kind = .cmp
+			size := get_size_by_suffix(instr_name)
 
 			source := e.parse_operand()
 			e.expect(.comma)
