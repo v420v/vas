@@ -186,3 +186,35 @@ section attributes
 .local symbol_name
 ```
 
+## Macros
+```
+.macro HELLO
+	movq $1, %rax
+	movq $1, %rdi
+	leaq msg(%rip), %rsi
+	movq $13, %rdx
+	syscall
+.end
+
+.global _start
+
+.section .text, "ax"
+_start:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $16, %rsp
+
+	HELLO
+	HELLO
+	HELLO
+
+	movq $60, %rax
+	movq $0, %rdi
+	syscall
+
+.section .data, "wa"
+msg:
+	.string "Hello, world!"
+
+```
+
