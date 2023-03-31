@@ -207,7 +207,7 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.section != rela.instr.section {
 				continue
 			}
-			if rela.rtype != encoder.r_x86_64_pc32 {
+			if rela.instr.kind != .call && rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
 
