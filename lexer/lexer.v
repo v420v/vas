@@ -11,6 +11,8 @@ mut:
 	line      int
 	col       int
 	file_name string
+pub mut:
+	tokens    []token.Token
 }
 
 pub fn new(file_name string, text string) &Lexer {
@@ -96,16 +98,16 @@ fn (mut l Lexer) read_ident() token.Token {
 	}
 }
 
-pub fn (mut l Lexer) lex() token.Token {
+pub fn (mut l Lexer) lex() {
 	for l.c != `\0` {
 		mut pos := l.current_pos()
 		if l.c == ` ` || l.c == `\t` {
 			l.advance()
 		} else if l.c >= `0` && l.c <= `9` {
-			return l.read_number()
+			l.tokens << l.read_number()
 		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`)
 			|| l.c == `_` || l.c == `.` {
-			return l.read_ident()
+			l.tokens << l.read_ident()
 		} else if l.c == `"` {
 			l.advance()
 			mut lit := []u8{}
@@ -143,7 +145,7 @@ pub fn (mut l Lexer) lex() token.Token {
 			}
 			pos.len = lit.len + 2
 			l.advance()
-			return token.Token{
+			l.tokens << token.Token{
 				lit: lit.bytestr()
 				kind: .string
 				pos: pos
@@ -156,15 +158,10 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`\n` {
 					l.advance()
-					return token.Token{
-						lit: '<eol>'
-						kind: .eol
-						pos: pos
-					}
 				}
 				`:` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: ':'
 						kind: .colon
 						pos: pos
@@ -172,7 +169,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`(` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: '('
 						kind: .lpar
 						pos: pos
@@ -180,7 +177,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`)` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: ')'
 						kind: .rpar
 						pos: pos
@@ -188,7 +185,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`+` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: '+'
 						kind: .plus
 						pos: pos
@@ -196,7 +193,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`-` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: '-'
 						kind: .minus
 						pos: pos
@@ -204,7 +201,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`$` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: '$'
 						kind: .dolor
 						pos: pos
@@ -212,7 +209,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`%` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: '%'
 						kind: .percent
 						pos: pos
@@ -220,7 +217,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				`,` {
 					l.advance()
-					return token.Token{
+					l.tokens << token.Token{
 						lit: ','
 						kind: .comma
 						pos: pos
@@ -235,7 +232,7 @@ pub fn (mut l Lexer) lex() token.Token {
 		}
 	}
 
-	return token.Token{
+	l.tokens << token.Token{
 		lit: '\0'
 		kind: token.TokenKind.eof
 		pos: l.current_pos()

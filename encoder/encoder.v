@@ -6,14 +6,14 @@ module encoder
 
 import error
 import token
-import lexer
 import encoding.binary
 import strconv
 
 pub struct Encoder {
 mut:
 	tok             token.Token // current token
-	lex             lexer.Lexer
+	tok_idx         int
+	tokens          []token.Token
 pub mut:
 	current_section string = '.text'
 	instrs          map[string][]&Instr
@@ -224,17 +224,16 @@ pub mut:
 	flags int
 }
 
-pub fn new(program string, file_name string) &Encoder {
-	mut l := lexer.new(file_name, program)
-
+pub fn new(tokens []token.Token, file_name string) &Encoder {
 	return &Encoder {
-		tok: l.lex()
-		lex: l
+		tok: tokens[0]
+		tokens: tokens
 	}
 }
 
 fn (mut e Encoder) next() {
-	e.tok = e.lex.lex()
+	e.tok_idx++
+	e.tok = e.tokens[e.tok_idx]
 }
 
 fn (mut e Encoder) expect(exp token.TokenKind) {
@@ -250,7 +249,7 @@ fn (mut e Encoder) parse_register() Register {
 	pos := e.tok.pos
 	reg_name := e.tok.lit.to_upper()
 	if reg_name !in token.registers {
-		error.print(e.tok.pos, 'invalid register name')
+		error.print(e.tok.pos, 'invalid register name `$reg_name`')
 		exit(1)
 	}
 
@@ -1409,11 +1408,7 @@ fn (mut e Encoder) encode_instr() {
 
 pub fn (mut e Encoder) encode() {
 	for e.tok.kind != .eof {
-		if e.tok.kind == .eol {
-			e.next()
-		} else {
-			e.encode_instr()
-		}
+		e.encode_instr()
 	}
 }
 
