@@ -347,8 +347,12 @@ fn (mut e Encoder) parse_operand() Expr {
 				indirection.has_index_scale = true
 				e.next()
 				indirection.index = e.parse_register()
-				e.expect(.comma)
-				indirection.scale = e.parse_expr()
+				indirection.scale = if e.tok.kind == .comma {
+					e.expect(.comma)
+					e.parse_expr()
+				} else {
+					Expr(Number{lit: '1', pos: pos})
+				}
 			}
             e.expect(.rpar)
 			return indirection
@@ -359,8 +363,7 @@ fn (mut e Encoder) parse_operand() Expr {
 }
 
 fn get_size_by_suffix(name string) int {
-	suffix := name.to_upper()[name.len-1]
-	return match suffix {
+	return match name.to_upper()[name.len-1] {
 		`Q` {
 			suffix_quad
 		}
@@ -378,28 +381,9 @@ fn get_size_by_suffix(name string) int {
 	}
 }
 
-fn get_size(n u8) int {
-	return match n {
-		`Q` {
-			suffix_quad
-		}
-		`L` {
-			suffix_long
-		}
-		`W` {
-			suffix_word
-		}
-		`B` {
-			suffix_byte
-		} else {
-			panic('unkown size $n')
-		}
-	}
-}
-
 fn check_regi_size(reg Register, size int) {
 	if reg.size != size {
-		error.print(reg.pos, 'invalid size of operand for instruction')
+		error.print(reg.pos, 'invalid size of register for instruction.')
 		exit(0)
 	}
 }
@@ -419,34 +403,34 @@ fn regi_size(name string) int {
 	panic('unreachable')
 }
 
-fn reg_bits(reg Register) u8 {
-	match reg.lit {
-		'EAX', 'RAX', 'AX', 'AL' {
+fn regi_bits(regi Register) u8 {
+	match regi.lit[regi.lit.len-2..] {
+		'AX', 'AL' {
 			return 0
 		}
-		'ECX', 'RCX', 'CX', 'CL' {
+		'CX', 'CL' {
 			return 1
 		}
-		'EDX', 'RDX', 'DX', 'DL' {
+		'DX', 'DL' {
 			return 2
 		}
-		'EBX', 'RBX', 'BX', 'BL' {
+		'BX', 'BL' {
 			return 3
 		}
-		'ESP', 'RSP', 'SP', 'AH' {
+		'SP', 'AH' {
 			return 4
 		}
-		'EBP', 'RBP', 'BP', 'CH' {
+		'BP', 'CH' {
 			return 5
 		}
-		'ESI', 'RSI', 'SI', 'DH' {
+		'SI', 'DH' {
 			return 6
 		}
-		'EDI', 'RDI', 'DI', 'BH' {
+		'DI', 'BH' {
 			return 7
 		}
 		else {
-			error.print(reg.pos, 'invalid operand for instruction')
+			error.print(regi.pos, 'invalid operand for instruction')
 			exit(1)
 		}
 	}
@@ -532,21 +516,21 @@ fn scale(n u8) u8 {
 		8 {
 			return 3
 		} else {
-			panic('unreachable')
+			panic('scale unreachable')
 		}
 	}
 }
 
 // instr regi, regi
-fn (mut e Encoder) encode_regi_regi(op_code []u8, regi Register, regi2 Register, mut instr &Instr, regi_size int, regi2_size int) {
-	check_regi_size(regi, regi_size)
+fn (mut e Encoder) encode_regi_regi(op_code []u8, regi1 Register, regi2 Register, mut instr &Instr, regi1_size int, regi2_size int) {
+	check_regi_size(regi1, regi1_size)
 	check_regi_size(regi2, regi2_size)
 
-	mod_rm := compose_mod_rm(encoder.mod_regi, reg_bits(regi), reg_bits(regi2))
+	mod_rm := compose_mod_rm(encoder.mod_regi, regi_bits(regi1), regi_bits(regi2))
 
-	if regi_size == encoder.suffix_quad {
+	if regi1_size == encoder.suffix_quad {
 		instr.code << encoder.rex_w
-	} else if regi_size == encoder.suffix_word {
+	} else if regi1_size == encoder.suffix_word {
 		instr.code << operand_size_prefix16
 	}
 
@@ -559,7 +543,7 @@ fn (mut e Encoder) encode_imm_regi(slash u8, rax_magic u8, imm Immediate, regi R
 	num := eval_expr(imm.expr)
 	check_regi_size(regi, size)
 
-	mod_rm := compose_mod_rm(mod_regi, slash, reg_bits(regi))
+	mod_rm := compose_mod_rm(mod_regi, slash, regi_bits(regi))
 
 	if size == encoder.suffix_quad {
 		instr.code << encoder.rex_w
@@ -729,12 +713,12 @@ fn (mut e Encoder) encode_instr() {
 			source := e.parse_operand()
 
 			if source is Register {
-				check_regi_size(source, 64)
-				instr.code = [0x58 + reg_bits(source)]
+				check_regi_size(source, encoder.suffix_quad)
+				instr.code = [0x58 + regi_bits(source)]
 				return
 			}
 			if source is Indirection {
-				e.encode_indir([u8(0x8f)], slash_0, source, mut &instr, 64)
+				e.encode_indir([u8(0x8f)], slash_0, source, mut &instr, encoder.suffix_quad)
 				return
 			}
 		}
@@ -744,8 +728,8 @@ fn (mut e Encoder) encode_instr() {
 			source := e.parse_operand()
 
 			if source is Register {
-				check_regi_size(source, 64)
-				instr.code = [0x50 + reg_bits(source)]
+				check_regi_size(source, encoder.suffix_quad)
+				instr.code = [0x50 + regi_bits(source)]
 				return
 			}
 			if source is Immediate {
@@ -762,26 +746,32 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 			if source is Indirection {
-				e.encode_indir([u8(0xff)], slash_6, source, mut &instr, 64)
+				e.encode_indir([u8(0xff)], slash_6, source, mut &instr, encoder.suffix_quad)
 				return
 			}
 		}
 		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
-			size := get_size_by_suffix(instr_name)
 			instr.kind = .mov
+			size := get_size_by_suffix(instr_name)
 
 			source := e.parse_operand()
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			if source is Register && desti is Register {
+			if source is Register {
 				op_code := if size == encoder.suffix_byte {
 					u8(0x88)
 				} else {
 					u8(0x89)
 				}
-				e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
-				return
+				if desti is Register {
+					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					return
+				}
+				if desti is Indirection {
+					e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
+					return
+				}
 			}
 			if source is Indirection && desti is Register {
 				op_code := if size == encoder.suffix_byte {
@@ -792,30 +782,19 @@ fn (mut e Encoder) encode_instr() {
 				e.encode_indir_regi([op_code], source, desti, mut &instr, size, size)
 				return
 			}
-			if source is Register && desti is Indirection {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x88)
-				} else {
-					u8(0x89)
-				}
-				e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
-				return
-			}
 			if source is Immediate && desti is Register {
 				check_regi_size(desti, size)
 				mut mod_rm := u8(0)
 				if size == encoder.suffix_quad {
 					instr.code << [encoder.rex_w, 0xc7]
-					mod_rm = 0xc0 + reg_bits(desti)
+					mod_rm = 0xc0 + regi_bits(desti)
+				} else if size == encoder.suffix_byte {
+					mod_rm = 0xB0 + regi_bits(desti)
 				} else {
 					if size == encoder.suffix_word {
 						instr.code << operand_size_prefix16
 					}
-					if size == encoder.suffix_byte {
-						mod_rm = 0xB0 + reg_bits(desti)
-					} else {
-						mod_rm = 0xB8 + reg_bits(desti)
-					}
+					mod_rm = 0xB8 + regi_bits(desti)
 				}
 				num := eval_expr(source.expr)
 				if size == encoder.suffix_quad || size == encoder.suffix_long {
@@ -828,8 +807,6 @@ fn (mut e Encoder) encode_instr() {
 					instr.code << [mod_rm, hex[0], hex[1]]
 				} else if size == encoder.suffix_byte {
 					instr.code << [mod_rm, u8(num)]
-				} else {
-					panic('UNKOWN SIZE MOV instr')
 				}
 				return
 			}
@@ -846,8 +823,8 @@ fn (mut e Encoder) encode_instr() {
 		'MOVZBW', 'MOVZBL', 'MOVZBQ', 'MOVZWQ', 'MOVZWL' {
 			instr.kind = .movz
 			suffix := instr_name[4..].to_upper()
-			size1 := get_size(suffix[0])
-			size2 := get_size(suffix[1])
+			size1 := get_size_by_suffix(suffix[..1])
+			size2 := get_size_by_suffix(suffix[1..])
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -858,7 +835,7 @@ fn (mut e Encoder) encode_instr() {
 			} else if size1 == encoder.suffix_word {
 				[u8(0x0F), 0xB7]
 			} else {
-				panic('unreachable')
+				panic('PANIC')
 			}
 
 			if source is Register && desti is Register {
@@ -877,8 +854,8 @@ fn (mut e Encoder) encode_instr() {
 		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ' {
 			instr.kind = .movs
 			suffix := instr_name[4..].to_upper()
-			size1 := get_size(suffix[0])
-			size2 := get_size(suffix[1])
+			size1 := get_size_by_suffix(suffix[..1])
+			size2 := get_size_by_suffix(suffix[1..])
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -889,7 +866,7 @@ fn (mut e Encoder) encode_instr() {
 			} else if size1 == encoder.suffix_word {
 				[u8(0x0F), 0xBF]
 			} else {
-				panic('unreachable')
+				panic('PANIC')
 			}
 
 			if source is Register && desti is Register {
@@ -927,14 +904,20 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			if source is Register && desti is Register {
+			if source is Register {
 				op_code := if size == encoder.suffix_byte {
 					u8(0x00)
 				} else {
 					u8(0x01)
 				}
-				e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
-				return
+				if desti is Register {
+					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					return
+				}
+				if desti is Indirection {
+					e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
+					return	
+				}
 			}
 			if source is Immediate && desti is Register {
 				rax_magic := if size == encoder.suffix_byte {
@@ -952,15 +935,6 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x03)
 				}
 				e.encode_indir_regi([op_code], source, desti, mut &instr, size, size)
-				return
-			}
-			if source is Register && desti is Indirection {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x00)
-				} else {
-					u8(0x01)
-				}
-				e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -984,14 +958,20 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			if source is Register && desti is Register {
+			if source is Register {
 				op_code := if size == encoder.suffix_byte {
 					u8(0x28)
 				} else {
 					u8(0x29)
 				}
-				e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
-				return
+				if desti is Register {
+					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					return
+				}
+				if desti is Indirection {
+					e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
+					return
+				}
 			}
 			if source is Immediate && desti is Register {
 				rax_magic := if size == encoder.suffix_byte {
@@ -1009,15 +989,6 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x2B)
 				}
 				e.encode_indir_regi([op_code], source, desti, mut &instr, size, size)
-				return
-			}
-			if source is Register && desti is Indirection {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x28)
-				} else {
-					u8(0x29)
-				}
-				e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1049,7 +1020,7 @@ fn (mut e Encoder) encode_instr() {
 					instr.code = [encoder.operand_size_prefix16]
 				}
 				check_regi_size(source, size)
-				instr.code << [op_code, 0xF8 + reg_bits(source)]
+				instr.code << [op_code, 0xF8 + regi_bits(source)]
 				return
 			}
 			if source is Indirection {
@@ -1076,7 +1047,7 @@ fn (mut e Encoder) encode_instr() {
 						instr.code << encoder.operand_size_prefix16
 					}
 					check_regi_size(source, size)
-					mod_rm := compose_mod_rm(encoder.mod_regi, slash_5, reg_bits(source))
+					mod_rm := compose_mod_rm(encoder.mod_regi, slash_5, regi_bits(source))
 					instr.code << [op_code, mod_rm]
 					return
 				}
@@ -1105,7 +1076,7 @@ fn (mut e Encoder) encode_instr() {
 			if source is Immediate && desti_operand_1 is Register && desti_operand_2 is Register {
 				check_regi_size(desti_operand_1, size)
 				check_regi_size(desti_operand_2, size)
-				mod_rm := compose_mod_rm(mod_regi, reg_bits(desti_operand_2), reg_bits(desti_operand_1))
+				mod_rm := compose_mod_rm(mod_regi, regi_bits(desti_operand_2), regi_bits(desti_operand_1))
 				if size == encoder.suffix_quad {
 					instr.code << encoder.rex_w
 				} else if size == encoder.suffix_word {
@@ -1150,7 +1121,7 @@ fn (mut e Encoder) encode_instr() {
 				} else if size == encoder.suffix_word {
 					instr.code << encoder.operand_size_prefix16
 				}
-				mod_rm := compose_mod_rm(encoder.mod_regi, slash_3, reg_bits(desti))
+				mod_rm := compose_mod_rm(encoder.mod_regi, slash_3, regi_bits(desti))
 				instr.code << [op_code, mod_rm]
 				return
 			}
@@ -1168,14 +1139,20 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			if source is Register && desti is Register {
+			if source is Register {
 				op_code := if size == encoder.suffix_byte {
 					u8(0x30)
 				} else {
 					u8(0x31)
 				}
-				e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
-				return
+				if desti is Register {
+					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					return
+				}
+				if desti is Indirection {
+					e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
+					return
+				}
 			}
 			if source is Immediate && desti is Register {
 				rax_magic := if size == encoder.suffix_byte {
@@ -1184,15 +1161,6 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x35)
 				}
 				e.encode_imm_regi(slash_6, rax_magic, source, desti, mut &instr, size)
-				return
-			}
-			if source is Register && desti is Indirection {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x30)
-				} else {
-					u8(0x31)
-				}
-				e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1246,23 +1214,20 @@ fn (mut e Encoder) encode_instr() {
 				e.encode_imm_indir([op_code], slash_4, source, desti, mut &instr, size)
 				return
 			}
-			if source is Register && desti is Register {
+			if source is Register {
 				op_code := if size == encoder.suffix_byte {
 					u8(0x20)
 				} else {
 					u8(0x21)
 				}
-				e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
-				return
-			}
-			if source is Register && desti is Indirection {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x20)
-				} else {
-					u8(0x21)
+				if desti is Register {
+					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					return
 				}
-				e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
-				return
+				if desti is Indirection {
+					e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
+					return
+				}
 			}
 			if source is Indirection && desti is Register {
 				op_code := if size == encoder.suffix_byte {
@@ -1292,7 +1257,7 @@ fn (mut e Encoder) encode_instr() {
 				} else if size == encoder.suffix_word {
 					instr.code << encoder.operand_size_prefix16
 				}
-				mod_rm := compose_mod_rm(encoder.mod_regi, slash_2, reg_bits(desti))
+				mod_rm := compose_mod_rm(encoder.mod_regi, slash_2, regi_bits(desti))
 				instr.code << [op_code, mod_rm]
 				return
 			}
@@ -1308,14 +1273,20 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			if source is Register && desti is Register {
+			if source is Register {
 				op_code := if size == encoder.suffix_byte {
 					u8(0x38)
 				} else {
 					u8(0x39)
 				}
-				e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
-				return
+				if desti is Register {
+					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					return
+				}
+				if desti is Indirection {
+					e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
+					return
+				}
 			}
 			if source is Immediate && desti is Register {
 				rax_magic := if size == encoder.suffix_byte {
@@ -1324,15 +1295,6 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x3D)
 				}
 				e.encode_imm_regi(slash_7, rax_magic, source, desti, mut instr, size)
-				return
-			}
-			if source is Register && desti is Indirection {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x38)
-				} else {
-					u8(0x39)
-				}
-				e.encode_indir_regi([op_code], desti, source, mut &instr, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1359,8 +1321,8 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, 64)
-				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				check_regi_size(regi, encoder.suffix_quad)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9C, mod_rm]
 				return
 			}
@@ -1371,8 +1333,8 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, 64)
-				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				check_regi_size(regi, encoder.suffix_quad)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9F, mod_rm]
 				return
 			}
@@ -1383,8 +1345,8 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, 64)
-				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				check_regi_size(regi, encoder.suffix_quad)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9E, mod_rm]
 				return
 			}
@@ -1395,8 +1357,8 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, 64)
-				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				check_regi_size(regi, encoder.suffix_quad)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9D, mod_rm]
 				return
 			}
@@ -1407,8 +1369,8 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, 64)
-				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				check_regi_size(regi, encoder.suffix_quad)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x94, mod_rm]
 				return
 			}
@@ -1419,8 +1381,8 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, 64)
-				mod_rm := compose_mod_rm(encoder.mod_regi, 0, reg_bits(regi))
+				check_regi_size(regi, encoder.suffix_quad)
+				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x95, mod_rm]
 				return
 			}
