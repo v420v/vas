@@ -192,7 +192,7 @@ section attributes
 ```
 
 ## Macros
-```
+```asm
 .macro HELLO
 	movq $1, %rax
 	movq $1, %rdi
