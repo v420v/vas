@@ -853,9 +853,9 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			op_code := if size == encoder.suffix_byte {
+			op_code := if size1 == encoder.suffix_byte {
 				[u8(0x0F), 0xB6]
-			} else if size == encoder.suffix_word {
+			} else if size1 == encoder.suffix_word {
 				[u8(0x0F), 0xB7]
 			} else {
 				panic('unreachable')
@@ -884,9 +884,9 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			op_code := if size == encoder.suffix_byte {
+			op_code := if size1 == encoder.suffix_byte {
 				[u8(0x0F), 0xBE]
-			} else if size == encoder.suffix_word {
+			} else if size1 == encoder.suffix_word {
 				[u8(0x0F), 0xBF]
 			} else {
 				panic('unreachable')
