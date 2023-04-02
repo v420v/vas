@@ -104,6 +104,11 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `movzbq`
 - [x] `movzwq`
 - [x] `movzwl`
+- [x] `movsbl`
+- [x] `movsbw`
+- [x] `movsbq`
+- [x] `movswl`
+- [x] `movswq`
 - [x] `leaq`
 - [x] `leal`
 - [x] `leaw`  

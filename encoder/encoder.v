@@ -36,6 +36,8 @@ pub enum InstrKind {
 	neg
 	lea
 	mov
+	movz
+	movs
 	xor
 	and
 	not
@@ -841,7 +843,8 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 		}
-		'MOVZBW', 'MOVZBL', 'MOVZBQ' {
+		'MOVZBW', 'MOVZBL', 'MOVZBQ', 'MOVZWQ', 'MOVZWL' {
+			instr.kind = .movz
 			suffix := instr_name[4..].to_upper()
 			size1 := get_size(suffix[0])
 			size2 := get_size(suffix[1])
@@ -850,7 +853,13 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			op_code := [u8(0x0F), 0xB6]
+			op_code := if size == encoder.suffix_byte {
+				[u8(0x0F), 0xB6]
+			} else if size == encoder.suffix_word {
+				[u8(0x0F), 0xB7]
+			} else {
+				panic('unreachable')
+			}
 
 			if source is Register && desti is Register {
 				if size2 == encoder.suffix_quad && source.lit in ['AH','CH','DH','BH'] {
@@ -865,7 +874,8 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 		}
-		'MOVZWQ', 'MOVZWL' {
+		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ' {
+			instr.kind = .movs
 			suffix := instr_name[4..].to_upper()
 			size1 := get_size(suffix[0])
 			size2 := get_size(suffix[1])
@@ -874,9 +884,19 @@ fn (mut e Encoder) encode_instr() {
 			e.expect(.comma)
 			desti := e.parse_operand()
 
-			op_code := [u8(0x0F), 0xB7]
+			op_code := if size == encoder.suffix_byte {
+				[u8(0x0F), 0xBE]
+			} else if size == encoder.suffix_word {
+				[u8(0x0F), 0xBF]
+			} else {
+				panic('unreachable')
+			}
 
 			if source is Register && desti is Register {
+				if size2 == encoder.suffix_quad && source.lit in ['AH','CH','DH','BH'] {
+					error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
+					exit(1)
+				}
 				e.encode_regi_regi(op_code, desti, source, mut &instr, size2, size1)
 				return
 			}
@@ -1328,11 +1348,7 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 			if source is Indirection && desti is Register {
-				op_code := if size == encoder.suffix_byte {
-					u8(0x3A)
-				} else {
-					u8(0x3B)
-				}
+				op_code := if size == encoder.suffix_byte {u8(0x3A)} else {u8(0x3B)}
 				e.encode_indir_regi([op_code], source, desti, mut &instr, size, size)
 				return
 			}
