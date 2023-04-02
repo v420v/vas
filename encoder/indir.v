@@ -88,19 +88,20 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 }
 
 // instr indir, regi
-fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, size int) {
-	check_regi_size(regi, size)
+fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, indir_size int, regi_size int) {
+	check_regi_size(regi, regi_size)
+
 	disp := eval_expr(indir.disp)
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 	mod_rm, sib, need_rela, symbol := e.modrm_and_sib_and_disp_symbol(indir, reg_bits(regi), base_is_ip, base_is_bp)
 
-	if indir.base.size == 32 {
+	if indir.base.size == suffix_long {
 		instr.code << 0x67
 	}
 
-	if size == 64 {
+	if regi_size == suffix_quad {
 		instr.code << encoder.rex_w
-	} else if size == 16 {
+	} else if regi_size == suffix_word {
 		instr.code << encoder.operand_size_prefix16
 	}
 
@@ -119,7 +120,7 @@ fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Regis
 	if need_rela {
 		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
-		} else if indir.base.size == 64 {
+		} else if indir.base.size == suffix_quad {
 			encoder.r_x86_64_32s
 		} else {
 			encoder.r_x86_64_32	
@@ -158,11 +159,11 @@ fn (mut e Encoder) encode_indir(op_code []u8, slash u8, indir Indirection, mut i
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 	mod_rm, sib, need_rela, symbol := e.modrm_and_sib_and_disp_symbol(indir, slash, base_is_ip, base_is_bp)
 
-	if indir.base.size == 32 {
+	if indir.base.size == suffix_long {
 		instr.code << 0x67
 	}
 
-	if op_code == [u8(0xF7)] && (size == 64 || size == 8) {
+	if op_code == [u8(0xF7)] && (size == suffix_quad || size == suffix_byte) {
 		instr.code << encoder.rex_w
 	}
 
@@ -181,7 +182,7 @@ fn (mut e Encoder) encode_indir(op_code []u8, slash u8, indir Indirection, mut i
 	if need_rela {
 		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
-		} else if indir.base.size == 64 {
+		} else if indir.base.size == suffix_quad {
 			encoder.r_x86_64_32s
 		} else {
 			encoder.r_x86_64_32	
@@ -219,13 +220,13 @@ fn (mut e Encoder) encode_imm_indir(op_code []u8, slash u8, imm Immediate, indir
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 	mod_rm, sib, need_rela, symbol := e.modrm_and_sib_and_disp_symbol(indir, slash, base_is_ip, base_is_bp)
 
-	if indir.base.size == 32 {
+	if indir.base.size == suffix_long {
 		instr.code << 0x67
 	}
 
-	if size == 64 {
+	if size == suffix_quad {
 		instr.code << encoder.rex_w
-	} else if size == 16 {
+	} else if size == suffix_word {
 		instr.code << encoder.operand_size_prefix16
 	}
 
@@ -246,7 +247,7 @@ fn (mut e Encoder) encode_imm_indir(op_code []u8, slash u8, imm Immediate, indir
 	if need_rela {
 		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
-		} else if indir.base.size == 64 {
+		} else if indir.base.size == suffix_quad {
 			encoder.r_x86_64_32s
 		} else {
 			encoder.r_x86_64_32	
@@ -279,11 +280,11 @@ fn (mut e Encoder) encode_imm_indir(op_code []u8, slash u8, imm Immediate, indir
 	}
 
 	if op_code == [u8(0xc7)] { // op_code for `mov`
-		if size == 16 {
+		if size == suffix_word {
 			mut hex := [u8(0), 0]
 			binary.little_endian_put_u16(mut &hex, u16(imm_val))
 			instr.code << hex
-		} else if size == 8 {
+		} else if size == suffix_byte {
 			instr.code << u8(imm_val)
 		} else {
 			mut hex := [u8(0), 0, 0, 0]
@@ -291,9 +292,9 @@ fn (mut e Encoder) encode_imm_indir(op_code []u8, slash u8, imm Immediate, indir
 			instr.code << hex
 		}
 	} else {
-		if is_in_i8_range(imm_val) || size == 8 {
+		if is_in_i8_range(imm_val) || size == suffix_byte {
 			instr.code << u8(imm_val)
-		} else if size == 16 {
+		} else if size == suffix_word {
 			mut hex := [u8(0), 0]
 			binary.little_endian_put_u16(mut &hex, u16(imm_val))
 			instr.code << hex

@@ -40,7 +40,7 @@ pub const registers = [
 	'DL',
 	'BL',
 	'AH',
-	'cH',
+	'CH',
 	'DH',
 	'BH',
 ]
