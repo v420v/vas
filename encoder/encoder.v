@@ -33,6 +33,7 @@ pub enum InstrKind {
 	sub
 	imul
 	idiv
+	div
 	neg
 	lea
 	mov
@@ -1026,11 +1027,37 @@ fn (mut e Encoder) encode_instr() {
 					instr.code = [encoder.operand_size_prefix16]
 				}
 				check_regi_size(source, size)
-				instr.code << [op_code, 0xF8 + regi_bits(source)]
+				mod_rm := compose_mod_rm(encoder.mod_regi, encoder.slash_7, regi_bits(source))
+				instr.code << [op_code, mod_rm]
 				return
 			}
 			if source is Indirection {
 				e.encode_indir([op_code], slash_7, source, mut instr, size)
+				return
+			}
+		}
+		'DIVQ', 'DIVL', 'DIVW', 'DIVB' {
+			size := get_size_by_suffix(instr_name)
+			instr.kind = .div
+			source := e.parse_operand()
+			op_code := if size == encoder.suffix_byte {
+				u8(0xF6)
+			} else {
+				u8(0xF7)
+			}
+			if source is Register {
+				if size == encoder.suffix_quad {
+					instr.code = [encoder.rex_w]
+				} else if size == encoder.suffix_word {
+					instr.code = [encoder.operand_size_prefix16]
+				}
+				check_regi_size(source, size)
+				mod_rm := compose_mod_rm(encoder.mod_regi, encoder.slash_6, regi_bits(source))
+				instr.code << [op_code, mod_rm]
+				return
+			}
+			if source is Indirection {
+				e.encode_indir([op_code], slash_6, source, mut instr, size)
 				return
 			}
 		}
