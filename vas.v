@@ -41,7 +41,7 @@ fn main() {
 	}
 
 	program := if file_name == '-' {
-		os.get_lines_joined()
+		os.get_raw_lines_joined()
 	} else {
 		os.read_file(file_name) or {
 			eprintln('error: reading file `${file_name}`')
