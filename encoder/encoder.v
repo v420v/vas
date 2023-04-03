@@ -460,10 +460,10 @@ fn compose_sib(scale u8, index u8, base u8) u8 {
 fn eval_expr(expr Expr) int {
 	return match expr {
 		Number {
-			strconv.atoi(expr.lit) or {
-                error.print(expr.pos, 'atoi() failed')
+			int(strconv.parse_int(expr.lit, 0, 64) or {
+                error.print(expr.pos, 'invalid number `expr.lit`')
                 exit(1)
-            }
+            })
 		}
 		Binop{
 			match expr.op {

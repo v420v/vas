@@ -62,13 +62,27 @@ fn (mut l Lexer) skip_comment() {
 fn (mut l Lexer) read_number() token.Token {
 	mut pos := l.current_pos()
 	start := l.idx
-	for {
-		if l.c >= `0` && l.c <= `9` {
-			l.advance()
-		} else {
-			break
+
+	if l.text[start..].starts_with('0x') || l.text[start..].starts_with('0X') {
+		l.advance()
+		l.advance()
+		for {
+			if (l.c >= `0` && l.c <= `9`) || (l.c >= `a` && l.c <= `f`) || (l.c >= `A` && l.c <= `F`) {
+				l.advance()
+			} else {
+				break
+			}
+		}
+	} else {
+		for {
+			if l.c >= `0` && l.c <= `9` {
+				l.advance()
+			} else {
+				break
+			}
 		}
 	}
+
 	lit := l.text[start..l.idx]
 	pos.len = lit.len
 	return token.Token{
