@@ -10,7 +10,11 @@ import elf
 fn file_name_without_ext(file_name string) string {
 	ext_len := os.file_ext(file_name).len
 	bytes := file_name.bytes()
-	return bytes[..bytes.len - ext_len].bytestr()
+	return if file_name == '-' {
+		'main'
+	} else {
+		bytes[..bytes.len - ext_len].bytestr()
+	}
 }
 
 fn main() {
@@ -36,9 +40,13 @@ fn main() {
 		out_file = file_name_without_ext(file_name) + '.o'
 	}
 
-	program := os.read_file(file_name) or {
-		eprintln('error: reading file `${file_name}`')
-		exit(1)
+	program := if file_name == '-' {
+		os.get_lines_joined()
+	} else {
+		os.read_file(file_name) or {
+			eprintln('error: reading file `${file_name}`')
+			exit(1)
+		}
 	}
 
 	mut l := lexer.new(file_name, program)
