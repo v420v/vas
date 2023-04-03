@@ -46,6 +46,7 @@ fn (mut p Preprocess) add_macro() {
 pub fn new(tokens []token.Token) &Preprocess {
 	return &Preprocess{
 		tokens: tokens
+		tok:    tokens[0]
 	}
 }
 
@@ -55,7 +56,7 @@ pub fn (mut p Preprocess) init() {
 }
 
 pub fn (mut p Preprocess) preprocess() {
-	for {
+	for p.tok.kind != .eof {
 		if p.tok.lit == '.macro' {
 			p.add_macro()
 		} else if p.tok.lit in p.macros {
