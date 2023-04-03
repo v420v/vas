@@ -209,11 +209,6 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 			continue
 		}
 
-		if name.to_upper().starts_with('.L') && symbol_binding == stb_local {
-			continue
-		}
-
-
 		unsafe { *off += str.len + 1 }
 		st_shndx := u16(e.user_defined_section_idx[symbol.section])
 
