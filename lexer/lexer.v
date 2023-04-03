@@ -199,6 +199,22 @@ pub fn (mut l Lexer) lex() {
 						pos: pos
 					}
 				}
+				`*` {
+					l.advance()
+					l.tokens << token.Token{
+						lit: '*'
+						kind: .mul
+						pos: pos
+					}
+				}
+				`/` {
+					l.advance()
+					l.tokens << token.Token{
+						lit: '/'
+						kind: .mul
+						pos: pos
+					}
+				}
 				`$` {
 					l.advance()
 					l.tokens << token.Token{

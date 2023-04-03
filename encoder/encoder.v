@@ -297,7 +297,7 @@ fn (mut e Encoder) parse_factor() Expr {
 
 fn (mut e Encoder) parse_expr() Expr {
 	expr := e.parse_factor()
-	if e.tok.kind in [.plus, .minus] {
+	if e.tok.kind in [.plus, .minus, .mul, .div] {
 		op := e.tok.kind
 		pos := e.tok.pos
 		e.next()
@@ -471,6 +471,12 @@ fn eval_expr(expr Expr) int {
 				}
 				.minus {
 					eval_expr(expr.left_hs) - eval_expr(expr.right_hs)
+				}
+				.mul {
+					eval_expr(expr.left_hs) * eval_expr(expr.right_hs)
+				}
+				.div {
+					eval_expr(expr.left_hs) / eval_expr(expr.right_hs)
 				} else {
 					panic('[internal error] somthing whent wrong...')
 				}

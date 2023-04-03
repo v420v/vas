@@ -63,6 +63,8 @@ pub enum TokenKind {
 	rpar
 	plus
 	minus
+	mul
+	div
 	percent
 	dolor
 	eol // enf of line
