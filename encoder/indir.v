@@ -125,135 +125,142 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 
 // instr indir, regi
 fn (mut e Encoder) encode_indir_regi(op_code []u8, indir Indirection, regi Register, mut instr &Instr, indir_size int, regi_size int) {
+	mut code := []u8{}
 	check_regi_size(regi, regi_size)
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 	mod_rm, sib, disp, need_rela := e.modrm_and_sib_and_disp_symbol(indir, regi_bits(regi), base_is_ip, base_is_bp)
 
 	if indir.base.size == suffix_long {
-		instr.code << 0x67
+		code << 0x67
 	}
 
 	if regi_size == suffix_quad {
-		instr.code << encoder.rex_w
+		code << encoder.rex_w
 	} else if regi_size == suffix_word {
-		instr.code << encoder.operand_size_prefix16
+		code << encoder.operand_size_prefix16
 	}
 
-	instr.code << op_code
-	instr.code << mod_rm
+	code << op_code
+	code << mod_rm
 	if indir.has_index_scale {
-		instr.code << sib
+		code << sib
 	}
 
 	if base_is_sp && !indir.has_index_scale {
-		instr.code << 0x24
+		code << 0x24
 	}
 
-	instr_code_len := instr.code.len
+	instr_code_len := code.len
 
 	if need_rela {
 		e.rela_text_users[e.rela_text_users.len-1].offset = instr_code_len
 		e.rela_text_users[e.rela_text_users.len-1].instr = unsafe{instr}
 	}
 
-	instr.code << disp
+	code << disp
+	instr.code = code
 }
 
 // instr indir
 fn (mut e Encoder) encode_indir(op_code []u8, slash u8, indir Indirection, mut instr &Instr, size int) {
+	mut code := []u8{}
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 	mod_rm, sib, disp, need_rela := e.modrm_and_sib_and_disp_symbol(indir, slash, base_is_ip, base_is_bp)
 
 	if indir.base.size == suffix_long {
-		instr.code << 0x67
+		code << 0x67
 	}
 
 	if op_code == [u8(0xF7)] && (size == suffix_quad || size == suffix_byte) {
-		instr.code << encoder.rex_w
+		code << encoder.rex_w
 	}
 
-	instr.code << op_code
-	instr.code << mod_rm
+	code << op_code
+	code << mod_rm
 	if indir.has_index_scale {
-		instr.code << sib
+		code << sib
 	}
 
 	if base_is_sp && !indir.has_index_scale {
-		instr.code << 0x24
+		code << 0x24
 	}
 
-	instr_code_len := instr.code.len
+	instr_code_len := code.len
 
 	if need_rela {
 		e.rela_text_users[e.rela_text_users.len-1].offset = instr_code_len
 		e.rela_text_users[e.rela_text_users.len-1].instr = unsafe{instr}
 	}
 
-	instr.code << disp
+	code << disp
+
+	instr.code = code
 }
 
 fn (mut e Encoder) encode_imm_indir(op_code []u8, slash u8, imm Immediate, indir Indirection, mut instr &Instr,  size int) {
+	mut code := []u8{}
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 	mod_rm, sib, disp, need_rela := e.modrm_and_sib_and_disp_symbol(indir, slash, base_is_ip, base_is_bp)
 
 	if indir.base.size == suffix_long {
-		instr.code << 0x67
+		code << 0x67
 	}
 
 	if size == suffix_quad {
-		instr.code << encoder.rex_w
+		code << encoder.rex_w
 	} else if size == suffix_word {
-		instr.code << encoder.operand_size_prefix16
+		code << encoder.operand_size_prefix16
 	}
 
 	imm_val := eval_expr(imm.expr)
 
-	instr.code << op_code
-	instr.code << mod_rm
+	code << op_code
+	code << mod_rm
 	if indir.has_index_scale {
-		instr.code << sib
+		code << sib
 	}
 
 	if base_is_sp && !indir.has_index_scale {
-		instr.code << 0x24
+		code << 0x24
 	}
 
-	instr_code_len := instr.code.len
+	instr_code_len := code.len
 
 	if need_rela {
 		e.rela_text_users[e.rela_text_users.len-1].offset = instr_code_len
 		e.rela_text_users[e.rela_text_users.len-1].instr = unsafe{instr}
 	}
 
-	instr.code << disp
+	code << disp
 
 	if instr.kind == .mov {
 		if size == suffix_word {
 			mut hex := [u8(0), 0]
 			binary.little_endian_put_u16(mut &hex, u16(imm_val))
-			instr.code << hex
+			code << hex
 		} else if size == suffix_byte {
-			instr.code << u8(imm_val)
+			code << u8(imm_val)
 		} else {
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(imm_val))
-			instr.code << hex
+			code << hex
 		}
 		return
 	}
 
 	if is_in_i8_range(imm_val) || size == suffix_byte {
-		instr.code << u8(imm_val)
+		code << u8(imm_val)
 	} else if size == suffix_word {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(imm_val))
-		instr.code << hex
+		code << hex
 	} else if is_in_i32_range(imm_val) {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(imm_val))
-		instr.code << hex
+		code << hex
 	} else {
 		panic('PANIC')
 	}
+	instr.code = code
 }
