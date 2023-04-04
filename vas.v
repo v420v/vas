@@ -3,7 +3,6 @@ module main
 import os
 import flag
 import lexer
-import preprocessor
 import encoder
 import elf
 
@@ -50,12 +49,8 @@ fn main() {
 	}
 
 	mut l := lexer.new(file_name, program)
-	l.lex()
 
-	mut p := preprocessor.new(l.tokens)
-	p.preprocess()
-
-	mut en := encoder.new(p.tokens, file_name)
+	mut en := encoder.new(mut l, file_name)
 	en.encode()
 	en.add_index_to_instrs()
 	en.resolve_variable_length_instrs(mut en.variable_instrs)

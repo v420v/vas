@@ -8,12 +8,12 @@ import error
 import token
 import encoding.binary
 import strconv
+import lexer
 
 pub struct Encoder {
 mut:
 	tok             token.Token // current token
-	tok_idx         int
-	tokens          []token.Token
+	l               lexer.Lexer // lexer
 pub mut:
 	current_section string = '.text'
 	instrs          map[string][]&Instr
@@ -233,16 +233,16 @@ pub mut:
 	flags int
 }
 
-pub fn new(tokens []token.Token, file_name string) &Encoder {
+pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
+	tok := l.lex()
 	return &Encoder {
-		tok: tokens[0]
-		tokens: tokens
+		tok: tok
+		l: l
 	}
 }
 
 fn (mut e Encoder) next() {
-	e.tok_idx++
-	e.tok = e.tokens[e.tok_idx]
+	e.tok = e.l.lex()
 }
 
 fn (mut e Encoder) expect(exp token.TokenKind) {
@@ -529,65 +529,69 @@ fn scale(n u8) u8 {
 }
 
 // instr regi, regi
-fn (mut e Encoder) encode_regi_regi(op_code []u8, regi1 Register, regi2 Register, mut instr &Instr, regi1_size int, regi2_size int) {
+fn (mut e Encoder) encode_regi_regi(op_code []u8, regi1 Register, regi2 Register, regi1_size int, regi2_size int) []u8 {
+	mut code := []u8{}
 	check_regi_size(regi1, regi1_size)
 	check_regi_size(regi2, regi2_size)
 
 	mod_rm := compose_mod_rm(encoder.mod_regi, regi_bits(regi1), regi_bits(regi2))
 
 	if regi1_size == encoder.suffix_quad {
-		instr.code << encoder.rex_w
+		code << encoder.rex_w
 	} else if regi1_size == encoder.suffix_word {
-		instr.code << operand_size_prefix16
+		code << operand_size_prefix16
 	}
 
-	instr.code << op_code
-	instr.code << mod_rm
+	code << op_code
+	code << mod_rm
+	return code
 }
 
 // instr imm, regi
-fn (mut e Encoder) encode_imm_regi(slash u8, rax_magic u8, imm Immediate, regi Register, mut instr &Instr, size int) {
+fn (mut e Encoder) encode_imm_regi(slash u8, rax_magic u8, imm Immediate, regi Register, size int) []u8 {
+	mut code := []u8{}
 	num := eval_expr(imm.expr)
 	check_regi_size(regi, size)
 
 	mod_rm := compose_mod_rm(mod_regi, slash, regi_bits(regi))
 
 	if size == encoder.suffix_quad {
-		instr.code << encoder.rex_w
+		code << encoder.rex_w
 	} else if size == encoder.suffix_word {
-		instr.code << operand_size_prefix16
+		code << operand_size_prefix16
 	}
 
 	if size == encoder.suffix_byte {
 		if regi.lit == 'AL' {
-			instr.code << [rax_magic, u8(num)]
+			code << [rax_magic, u8(num)]
 		} else {
-			instr.code << [u8(0x80), mod_rm, u8(num)]
+			code << [u8(0x80), mod_rm, u8(num)]
 		}
 	} else if is_in_i8_range(num) {
-		instr.code << [u8(0x83), mod_rm, u8(num)]
+		code << [u8(0x83), mod_rm, u8(num)]
 	} else if size == encoder.suffix_word {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(num))
 		if regi.lit in ['RAX', 'EAX'] {
-			instr.code << [rax_magic, hex[0], hex[1]]
+			code << [rax_magic, hex[0], hex[1]]
 		} else {
-			instr.code << [u8(0x81), mod_rm, hex[0], hex[1]]
+			code << [u8(0x81), mod_rm, hex[0], hex[1]]
 		}
 	} else if is_in_i32_range(num) {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(num))
 		if regi.lit in ['RAX', 'EAX'] {
-			instr.code << [rax_magic, hex[0], hex[1], hex[2], hex[3]]
+			code << [rax_magic, hex[0], hex[1], hex[2], hex[3]]
 		} else {
-			instr.code << [u8(0x81), mod_rm, hex[0], hex[1], hex[2], hex[3]]
+			code << [u8(0x81), mod_rm, hex[0], hex[1], hex[2], hex[3]]
 		}
 	} else {
 		panic('immediate out of range!')
 	}
+	return code
 }
 
-fn (mut e Encoder) encode_var_instr(rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64, mut instr &Instr) {
+fn (mut e Encoder) encode_var_instr(rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) VariableCode {
 	desti := e.parse_operand()
 
 	target_sym_name := match desti {
@@ -599,15 +603,13 @@ fn (mut e Encoder) encode_var_instr(rel8_code []u8, rel8_offset i64, rel32_code 
 		}
 	}
 
-	instr.varcode =  &VariableCode{
+	return VariableCode{
 		trgt_symbol: target_sym_name,
 		rel8_code:   rel8_code,
 		rel8_offset: rel8_offset,
 		rel32_code:   rel32_code,
 		rel32_offset: rel32_offset,
 	}
-
-	e.variable_instrs << instr
 }
 
 fn (mut e Encoder) encode_instr() {
@@ -772,7 +774,7 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x89)
 				}
 				if desti is Register {
-					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					instr.code = e.encode_regi_regi([op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
@@ -850,7 +852,7 @@ fn (mut e Encoder) encode_instr() {
 					error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 					exit(1)
 				}
-				e.encode_regi_regi(op_code, desti, source, mut &instr, size2, size1)
+				instr.code = e.encode_regi_regi(op_code, desti, source, size2, size1)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -881,7 +883,7 @@ fn (mut e Encoder) encode_instr() {
 					error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 					exit(1)
 				}
-				e.encode_regi_regi(op_code, desti, source, mut &instr, size2, size1)
+				instr.code = e.encode_regi_regi(op_code, desti, source, size2, size1)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -918,7 +920,7 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x01)
 				}
 				if desti is Register {
-					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					instr.code = e.encode_regi_regi([op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
@@ -932,7 +934,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x05)
 				}
-				e.encode_imm_regi(0, rax_magic, source, desti, mut instr, size)
+				instr.code = e.encode_imm_regi(0, rax_magic, source, desti, size)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -972,7 +974,7 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x29)
 				}
 				if desti is Register {
-					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					instr.code = e.encode_regi_regi([op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
@@ -986,7 +988,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x2D)
 				}
-				e.encode_imm_regi(5, rax_magic, source, desti, mut instr, size)
+				instr.code = e.encode_imm_regi(5, rax_magic, source, desti, size)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -1099,7 +1101,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 			
 			if source is Register && desti_operand_1 is Register {
-				e.encode_regi_regi([u8(0x0f), 0xaf], desti_operand_1, source, mut &instr, size, size)
+				instr.code = e.encode_regi_regi([u8(0x0f), 0xaf], desti_operand_1, source, size, size)
 				return
 			}
 
@@ -1179,7 +1181,7 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x31)
 				}
 				if desti is Register {
-					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					instr.code = e.encode_regi_regi([op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
@@ -1193,7 +1195,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x35)
 				}
-				e.encode_imm_regi(slash_6, rax_magic, source, desti, mut &instr, size)
+				instr.code = e.encode_imm_regi(slash_6, rax_magic, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1232,7 +1234,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x25)
 				}
-				e.encode_imm_regi(slash_4, rax_magic, source, desti, mut &instr, size)
+				instr.code = e.encode_imm_regi(slash_4, rax_magic, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1254,7 +1256,7 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x21)
 				}
 				if desti is Register {
-					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					instr.code = e.encode_regi_regi([op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
@@ -1313,7 +1315,7 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x39)
 				}
 				if desti is Register {
-					e.encode_regi_regi([op_code], source, desti, mut &instr, size, size)
+					instr.code = e.encode_regi_regi([op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
@@ -1327,7 +1329,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x3D)
 				}
-				e.encode_imm_regi(slash_7, rax_magic, source, desti, mut instr, size)
+				instr.code = e.encode_imm_regi(slash_7, rax_magic, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1445,37 +1447,51 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'JMP', 'JMPQ' {
 			instr.kind = .jmp
-			e.encode_var_instr([u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1, mut instr)
+			varcode := e.encode_var_instr([u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		'JNE' {
 			instr.kind = .jne
-			e.encode_var_instr([u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2, mut instr)
+			varcode := e.encode_var_instr([u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		'JE' {
 			instr.kind = .je
-			e.encode_var_instr([u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2, mut instr)
+			varcode := e.encode_var_instr([u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		'JL' {
 			instr.kind = .jl
-			e.encode_var_instr([u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2, mut instr)
+			varcode := e.encode_var_instr([u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		'JG' {
 			instr.kind = .jg
-			e.encode_var_instr([u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2, mut instr)
+			varcode := e.encode_var_instr([u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		'JLE' {
 			instr.kind = .jle
-			e.encode_var_instr([u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2, mut instr)
+			varcode := e.encode_var_instr([u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		'JGE' {
 			instr.kind = .jge
-			e.encode_var_instr([u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2, mut instr)
+			varcode := e.encode_var_instr([u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
+			instr.varcode = &varcode
+			e.variable_instrs << &instr
 			return
 		}
 		else {

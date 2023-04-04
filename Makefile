@@ -1,7 +1,7 @@
 
 build:
-	v vas.v -prod -gc none
+	v . -prod -autofree
 
 clean:
-	rm *.o *.out ./vas
+	rm *.o *.out ./vas examples/*.o
 
