@@ -23,6 +23,7 @@ mut:
 	symtab                     []Elf64_Sym
 	rela                       map[string][]Elf64_Rela
 	shstrtab                   []u8
+	ignored_symbols_count      int            // symbols that start from .L will not be added to strtab or symtab
 	section_headers            []Elf64_Shdr
 }
 
@@ -163,16 +164,50 @@ fn add_padding(mut code []u8) {
 	}
 }
 
+fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
+	for name, symbol in e.defined_symbols {
+		if symbol.binding != symbol_binding {
+			continue
+		}
+
+		if name.to_upper().starts_with('.L') && symbol_binding == stb_local {
+			e.ignored_symbols_count++
+			continue
+		}
+
+		unsafe { *off += str.len + 1 }
+		st_shndx := u16(e.user_defined_section_idx[symbol.section])
+
+		mut st_name := u32(0)
+		if symbol.symbol_type == stt_section {
+			st_name = 0
+		} else {
+			st_name = u32(*off)
+		}
+
+		e.symtab << Elf64_Sym{
+			st_name: st_name
+			st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
+			st_shndx: st_shndx
+			st_value: symbol.addr
+		}
+
+		e.strtab << name.bytes()
+		e.strtab << 0x00
+		str = name
+	}
+}
+
 pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 	// Symbols to be relocated are passed to symtab after local symbols.
 	// The index will start from local_symbols.len()
-	mut pos := e.defined_symbols.len - e.globals_count + 1 // count of local symbols
+	mut pos := e.defined_symbols.len - e.globals_count + 1 - e.ignored_symbols_count // count of local symbols
 	//                                                   ^ null symbol
 
 	for r in rela_text_users {
 		mut index := 0
 		mut r_addend := i64(0 - 4)
-		if r.rtype == encoder.r_x86_64_32s {
+		if r.rtype == encoder.r_x86_64_32s || r.rtype == encoder.r_x86_64_32 || r.rtype == encoder.r_x86_64_64 {
 			r_addend = 0
 		}
 
@@ -200,35 +235,6 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
     	    r_info: (u64(index) << 32) + r.rtype,
     	    r_addend: r_addend + r.adjust,
     	}
-	}
-}
-
-fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
-	for name, symbol in e.defined_symbols {
-		if symbol.binding != symbol_binding {
-			continue
-		}
-
-		unsafe { *off += str.len + 1 }
-		st_shndx := u16(e.user_defined_section_idx[symbol.section])
-
-		mut st_name := u32(0)
-		if symbol.symbol_type == stt_section {
-			st_name = 0
-		} else {
-			st_name = u32(*off)
-		}
-
-		e.symtab << Elf64_Sym{
-			st_name: st_name
-			st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
-			st_shndx: st_shndx
-			st_value: symbol.addr
-		}
-
-		e.strtab << name.bytes()
-		e.strtab << 0x00
-		str = name
 	}
 }
 
@@ -363,7 +369,7 @@ pub fn (mut e Elf) build_headers() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: u32(section_idx['.strtab']) // section number of .strtab
-			sh_info: u32(e.defined_symbols.len - e.globals_count + 1) // Number of local symbols
+			sh_info: u32(e.defined_symbols.len - e.globals_count + 1 - e.ignored_symbols_count) // Number of local symbols
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		}
