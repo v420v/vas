@@ -175,10 +175,74 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `ret`
 - [ ] ...
 
+## Local symbols
+VAS ignores symbols beginning with `.L`
+
+```asm
+.global _start
+
+_start:
+    movq $1, %rax
+    movq $1, %rdi
+    leaq .L1(%rip), %rsi
+    movq $15, %rdx
+    syscall
+
+    movq $60, %rax
+    movq $0, %rdi
+    syscall
+
+.section .data, "wa"
+.L1:
+ .string "Hello, world!\n"
+```
+```
+┌──[~/vas]
+└─$ ./vas main.s
+
+┌──[~/vas]
+└─$ readelf -s main.o                                  
+
+Symbol table '.symtab' contains 3 entries:
+  番号:      値         サイズ タイプ  Bind   Vis      索引名
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 .data
+     2: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT    1 _start
+```
+
 ## Assembler Directives
 `.string`
 ```asm
 .string "Hello, world!"
+```
+
+`.byte` `.word` `.long` `.quad`
+```asm
+.section .data, "aw"
+
+constant_string:
+	.string "Hello\n"
+
+.quad constant_string
+.quad 0x10
+.long 0x10
+.word 0x10
+.byte 0x10
+```
+```asm
+.byte 0x72
+.byte 0x101
+.byte 0x108
+.byte 0x108
+.byte 0x111
+.byte 0x44
+.byte 0x32
+.byte 0x119
+.byte 0x111
+.byte 0x114
+.byte 0x108
+.byte 0x100
+.byte 0x33
 ```
 
 `.section`

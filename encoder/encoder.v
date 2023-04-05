@@ -29,6 +29,10 @@ pub enum InstrKind {
 	global
 	local
 	string
+	byte
+	word
+	long
+	quad
 	add
 	sub
 	imul
@@ -623,6 +627,7 @@ fn (mut e Encoder) encode_instr() {
 		e.instrs[e.current_section] << &instr
 		if instr.varcode != unsafe { nil } {
 			instr.is_len_decided = false
+			e.variable_instrs << &instr
 		}
 	}
 
@@ -714,6 +719,108 @@ fn (mut e Encoder) encode_instr() {
 
 			instr.code = value.bytes()
 			instr.code << 0x00
+			return
+		}
+		'.BYTE' {
+			instr.kind = .byte
+			desti := e.parse_operand()
+			adjust := eval_expr(desti)
+			mut used_symbols := []string{}
+			e.get_symbol_from_binop(desti, mut &used_symbols)
+			if used_symbols.len >= 2 {
+				error.print(desti.pos, 'invalid operand for instruction')
+				exit(1)
+			}
+			if used_symbols.len == 1 {
+				rela_text_users := &RelaTextUser{
+					uses: used_symbols[0],
+					instr: &instr,
+					adjust: adjust,
+					rtype: encoder.r_x86_64_8
+				}
+				instr.code = [u8(0)]
+				e.rela_text_users << rela_text_users
+			} else {
+				instr.code << u8(adjust)
+			}
+			return
+		}
+		'.WORD' {
+			instr.kind = .word
+			desti := e.parse_operand()
+			adjust := eval_expr(desti)
+			mut used_symbols := []string{}
+			e.get_symbol_from_binop(desti, mut &used_symbols)
+			if used_symbols.len >= 2 {
+				error.print(desti.pos, 'invalid operand for instruction')
+				exit(1)
+			}
+			if used_symbols.len == 1 {
+				rela_text_users := &RelaTextUser{
+					uses: used_symbols[0],
+					instr: &instr,
+					adjust: adjust,
+					rtype: encoder.r_x86_64_16
+				}
+				instr.code = [u8(0), 0]
+				e.rela_text_users << rela_text_users
+			} else {
+				mut hex := [u8(0), 0]
+				binary.little_endian_put_u16(mut &hex, u16(adjust))
+				instr.code = hex
+			}
+			return
+		}
+		'.LONG' {
+			instr.kind = .long
+			desti := e.parse_operand()
+			adjust := eval_expr(desti)
+			mut used_symbols := []string{}
+			e.get_symbol_from_binop(desti, mut &used_symbols)
+			if used_symbols.len >= 2 {
+				error.print(desti.pos, 'invalid operand for instruction')
+				exit(1)
+			}
+			if used_symbols.len == 1 {
+				rela_text_users := &RelaTextUser{
+					uses: used_symbols[0],
+					instr: &instr,
+					adjust: adjust,
+					rtype: encoder.r_x86_64_32
+				}
+				instr.code = [u8(0), 0, 0, 0]
+				e.rela_text_users << rela_text_users
+			} else {
+				mut hex := [u8(0), 0, 0, 0]
+				binary.little_endian_put_u32(mut &hex, u32(adjust))
+				instr.code = hex
+			}
+			return
+		}
+		'.QUAD' {
+			instr.kind = .quad
+			desti := e.parse_operand()
+			adjust := eval_expr(desti)
+			mut used_symbols := []string{}
+			e.get_symbol_from_binop(desti, mut &used_symbols)
+			if used_symbols.len >= 2 {
+				error.print(desti.pos, 'invalid operand for instruction')
+				exit(1)
+			}
+			if used_symbols.len == 1 {
+				rela_text_users := &RelaTextUser{
+					uses: used_symbols[0],
+					instr: &instr,
+					adjust: adjust,
+					rtype: encoder.r_x86_64_64
+				}
+				instr.code = [u8(0), 0, 0, 0, 0, 0, 0, 0]
+				e.rela_text_users << rela_text_users
+			} else {
+				mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
+				binary.little_endian_put_u64(mut &hex, u64(adjust))
+				instr.code = hex
+			}
 			return
 		}
 		'POP', 'POPQ' {
@@ -1105,8 +1212,12 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 
-			e.expect(.comma)
-			desti_operand_2 := e.parse_operand()
+			desti_operand_2 := if e.tok.kind != .comma {
+				desti_operand_1
+			} else {
+				e.expect(.comma)
+				e.parse_operand()
+			}
 
 			if source is Immediate && desti_operand_1 is Register && desti_operand_2 is Register {
 				check_regi_size(desti_operand_1, size)
@@ -1356,7 +1467,7 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, encoder.suffix_quad)
+				check_regi_size(regi, encoder.suffix_byte)
 				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9C, mod_rm]
 				return
@@ -1368,7 +1479,7 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, encoder.suffix_quad)
+				check_regi_size(regi, encoder.suffix_byte)
 				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9F, mod_rm]
 				return
@@ -1380,7 +1491,7 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, encoder.suffix_quad)
+				check_regi_size(regi, encoder.suffix_byte)
 				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9E, mod_rm]
 				return
@@ -1392,7 +1503,7 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, encoder.suffix_quad)
+				check_regi_size(regi, encoder.suffix_byte)
 				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x9D, mod_rm]
 				return
@@ -1404,7 +1515,7 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, encoder.suffix_quad)
+				check_regi_size(regi, encoder.suffix_byte)
 				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x94, mod_rm]
 				return
@@ -1416,7 +1527,7 @@ fn (mut e Encoder) encode_instr() {
 			regi := e.parse_operand()
 
 			if regi is Register {
-				check_regi_size(regi, encoder.suffix_quad)
+				check_regi_size(regi, encoder.suffix_byte)
 				mod_rm := compose_mod_rm(encoder.mod_regi, 0, regi_bits(regi))
 				instr.code = [u8(0x0F), 0x95, mod_rm]
 				return
@@ -1449,49 +1560,42 @@ fn (mut e Encoder) encode_instr() {
 			instr.kind = .jmp
 			varcode := e.encode_var_instr([u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		'JNE' {
 			instr.kind = .jne
 			varcode := e.encode_var_instr([u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		'JE' {
 			instr.kind = .je
 			varcode := e.encode_var_instr([u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		'JL' {
 			instr.kind = .jl
 			varcode := e.encode_var_instr([u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		'JG' {
 			instr.kind = .jg
 			varcode := e.encode_var_instr([u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		'JLE' {
 			instr.kind = .jle
 			varcode := e.encode_var_instr([u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		'JGE' {
 			instr.kind = .jge
 			varcode := e.encode_var_instr([u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 			instr.varcode = &varcode
-			e.variable_instrs << &instr
 			return
 		}
 		else {
