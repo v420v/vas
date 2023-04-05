@@ -246,6 +246,7 @@ fn (mut e Encoder) encode_imm_indir(op_code []u8, slash u8, imm Immediate, indir
 			binary.little_endian_put_u32(mut &hex, u32(imm_val))
 			code << hex
 		}
+		instr.code = code
 		return
 	}
 
