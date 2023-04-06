@@ -1,5 +1,5 @@
 # Fizz Buzz
-# ../vas -o fizzbuzz.o fizzbuzz.s && gcc -o fizzbuzz fizzbuzz.o && ./fizzbuzz
+# ../vas -o fizzbuzz.o fizzbuzz.s && gcc -o fizzbuzz.out fizzbuzz.o && ./fizzbuzz.out
 
 .global main
 

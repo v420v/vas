@@ -1,4 +1,4 @@
-# ../vas -o loop.o loop.s && gcc -o loop loop.o && ./loop
+# ../vas -o loop.o loop.s && gcc -o loop.out loop.o && ./loop.out
 # message 1
 # message 2
 # message 3

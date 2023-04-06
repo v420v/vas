@@ -1,4 +1,4 @@
-# ../vas call.s && ld -o call call.o && ./call
+# ../vas call.s && ld -o call.out call.o && ./call.out
 # > Hello, world!
 
 .global _start

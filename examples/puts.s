@@ -1,4 +1,4 @@
-# ../vas puts.s && gcc -o puts puts.o && ./puts
+# ../vas puts.s && gcc -o puts.out puts.o && ./puts.out
 # > Hello, world!
 
 .section .data, "wa"
