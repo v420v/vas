@@ -46,7 +46,6 @@ fn (mut l Lexer) advance() {
 fn (mut l Lexer) current_pos() token.Position {
 	return token.Position{
 		line: l.line
-		col: l.col
 		file_name: l.file_name
 	}
 }
@@ -86,7 +85,7 @@ fn (mut l Lexer) read_number() token.Token {
 	}
 
 	lit := l.text[start..l.idx]
-	pos.len = lit.len
+	// pos.len = lit.len
 	return token.Token{
 		lit: lit
 		kind: .number
@@ -105,7 +104,6 @@ fn (mut l Lexer) read_ident() token.Token {
 		}
 	}
 	lit := l.text[start..l.idx]
-	pos.len = lit.len
 	return token.Token{
 		lit: lit
 		kind: .ident
@@ -158,7 +156,6 @@ pub fn (mut l Lexer) lex() token.Token {
 					l.advance()
 				}
 			}
-			pos.len = lit.len + 2
 			l.advance()
 			return token.Token{
 				lit: lit.bytestr()
@@ -166,7 +163,6 @@ pub fn (mut l Lexer) lex() token.Token {
 				pos: pos
 			}
 		} else {
-			pos.len = 1
 			match l.c {
 				`#` { // skip comment
 					l.skip_comment()

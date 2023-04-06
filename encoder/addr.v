@@ -193,11 +193,6 @@ pub fn (mut e Encoder) assign_addresses() {
 			section.addr += i.code.len
 			section.code << i.code
 		}
-		// padding
-		mut padding := (encoder.align_to(section.code.len, 16) - section.code.len)
-		for _ in 0 .. padding {
-			section.code << 0
-		}
 	}
 }
 
