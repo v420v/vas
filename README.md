@@ -41,7 +41,7 @@ _start:
 ## Quick Start
 
 ```sh
-$ v vas.v -gc none
+$ v . -prod -autofree
 ```
 
 ## Run
