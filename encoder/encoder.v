@@ -661,204 +661,160 @@ fn (mut e Encoder) encode_instr() {
 	match instr_name_upper {
 		'.SECTION' {
 			e.section()
-			return
 		}
 		'.GLOBAL' {
 			instr := Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 			e.instrs[e.current_section] << &instr
-			return
 		}
 		'.LOCAL' {
 			instr := Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 			e.instrs[e.current_section] << &instr
-			return
 		}
 		'.STRING' {
 			e.string()
-			return
 		}
 		'.BYTE' {
 			e.byte()
-			return
 		}
 		'.WORD' {
 			e.word()
-			return
 		}
 		'.LONG' {
 			e.long()
-			return
 		}
 		'.QUAD' {
 			e.quad()
-			return
 		}
 		'POP', 'POPQ' {
 			e.pop()
-			return
 		}
 		'PUSHQ', 'PUSH' {
 			e.push()
-			return
 		}
 		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
 			e.mov(instr_name_upper)
-			return
 		}
 		'MOVZBW', 'MOVZBL', 'MOVZBQ', 'MOVZWQ', 'MOVZWL' {
 			e.mov_zero_extend(instr_name_upper)
-			return
 		}
-		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ' {
+		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ', 'MOVSLQ' {
 			e.mov_sign_extend(instr_name_upper)
-			return
 		}
 		'LEAQ', 'LEAL', 'LEAW' {
 			e.lea(instr_name_upper)
-			return
 		}
 		'ADDQ', 'ADDL', 'ADDW', 'ADDB' {
 			e.add(instr_name_upper)
-			return
 		}
 		'SUBQ', 'SUBL', 'SUBW', 'SUBB' {
 			e.sub(instr_name_upper)
-			return
 		}
 		'IDIVQ', 'IDIVL', 'IDIVW', 'IDIVB' {
 			e.idiv(instr_name_upper)
-			return
 		}
 		'DIVQ', 'DIVL', 'DIVW', 'DIVB' {
 			e.div(instr_name_upper)
-			return
 		}
 		'IMULQ', 'IMULL', 'IMULW' {
 			e.imul(instr_name_upper)
-			return
 		}
 		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
 			e.neg(instr_name_upper)
-			return
 		}
 		'XORQ', 'XORL', 'XORW', 'XORB' {
 			e.xor(instr_name_upper)
-			return
 		}
 		'ANDQ', 'ANDL', 'ANDW', 'ANDB' {
 			e.and(instr_name_upper)
-			return
 		}
 		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
 			e.not(instr_name_upper)
-			return
 		}
 		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
 			e.cmp(instr_name_upper)
-			return
 		}
 		'RETQ', 'RET' {
 			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
-			return
 		}
 		'SYSCALL' {
 			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
-			return
 		}
 		'NOPQ', 'NOP' {
 			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
-			return
 		}
 		'HLT' {
 			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
-			return
 		}
 		'LEAVE' {
 			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
-			return
 		}
 		'CQTO' {
 			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
-			return
 		}
 		'SETL' {
 			regi := e.parse_operand()
 			if regi is Register {
 				e.encode_regi(.setl, [u8(0x0F), 0x9C], encoder.slash_0, regi, encoder.suffix_byte)
-				return
 			}
 		}
 		'SETG' {
 			regi := e.parse_operand()
 			if regi is Register {
 				e.encode_regi(.setg, [u8(0x0F), 0x9F], encoder.slash_0, regi, encoder.suffix_byte)
-				return
 			}
 		}
 		'SETLE' {
 			regi := e.parse_operand()
 			if regi is Register {
 				e.encode_regi(.setle, [u8(0x0F), 0x9E], encoder.slash_0, regi, encoder.suffix_byte)
-				return
 			}
 		}
 		'SETGE' {
 			regi := e.parse_operand()
 			if regi is Register {
 				e.encode_regi(.setge, [u8(0x0F), 0x9D], encoder.slash_0, regi, encoder.suffix_byte)
-				return
 			}
 		}
 		'SETE' {
 			regi := e.parse_operand()
 			if regi is Register {
 				e.encode_regi(.sete, [u8(0x0F), 0x94], encoder.slash_0, regi, encoder.suffix_byte)
-				return
 			}
 		}
 		'SETNE' {
 			regi := e.parse_operand()
 			if regi is Register {
 				e.encode_regi(.setne, [u8(0x0F), 0x95], encoder.slash_0, regi, encoder.suffix_byte)
-				return
 			}
 		}
 		'CALLQ', 'CALL' {
 			e.call()
-			return
 		}
 		'JMP' {
 			e.var_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
-			return
 		}
 		'JNE' {
 			e.var_instr(.jne, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
-			return
 		}
 		'JE' {
 			e.var_instr(.je, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
-			return
 		}
 		'JL' {
 			e.var_instr(.jl, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
-			return
 		}
 		'JG' {
 			e.var_instr(.jg, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
-			return
 		}
 		'JLE' {
 			e.var_instr(.jle, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
-			return
 		}
 		'JGE' {
 			e.var_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
-			return
 		}
 		else {
-			error.print(pos, 'unkwoun instruction `$instr_name_upper`')
+			error.print(pos, 'unkwoun instruction `$instr_name`')
 			exit(1)
 		}
 	}

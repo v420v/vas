@@ -119,7 +119,9 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 	e.expect(.comma)
 	desti := e.parse_operand()
 
-	op_code := if size1 == encoder.suffix_byte {
+	op_code := if size1 == encoder.suffix_long && size2 == encoder.suffix_quad {
+		[u8(0x63)]
+	} else if size1 == encoder.suffix_byte {
 		[u8(0x0F), 0xBE]
 	} else if size1 == encoder.suffix_word {
 		[u8(0x0F), 0xBF]

@@ -17,7 +17,6 @@ import encoding.binary
 */
 
 fn (mut e Encoder) add(instr_name_upper string) {
-	pos := e.tok.pos
 	size := get_size_by_suffix(instr_name_upper)
 
 	source := e.parse_operand()
@@ -69,13 +68,11 @@ fn (mut e Encoder) add(instr_name_upper string) {
 		e.encode_imm_indir(.add, [op_code], slash_0, source, desti, size)
 		return
 	}
-	error.print(pos, 'invalid operand for instruction')
+	error.print(source.pos, 'invalid operand for instruction')
 	exit(1)
 }
 
 fn (mut e Encoder) sub(instr_name_upper string) {
-	pos := e.tok.pos
-
 	size := get_size_by_suffix(instr_name_upper)
 
 	source := e.parse_operand()
@@ -127,13 +124,11 @@ fn (mut e Encoder) sub(instr_name_upper string) {
 		e.encode_imm_indir(.sub, [op_code], 5, source, desti, size)
 		return
 	}
-	error.print(pos, 'invalid operand for instruction')
+	error.print(source.pos, 'invalid operand for instruction')
 	exit(1)
 }
 
 fn (mut e Encoder) imul(instr_name_upper string) {
-	pos := e.tok.pos
-
 	size := get_size_by_suffix(instr_name_upper)
 	source := e.parse_operand()
 
@@ -177,7 +172,7 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 	}
 
 	if source is Immediate && desti_operand_1 is Register && desti_operand_2 is Register {
-		mut instr := Instr{kind: .imul, pos: pos, section: e.current_section}
+		mut instr := Instr{kind: .imul, pos: source.pos, section: e.current_section}
 		check_regi_size(desti_operand_1, size)
 		check_regi_size(desti_operand_2, size)
 		mod_rm := compose_mod_rm(mod_regi, regi_bits(desti_operand_2), regi_bits(desti_operand_1))
@@ -207,7 +202,7 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 		e.instrs[e.current_section] << &instr
 		return
 	}
-	error.print(pos, 'invalid operand for instruction')
+	error.print(source.pos, 'invalid operand for instruction')
 	exit(1)
 }
 
