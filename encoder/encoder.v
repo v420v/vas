@@ -768,7 +768,7 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'RETQ', 'RET' {
-			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+			e.instrs[e.current_section] << &Instr{kind: 'RET', pos: pos, section: e.current_section, code: [u8(0xc3)]}
 			return
 		}
 		'SYSCALL' {
@@ -776,7 +776,7 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'NOPQ', 'NOP' {
-			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0x90)]}
+			e.instrs[e.current_section] << &Instr{kind: 'NOP', pos: pos, section: e.current_section, code: [u8(0x90)]}
 			return
 		}
 		'HLT' {
@@ -1454,7 +1454,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs[e.current_section] << &instr
 			return
 		}
-		'JMP', 'JMPQ' {
+		'JMP' {
 			e.encode_var_instr(instr_name_upper, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
 			return
 		}
