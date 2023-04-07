@@ -1,9 +1,5 @@
 module encoder
 
-// I know the code is messy, but it gets the job done for now.
-// Leaving this comment here to remind myself to refactor it from scratch
-// when I have more time.
-
 import error
 import encoding.binary
 
@@ -11,7 +7,7 @@ import encoding.binary
 	Functions for encoding instructions that contain `indirection`.
 */
 
-fn (mut e Encoder) modrm_and_sib_and_disp_symbol(indir Indirection, index u8, base_is_ip bool, base_is_bp bool) (u8, u8, []u8, bool) {
+fn (mut e Encoder) get_modrm_sib_disp_symbol(indir Indirection, index u8, base_is_ip bool, base_is_bp bool) (u8, u8, []u8, bool) {
 	disp := eval_expr(indir.disp)
 
 	mut used_symbols := []string{}
@@ -124,13 +120,13 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 }
 
 // instr indir, regi
-fn (mut e Encoder) encode_indir_regi(kind string, op_code []u8, indir Indirection, regi Register, indir_size int, regi_size int) {
+fn (mut e Encoder) encode_indir_regi(kind InstrKind, op_code []u8, indir Indirection, regi Register, indir_size int, regi_size int) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: indir.pos}
 
 	check_regi_size(regi, regi_size)
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
-	mod_rm, sib, disp, need_rela := e.modrm_and_sib_and_disp_symbol(indir, regi_bits(regi), base_is_ip, base_is_bp)
+	mod_rm, sib, disp, need_rela := e.get_modrm_sib_disp_symbol(indir, regi_bits(regi), base_is_ip, base_is_bp)
 
 	if indir.base.size == suffix_long {
 		instr.code << 0x67
@@ -164,11 +160,11 @@ fn (mut e Encoder) encode_indir_regi(kind string, op_code []u8, indir Indirectio
 }
 
 // instr indir
-fn (mut e Encoder) encode_indir(kind string, op_code []u8, slash u8, indir Indirection, size int) {
+fn (mut e Encoder) encode_indir(kind InstrKind, op_code []u8, slash u8, indir Indirection, size int) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: indir.pos}
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
-	mod_rm, sib, disp, need_rela := e.modrm_and_sib_and_disp_symbol(indir, slash, base_is_ip, base_is_bp)
+	mod_rm, sib, disp, need_rela := e.get_modrm_sib_disp_symbol(indir, slash, base_is_ip, base_is_bp)
 
 	if indir.base.size == suffix_long {
 		instr.code << 0x67
@@ -200,11 +196,11 @@ fn (mut e Encoder) encode_indir(kind string, op_code []u8, slash u8, indir Indir
 	e.instrs[e.current_section] << &instr
 }
 
-fn (mut e Encoder) encode_imm_indir(kind string, op_code []u8, slash u8, imm Immediate, indir Indirection,  size int) {
+fn (mut e Encoder) encode_imm_indir(kind InstrKind, op_code []u8, slash u8, imm Immediate, indir Indirection,  size int) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: indir.pos}
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
-	mod_rm, sib, disp, need_rela := e.modrm_and_sib_and_disp_symbol(indir, slash, base_is_ip, base_is_bp)
+	mod_rm, sib, disp, need_rela := e.get_modrm_sib_disp_symbol(indir, slash, base_is_ip, base_is_bp)
 
 	if indir.base.size == suffix_long {
 		instr.code << 0x67
@@ -237,7 +233,7 @@ fn (mut e Encoder) encode_imm_indir(kind string, op_code []u8, slash u8, imm Imm
 
 	instr.code << disp
 
-	if kind in ['MOVQ', 'MOVL', 'MOVW', 'MOVB'] {
+	if kind == .mov {
 		if size == suffix_word {
 			mut hex := [u8(0), 0]
 			binary.little_endian_put_u16(mut &hex, u16(imm_val))

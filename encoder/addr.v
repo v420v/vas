@@ -156,7 +156,7 @@ fn (mut e Encoder) change_symbol_binding(instr Instr, binding u8) {
 		e.globals_count--
 	}
 
-	if binding == stb_global && s.kind == '.SECTION' {
+	if binding == stb_global && s.kind == .section {
 		error.print(instr.pos, 'sections cannot be global')
 		exit(1)
 	}
@@ -178,13 +178,13 @@ pub fn (mut e Encoder) assign_addresses() {
 
 		for mut i in instrs {
 			match i.kind {
-				'.SECTION' {
+				.section {
 					section.flags = section_flags(i.flags)
 				}
-				'.GLOBAL' {
+				.global {
 					e.change_symbol_binding(*i, stb_global)
 				}
-				'.LOCAL' {
+				.local {
 					e.change_symbol_binding(*i, stb_local)
 				} else {}
 			}
@@ -202,7 +202,7 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.section != rela.instr.section {
 				continue
 			}
-			if rela.instr.kind != 'CALL' && rela.rtype != encoder.r_x86_64_pc32 {
+			if rela.instr.kind != .call && rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
 
