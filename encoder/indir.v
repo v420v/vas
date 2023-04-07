@@ -124,7 +124,7 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 }
 
 // instr indir, regi
-fn (mut e Encoder) encode_indir_regi(kind InstrKind, op_code []u8, indir Indirection, regi Register, indir_size int, regi_size int) {
+fn (mut e Encoder) encode_indir_regi(kind string, op_code []u8, indir Indirection, regi Register, indir_size int, regi_size int) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: indir.pos}
 
 	check_regi_size(regi, regi_size)
@@ -164,7 +164,7 @@ fn (mut e Encoder) encode_indir_regi(kind InstrKind, op_code []u8, indir Indirec
 }
 
 // instr indir
-fn (mut e Encoder) encode_indir(kind InstrKind, op_code []u8, slash u8, indir Indirection, size int) {
+fn (mut e Encoder) encode_indir(kind string, op_code []u8, slash u8, indir Indirection, size int) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: indir.pos}
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
@@ -200,7 +200,7 @@ fn (mut e Encoder) encode_indir(kind InstrKind, op_code []u8, slash u8, indir In
 	e.instrs[e.current_section] << &instr
 }
 
-fn (mut e Encoder) encode_imm_indir(kind InstrKind, op_code []u8, slash u8, imm Immediate, indir Indirection,  size int) {
+fn (mut e Encoder) encode_imm_indir(kind string, op_code []u8, slash u8, imm Immediate, indir Indirection,  size int) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: indir.pos}
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
@@ -237,7 +237,7 @@ fn (mut e Encoder) encode_imm_indir(kind InstrKind, op_code []u8, slash u8, imm 
 
 	instr.code << disp
 
-	if kind == .mov {
+	if kind in ['MOVQ', 'MOVL', 'MOVW', 'MOVB'] {
 		if size == suffix_word {
 			mut hex := [u8(0), 0]
 			binary.little_endian_put_u16(mut &hex, u16(imm_val))

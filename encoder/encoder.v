@@ -24,57 +24,9 @@ pub mut:
 	globals_count   int
 }
 
-pub enum InstrKind {
-	section
-	global
-	local
-	string
-	byte
-	word
-	long
-	quad
-	add
-	sub
-	imul
-	idiv
-	div
-	neg
-	lea
-	mov
-	movz
-	movs
-	xor
-	and
-	not
-	cqto
-	cmp
-	pop
-	push
-	call
-	setl
-	setg
-	setle
-	setge
-	sete
-	setne
-	jmp
-	jne
-	je
-	jl
-	jg
-	jle
-	jge
-	ret
-	syscall
-	nop
-	hlt
-	leave
-	label
-}
-
 pub struct Instr {
 pub mut:
-	kind           		InstrKind [required]
+	kind           		string [required]
 	code           		[]u8
 	symbol_name    		string
 	flags          		string
@@ -533,7 +485,7 @@ fn scale(n u8) u8 {
 }
 
 // instr regi, regi
-fn (mut e Encoder) encode_regi_regi(kind InstrKind, op_code []u8, regi1 Register, regi2 Register, regi1_size int, regi2_size int) {
+fn (mut e Encoder) encode_regi_regi(kind string, op_code []u8, regi1 Register, regi2 Register, regi1_size int, regi2_size int) {
 	mut code := []u8{}
 	check_regi_size(regi1, regi1_size)
 	check_regi_size(regi2, regi2_size)
@@ -551,7 +503,7 @@ fn (mut e Encoder) encode_regi_regi(kind InstrKind, op_code []u8, regi1 Register
 }
 
 // instr imm, regi
-fn (mut e Encoder) encode_imm_regi(kind InstrKind, slash u8, rax_magic u8, imm Immediate, regi Register, size int) {
+fn (mut e Encoder) encode_imm_regi(kind string, slash u8, rax_magic u8, imm Immediate, regi Register, size int) {
 	mut code := []u8{}
 
 	num := eval_expr(imm.expr)
@@ -594,7 +546,7 @@ fn (mut e Encoder) encode_imm_regi(kind InstrKind, slash u8, rax_magic u8, imm I
 	e.instrs[e.current_section] << &Instr{kind: kind, code: code, section: e.current_section, pos: imm.pos}
 }
 
-fn (mut e Encoder) encode_var_instr(kind InstrKind, rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) {
+fn (mut e Encoder) encode_var_instr(kind string, rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) {
 	desti := e.parse_operand()
 
 	target_sym_name := match desti {
@@ -624,7 +576,7 @@ fn (mut e Encoder) encode_var_instr(kind InstrKind, rel8_code []u8, rel8_offset 
 	e.instrs[e.current_section] << &instr
 }
 
-fn (mut e Encoder) encode_regi(kind InstrKind, op_code []u8, slash u8, regi Register, size int) {
+fn (mut e Encoder) encode_regi(kind string, op_code []u8, slash u8, regi Register, size int) {
 	mut code := []u8{}
 	if size == encoder.suffix_quad {
 		code << encoder.rex_w
@@ -642,12 +594,11 @@ fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
 
 	instr_name := e.tok.lit
+	instr_name_upper := instr_name.to_upper()
 	e.next()
 
 	if e.tok.kind == .colon {
-		mut instr := Instr{kind: .label, pos: pos, section: e.current_section}
-		instr.kind = .label
-		instr.symbol_name = instr_name
+		instr := Instr{kind: 'LABEL', pos: pos, section: e.current_section, symbol_name: instr_name}
 		e.expect(.colon)
 
 		if instr_name in e.defined_symbols || instr_name == '.text' {
@@ -659,7 +610,7 @@ fn (mut e Encoder) encode_instr() {
 		return
 	}
 
-	match instr_name.to_upper() {
+	match instr_name_upper {
 		'.SECTION' {
 			section_name := e.tok.lit
 			e.current_section = section_name
@@ -669,10 +620,10 @@ fn (mut e Encoder) encode_instr() {
 			section_flags := e.tok.lit
 			e.expect(.string)
 
-			instr := Instr{kind: .section, pos: pos, section: section_name, symbol_type: encoder.stt_section, flags: section_flags}
+			instr := Instr{kind: instr_name_upper, pos: pos, section: section_name, symbol_type: encoder.stt_section, flags: section_flags}
 
 			if s := e.defined_symbols[section_name] {
-				if s.kind == .label {
+				if s.kind == 'LABEL' {
 					error.print(pos, 'symbol `$section_name` is already defined')
 					exit(1)
 				}
@@ -684,19 +635,19 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'.GLOBAL' {
-			instr := Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 			e.instrs[e.current_section] << &instr
 			return
 		}
 		'.LOCAL' {
-			instr := Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 			e.instrs[e.current_section] << &instr
 			return
 		}
 		'.STRING' {
-			mut instr := Instr{kind: .string, pos: pos, section: e.current_section}
+			mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 
 			value := e.tok.lit
 			e.expect(.string)
@@ -707,7 +658,7 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'.BYTE' {
-			mut instr := Instr{kind: .byte, pos: pos, section: e.current_section}
+			mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 
 			desti := e.parse_operand()
 			adjust := eval_expr(desti)
@@ -733,7 +684,7 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'.WORD' {
-			mut instr := Instr{kind: .word, pos: pos, section: e.current_section}
+			mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 
 			desti := e.parse_operand()
 			adjust := eval_expr(desti)
@@ -761,7 +712,7 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'.LONG' {
-			mut instr := Instr{kind: .long, pos: pos, section: e.current_section}
+			mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 
 			desti := e.parse_operand()
 			adjust := eval_expr(desti)
@@ -789,7 +740,7 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'.QUAD' {
-			mut instr := Instr{kind: .quad, pos: pos, section: e.current_section}
+			mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 
 			desti := e.parse_operand()
 			adjust := eval_expr(desti)
@@ -817,41 +768,41 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'RETQ', 'RET' {
-			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0xc3)]}
 			return
 		}
 		'SYSCALL' {
-			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
+			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
 			return
 		}
 		'NOPQ', 'NOP' {
-			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
+			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0x90)]}
 			return
 		}
 		'HLT' {
-			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
+			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0xf4)]}
 			return
 		}
 		'LEAVE' {
-			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0xc9)]}
 			return
 		}
 		'CQTO' {
-			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
+			e.instrs[e.current_section] << &Instr{kind: instr_name_upper, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
 			return
 		}
 		'POP', 'POPQ' {
 			source := e.parse_operand()
 
 			if source is Register {
-				mut instr := Instr{kind: .pop, pos: pos, section: e.current_section}
+				mut instr := Instr{kind: 'POP', pos: pos, section: e.current_section}
 				check_regi_size(source, encoder.suffix_quad)
 				instr.code = [0x58 + regi_bits(source)]
 				e.instrs[e.current_section] << &instr
 				return
 			}
 			if source is Indirection {
-				e.encode_indir(.pop, [u8(0x8f)], slash_0, source, encoder.suffix_quad)
+				e.encode_indir('POP', [u8(0x8f)], slash_0, source, encoder.suffix_quad)
 				return
 			}
 		}
@@ -859,14 +810,14 @@ fn (mut e Encoder) encode_instr() {
 			source := e.parse_operand()
 
 			if source is Register {
-				mut instr := Instr{kind: .push, pos: pos, section: e.current_section}
+				mut instr := Instr{kind: 'PUSH', pos: pos, section: e.current_section}
 				check_regi_size(source, encoder.suffix_quad)
 				instr.code = [0x50 + regi_bits(source)]
 				e.instrs[e.current_section] << &instr
 				return
 			}
 			if source is Immediate {
-				mut instr := Instr{kind: .push, pos: pos, section: e.current_section}
+				mut instr := Instr{kind: 'PUSH', pos: pos, section: e.current_section}
 				num := eval_expr(source.expr)
 				if is_in_i8_range(num) {
 					instr.code = [u8(0x6a), u8(num)]
@@ -879,12 +830,12 @@ fn (mut e Encoder) encode_instr() {
 				return
 			}
 			if source is Indirection {
-				e.encode_indir(.push, [u8(0xff)], slash_6, source, encoder.suffix_quad)
+				e.encode_indir('PUSH', [u8(0xff)], slash_6, source, encoder.suffix_quad)
 				return
 			}
 		}
 		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -897,11 +848,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x89)
 				}
 				if desti is Register {
-					e.encode_regi_regi(.mov, [op_code], source, desti, size, size)
+					e.encode_regi_regi(instr_name_upper, [op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
-					e.encode_indir_regi(.mov, [op_code], desti, source, size, size)
+					e.encode_indir_regi(instr_name_upper, [op_code], desti, source, size, size)
 					return
 				}
 			}
@@ -911,7 +862,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x8b)
 				}
-				e.encode_indir_regi(.mov, [op_code], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [op_code], source, desti, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -920,11 +871,11 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0xc7)
 				}
-				e.encode_imm_indir(.mov, [op_code], slash_0, source, desti, size)
+				e.encode_imm_indir(instr_name_upper, [op_code], slash_0, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Register {
-				mut instr := Instr{kind: .mov, pos: pos, section: e.current_section}
+				mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 				check_regi_size(desti, size)
 				mut mod_rm := u8(0)
 				if size == encoder.suffix_quad {
@@ -955,7 +906,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 		}
 		'MOVZBW', 'MOVZBL', 'MOVZBQ', 'MOVZWQ', 'MOVZWL' {
-			suffix := instr_name[4..].to_upper()
+			suffix := instr_name_upper[4..].to_upper()
 			size1 := get_size_by_suffix(suffix[..1])
 			size2 := get_size_by_suffix(suffix[1..])
 
@@ -976,16 +927,16 @@ fn (mut e Encoder) encode_instr() {
 					error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 					exit(1)
 				}
-				e.encode_regi_regi(.movz, op_code, desti, source, size2, size1)
+				e.encode_regi_regi(instr_name_upper, op_code, desti, source, size2, size1)
 				return
 			}
 			if source is Indirection && desti is Register {
-				e.encode_indir_regi(.movz, op_code, source, desti, size1, size2)
+				e.encode_indir_regi(instr_name_upper, op_code, source, desti, size1, size2)
 				return
 			}
 		}
 		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ' {
-			suffix := instr_name[4..].to_upper()
+			suffix := instr_name_upper[4..].to_upper()
 			size1 := get_size_by_suffix(suffix[..1])
 			size2 := get_size_by_suffix(suffix[1..])
 
@@ -1006,28 +957,28 @@ fn (mut e Encoder) encode_instr() {
 					error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 					exit(1)
 				}
-				e.encode_regi_regi(.movs, op_code, desti, source, size2, size1)
+				e.encode_regi_regi(instr_name_upper, op_code, desti, source, size2, size1)
 				return
 			}
 			if source is Indirection && desti is Register {
-				e.encode_indir_regi(.movs, op_code, source, desti, size1, size2)
+				e.encode_indir_regi(instr_name_upper, op_code, source, desti, size1, size2)
 				return
 			}
 		}
 		'LEAQ', 'LEAL', 'LEAW' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
 			desti := e.parse_operand()
 
 			if source is Indirection && desti is Register {
-				e.encode_indir_regi(.lea, [u8(0x8d)], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [u8(0x8d)], source, desti, size, size)
 				return
 			}
 		}
 		'ADDQ', 'ADDL', 'ADDW', 'ADDB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -1040,11 +991,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x01)
 				}
 				if desti is Register {
-					e.encode_regi_regi(.add, [op_code], source, desti, size, size)
+					e.encode_regi_regi(instr_name_upper, [op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
-					e.encode_indir_regi(.add, [op_code], desti, source, size, size)
+					e.encode_indir_regi(instr_name_upper, [op_code], desti, source, size, size)
 					return	
 				}
 			}
@@ -1054,7 +1005,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x05)
 				}
-				e.encode_imm_regi(.add, 0, rax_magic, source, desti, size)
+				e.encode_imm_regi(instr_name_upper, 0, rax_magic, source, desti, size)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -1063,7 +1014,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x03)
 				}
-				e.encode_indir_regi(.add, [op_code], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [op_code], source, desti, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1075,12 +1026,12 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x81)
 				}
-				e.encode_imm_indir(.add, [op_code], slash_0, source, desti, size)
+				e.encode_imm_indir(instr_name_upper, [op_code], slash_0, source, desti, size)
 				return
 			}
 		}
 		'SUBQ', 'SUBL', 'SUBW', 'SUBB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -1093,11 +1044,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x29)
 				}
 				if desti is Register {
-					e.encode_regi_regi(.sub, [op_code], source, desti, size, size)
+					e.encode_regi_regi(instr_name_upper, [op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
-					e.encode_indir_regi(.sub, [op_code], desti, source, size, size)
+					e.encode_indir_regi(instr_name_upper, [op_code], desti, source, size, size)
 					return
 				}
 			}
@@ -1107,7 +1058,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x2D)
 				}
-				e.encode_imm_regi(.sub, 5, rax_magic, source, desti, size)
+				e.encode_imm_regi(instr_name_upper, 5, rax_magic, source, desti, size)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -1116,7 +1067,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x2B)
 				}
-				e.encode_indir_regi(.sub, [op_code], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [op_code], source, desti, size, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1128,12 +1079,12 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x81)
 				}
-				e.encode_imm_indir(.sub, [op_code], 5, source, desti, size)
+				e.encode_imm_indir(instr_name_upper, [op_code], 5, source, desti, size)
 				return
 			}
 		}
 		'IDIVQ', 'IDIVL', 'IDIVW', 'IDIVB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			op_code := if size == encoder.suffix_byte {
@@ -1142,16 +1093,16 @@ fn (mut e Encoder) encode_instr() {
 				u8(0xF7)
 			}
 			if source is Register {
-				e.encode_regi(.idiv, [op_code], encoder.slash_7, source, size)
+				e.encode_regi(instr_name_upper, [op_code], encoder.slash_7, source, size)
 				return
 			}
 			if source is Indirection {
-				e.encode_indir(.idiv, [op_code], encoder.slash_7, source, size)
+				e.encode_indir(instr_name_upper, [op_code], encoder.slash_7, source, size)
 				return
 			}
 		}
 		'DIVQ', 'DIVL', 'DIVW', 'DIVB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			op_code := if size == encoder.suffix_byte {
@@ -1160,16 +1111,16 @@ fn (mut e Encoder) encode_instr() {
 				u8(0xF7)
 			}
 			if source is Register {
-				e.encode_regi(.div, [op_code], encoder.slash_6, source, size)
+				e.encode_regi(instr_name_upper, [op_code], encoder.slash_6, source, size)
 				return
 			}
 			if source is Indirection {
-				e.encode_indir(.div, [op_code], slash_6, source, size)
+				e.encode_indir(instr_name_upper, [op_code], slash_6, source, size)
 				return
 			}
 		}
 		'IMULQ', 'IMULL', 'IMULW' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 
@@ -1180,11 +1131,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0xf7)
 				}
 				if source is Register {
-					e.encode_regi(.imul, [op_code], encoder.slash_5, source, size)
+					e.encode_regi(instr_name_upper, [op_code], encoder.slash_5, source, size)
 					return
 				}
 				if source is Indirection {
-					e.encode_indir(.imul, [op_code], slash_5, source, size)
+					e.encode_indir(instr_name_upper, [op_code], slash_5, source, size)
 					return
 				}
 			}
@@ -1193,12 +1144,12 @@ fn (mut e Encoder) encode_instr() {
 			desti_operand_1 := e.parse_operand()
 
 			if source is Indirection && desti_operand_1 is Register {
-				e.encode_indir_regi(.imul, [u8(0x0f), 0xaf], source, desti_operand_1, size, size)
+				e.encode_indir_regi(instr_name_upper, [u8(0x0f), 0xaf], source, desti_operand_1, size, size)
 				return
 			}
 			
 			if source is Register && desti_operand_1 is Register {
-				e.encode_regi_regi(.imul, [u8(0x0f), 0xaf], desti_operand_1, source, size, size)
+				e.encode_regi_regi(instr_name_upper, [u8(0x0f), 0xaf], desti_operand_1, source, size, size)
 				return
 			}
 
@@ -1213,7 +1164,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 
 			if source is Immediate && desti_operand_1 is Register && desti_operand_2 is Register {
-				mut instr := Instr{kind: .imul, pos: pos, section: e.current_section}
+				mut instr := Instr{kind: instr_name_upper, pos: pos, section: e.current_section}
 				check_regi_size(desti_operand_1, size)
 				check_regi_size(desti_operand_2, size)
 				mod_rm := compose_mod_rm(mod_regi, regi_bits(desti_operand_2), regi_bits(desti_operand_1))
@@ -1245,7 +1196,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 		}
 		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 			op_code := if size == encoder.suffix_byte {
 				u8(0xF6)
 			} else {
@@ -1255,17 +1206,17 @@ fn (mut e Encoder) encode_instr() {
 			desti := e.parse_operand()
 
 			if desti is Register {
-				e.encode_regi(.neg, [op_code], encoder.slash_3, desti, size)
+				e.encode_regi(instr_name_upper, [op_code], encoder.slash_3, desti, size)
 				return
 			}
 
 			if desti is Indirection {
-				e.encode_indir(.neg, [op_code], slash_3, desti, size)
+				e.encode_indir(instr_name_upper, [op_code], slash_3, desti, size)
 				return
 			}
 		}
 		'XORQ', 'XORL', 'XORW', 'XORB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -1278,11 +1229,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x31)
 				}
 				if desti is Register {
-					e.encode_regi_regi(.xor, [op_code], source, desti, size, size)
+					e.encode_regi_regi(instr_name_upper, [op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
-					e.encode_indir_regi(.xor, [op_code], desti, source, size, size)
+					e.encode_indir_regi(instr_name_upper, [op_code], desti, source, size, size)
 					return
 				}
 			}
@@ -1292,7 +1243,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x35)
 				}
-				e.encode_imm_regi(.xor, slash_6, rax_magic, source, desti, size)
+				e.encode_imm_regi(instr_name_upper, slash_6, rax_magic, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1304,7 +1255,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x81)
 				}
-				e.encode_imm_indir(.xor, [op_code], slash_6, source, desti, size)
+				e.encode_imm_indir(instr_name_upper, [op_code], slash_6, source, desti, size)
 				return
 			}
 			if source is Indirection && desti is Register {
@@ -1313,12 +1264,12 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x33)
 				}
-				e.encode_indir_regi(.xor, [op_code], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [op_code], source, desti, size, size)
 				return
 			}
 		}
 		'ANDQ', 'ANDL', 'ANDW', 'ANDB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -1330,7 +1281,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x25)
 				}
-				e.encode_imm_regi(.and, slash_4, rax_magic, source, desti, size)
+				e.encode_imm_regi(instr_name_upper, slash_4, rax_magic, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1342,7 +1293,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x81)
 				}
-				e.encode_imm_indir(.and, [op_code], slash_4, source, desti, size)
+				e.encode_imm_indir(instr_name_upper, [op_code], slash_4, source, desti, size)
 				return
 			}
 			if source is Register {
@@ -1352,11 +1303,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x21)
 				}
 				if desti is Register {
-					e.encode_regi_regi(.and, [op_code], source, desti, size, size)
+					e.encode_regi_regi(instr_name_upper, [op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
-					e.encode_indir_regi(.and, [op_code], desti, source, size, size)
+					e.encode_indir_regi(instr_name_upper, [op_code], desti, source, size, size)
 					return
 				}
 			}
@@ -1366,12 +1317,12 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x23)
 				}
-				e.encode_indir_regi(.and, [op_code], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [op_code], source, desti, size, size)
 				return
 			}
 		}
 		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 			op_code := if size == encoder.suffix_byte {
 				u8(0xF6)
 			} else {
@@ -1381,16 +1332,16 @@ fn (mut e Encoder) encode_instr() {
 			desti := e.parse_operand()
 
 			if desti is Register {
-				e.encode_regi(.not, [op_code], encoder.slash_2, desti, size)
+				e.encode_regi(instr_name_upper, [op_code], encoder.slash_2, desti, size)
 				return
 			}
 			if desti is Indirection {
-				e.encode_indir(.not, [op_code], slash_2, desti, size)
+				e.encode_indir(instr_name_upper, [op_code], slash_2, desti, size)
 				return
 			}
 		}
 		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
-			size := get_size_by_suffix(instr_name)
+			size := get_size_by_suffix(instr_name_upper)
 
 			source := e.parse_operand()
 			e.expect(.comma)
@@ -1403,11 +1354,11 @@ fn (mut e Encoder) encode_instr() {
 					u8(0x39)
 				}
 				if desti is Register {
-					e.encode_regi_regi(.cmp, [op_code], source, desti, size, size)
+					e.encode_regi_regi(instr_name_upper, [op_code], source, desti, size, size)
 					return
 				}
 				if desti is Indirection {
-					e.encode_indir_regi(.cmp, [op_code], desti, source, size, size)
+					e.encode_indir_regi(instr_name_upper, [op_code], desti, source, size, size)
 					return
 				}
 			}
@@ -1417,7 +1368,7 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x3D)
 				}
-				e.encode_imm_regi(.cmp, slash_7, rax_magic, source, desti, size)
+				e.encode_imm_regi(instr_name_upper, slash_7, rax_magic, source, desti, size)
 				return
 			}
 			if source is Immediate && desti is Indirection {
@@ -1429,59 +1380,59 @@ fn (mut e Encoder) encode_instr() {
 				} else {
 					u8(0x81)
 				}
-				e.encode_imm_indir(.cmp, [op_code], slash_7, source, desti, size)
+				e.encode_imm_indir(instr_name_upper, [op_code], slash_7, source, desti, size)
 				return
 			}
 			if source is Indirection && desti is Register {
 				op_code := if size == encoder.suffix_byte {u8(0x3A)} else {u8(0x3B)}
-				e.encode_indir_regi(.cmp, [op_code], source, desti, size, size)
+				e.encode_indir_regi(instr_name_upper, [op_code], source, desti, size, size)
 				return
 			}
 		}
 		'SETL' {
 			regi := e.parse_operand()
 			if regi is Register {
-				e.encode_regi(.setl, [u8(0x0F), 0x9C], encoder.slash_0, regi, encoder.suffix_byte)
+				e.encode_regi(instr_name_upper, [u8(0x0F), 0x9C], encoder.slash_0, regi, encoder.suffix_byte)
 				return
 			}
 		}
 		'SETG' {
 			regi := e.parse_operand()
 			if regi is Register {
-				e.encode_regi(.setg, [u8(0x0F), 0x9F], encoder.slash_0, regi, encoder.suffix_byte)
+				e.encode_regi(instr_name_upper, [u8(0x0F), 0x9F], encoder.slash_0, regi, encoder.suffix_byte)
 				return
 			}
 		}
 		'SETLE' {
 			regi := e.parse_operand()
 			if regi is Register {
-				e.encode_regi(.setle, [u8(0x0F), 0x9E], encoder.slash_0, regi, encoder.suffix_byte)
+				e.encode_regi(instr_name_upper, [u8(0x0F), 0x9E], encoder.slash_0, regi, encoder.suffix_byte)
 				return
 			}
 		}
 		'SETGE' {
 			regi := e.parse_operand()
 			if regi is Register {
-				e.encode_regi(.setge, [u8(0x0F), 0x9D], encoder.slash_0, regi, encoder.suffix_byte)
+				e.encode_regi(instr_name_upper, [u8(0x0F), 0x9D], encoder.slash_0, regi, encoder.suffix_byte)
 				return
 			}
 		}
 		'SETE' {
 			regi := e.parse_operand()
 			if regi is Register {
-				e.encode_regi(.sete, [u8(0x0F), 0x94], encoder.slash_0, regi, encoder.suffix_byte)
+				e.encode_regi(instr_name_upper, [u8(0x0F), 0x94], encoder.slash_0, regi, encoder.suffix_byte)
 				return
 			}
 		}
 		'SETNE' {
 			regi := e.parse_operand()
 			if regi is Register {
-				e.encode_regi(.setne, [u8(0x0F), 0x95], encoder.slash_0, regi, encoder.suffix_byte)
+				e.encode_regi(instr_name_upper, [u8(0x0F), 0x95], encoder.slash_0, regi, encoder.suffix_byte)
 				return
 			}
 		}
 		'CALLQ', 'CALL' {
-			mut instr := Instr{kind: .call, pos: pos, section: e.current_section, code: [u8(0xe8), 0, 0, 0, 0]}
+			mut instr := Instr{kind: 'CALL', pos: pos, section: e.current_section, code: [u8(0xe8), 0, 0, 0, 0]}
 
 			source := e.parse_operand()
 			adjust := eval_expr(source)
@@ -1504,35 +1455,35 @@ fn (mut e Encoder) encode_instr() {
 			return
 		}
 		'JMP', 'JMPQ' {
-			e.encode_var_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
+			e.encode_var_instr(instr_name_upper, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
 			return
 		}
 		'JNE' {
-			e.encode_var_instr(.jne, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
+			e.encode_var_instr(instr_name_upper, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
 			return
 		}
 		'JE' {
-			e.encode_var_instr(.je, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
+			e.encode_var_instr(instr_name_upper, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
 			return
 		}
 		'JL' {
-			e.encode_var_instr(.jl, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
+			e.encode_var_instr(instr_name_upper, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
 			return
 		}
 		'JG' {
-			e.encode_var_instr(.jg, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
+			e.encode_var_instr(instr_name_upper, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
 			return
 		}
 		'JLE' {
-			e.encode_var_instr(.jle, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
+			e.encode_var_instr(instr_name_upper, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
 			return
 		}
 		'JGE' {
-			e.encode_var_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
+			e.encode_var_instr(instr_name_upper, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 			return
 		}
 		else {
-			error.print(pos, 'unkwoun instruction `$instr_name`')
+			error.print(pos, 'unkwoun instruction `$instr_name_upper`')
 			exit(1)
 		}
 	}
