@@ -55,7 +55,6 @@ pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
 
 		// check if the symbol is defined
 		s := e.defined_symbols[name] or {
-			// Relocation
 			rela_text_user := encoder.RelaTextUser{
 				instr:  instrs[index],
 				offset: instrs[index].varcode.rel32_offset,
@@ -173,7 +172,7 @@ pub fn (mut e Encoder) assign_addresses() {
 			e.sections[name] = &UserDefinedSection{}
 		}
 		mut section := e.sections[name] or {
-			panic('PANIC')
+			panic('this should not happen')
 		}
 
 		for mut i in instrs {

@@ -19,7 +19,7 @@ fn (mut e Encoder) pop() {
 		return
 	}
 	if source is Indirection {
-		if source.base.size == suffix_long {
+		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
 		instr.code << 0x8f // op_code
@@ -64,7 +64,7 @@ fn (mut e Encoder) push() {
 		return
 	}
 	if source is Indirection {
-		if source.base.size == suffix_long {
+		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
 		instr.code << u8(0xff) // op_code

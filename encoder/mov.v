@@ -82,7 +82,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 			u8(0x8b)
 		}
 		check_regi_size(desti, size)
-		if source.base.size == suffix_long || source.index.size == suffix_long {
+		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
 		instr.code << add_prefix_byte(size)
@@ -170,7 +170,7 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 	}
 	if source is Indirection && desti is Register {
 		check_regi_size(desti, exp_desti_size)
-		if source.base.size == suffix_long || source.index.size == suffix_long {
+		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
 		instr.code << add_prefix_byte(exp_desti_size)
@@ -228,7 +228,7 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 	}
 	if source is Indirection && desti is Register {
 		check_regi_size(desti, exp_desti_size)
-		if source.base.size == suffix_long || source.index.size == suffix_long {
+		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
 		instr.code << add_prefix_byte(exp_desti_size)

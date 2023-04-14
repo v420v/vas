@@ -139,7 +139,6 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `shrl`,
 - [x] `shrw`,
 - [x] `shrb`
-- [x] `shr`
 - [x] `negq`
 - [x] `negl`
 - [x] `negw`

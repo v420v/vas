@@ -531,11 +531,6 @@ fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
 }
 
-fn compose_sib(scale u8, index u8, base u8) u8 {
-	return (scale<<6) + (index<<3) + base
-}
-
-
 fn add_prefix_byte(size int) []u8 {
 	if size == encoder.suffix_quad {
 		return [encoder.rex_w]

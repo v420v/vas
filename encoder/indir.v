@@ -3,6 +3,10 @@ module encoder
 import error
 import encoding.binary
 
+fn (indir Indirection) base_or_index_is_long() bool {
+	return indir.base.size == encoder.suffix_long || indir.index.size == encoder.suffix_long
+}
+
 fn (indir Indirection) check_base_register() (bool, bool, bool) {
 	if !indir.has_base {
 		return false, false, false
