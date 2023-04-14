@@ -1,14 +1,10 @@
-// I know the code is messy, but it gets the job done for now.
-// Leaving this comment here to remind myself to refactor it from scratch
-// when I have more time. 
-
 module encoder
 
 import error
 import token
-import encoding.binary
-import strconv
 import lexer
+import strconv
+import encoding.binary
 
 pub enum InstrKind {
 	section
@@ -34,6 +30,8 @@ pub enum InstrKind {
 	not
 	cqto
 	cmp
+	shl
+	shr
 	pop
 	push
 	call
@@ -149,6 +147,7 @@ pub mut:
 	index 			Register
 	scale 			Expr
 	pos 			token.Position
+	has_base        bool
 	has_index_scale bool
 }
 
@@ -341,12 +340,16 @@ fn (mut e Encoder) parse_operand() Expr {
         	    return expr
         	}
 			e.next()
-			regi := e.parse_register()
 			mut indirection := Indirection{
                 disp: expr,
-                base: regi,
                 pos: pos,
             }
+			if e.tok.kind == .comma {
+				indirection.has_base = false
+			} else {
+				indirection.has_base = true
+				indirection.base = e.parse_register()
+			}
 			// has index and scale
 			if e.tok.kind == .comma {
 				indirection.has_index_scale = true
@@ -365,32 +368,6 @@ fn (mut e Encoder) parse_operand() Expr {
     }
 	error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 	exit(1)
-}
-
-fn get_size_by_suffix(name string) int {
-	return match name.to_upper()[name.len-1] {
-		`Q` {
-			suffix_quad
-		}
-		`L` {
-			suffix_long
-		}
-		`W` {
-			suffix_word
-		}
-		`B` {
-			suffix_byte
-		} else {
-			panic('unkown size')
-		}
-	}
-}
-
-fn check_regi_size(reg Register, size int) {
-	if reg.size != size {
-		error.print(reg.pos, 'invalid size of register for instruction.')
-		exit(0)
-	}
 }
 
 fn regi_size(name string) int {
@@ -439,26 +416,6 @@ fn regi_bits(regi Register) u8 {
 			exit(1)
 		}
 	}
-}
-
-pub fn align_to(n int, align int) int {
-	return (n + align - 1) / align * align
-}
-
-fn is_in_i8_range(n int) bool {
-	return -128 <= n && n <= 127
-}
-
-fn is_in_i32_range(n int) bool {
-	return n < (1 << 31)
-}
-
-fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
-	return (mod << 6) + (reg_op << 3) + rm
-}
-
-fn compose_sib(scale u8, index u8, base u8) u8 {
-	return (scale<<6) + (index<<3) + base
 }
 
 fn eval_expr(expr Expr) int {
@@ -513,6 +470,32 @@ fn (mut e Encoder) get_symbol_from_binop(expr Expr, mut arr []string) {
 	}
 }
 
+fn get_size_by_suffix(name string) int {
+	return match name.to_upper()[name.len-1] {
+		`Q` {
+			encoder.suffix_quad
+		}
+		`L` {
+			encoder.suffix_long
+		}
+		`W` {
+			encoder.suffix_word
+		}
+		`B` {
+			encoder.suffix_byte
+		} else {
+			panic('unkown size')
+		}
+	}
+}
+
+fn check_regi_size(reg Register, size int) {
+	if reg.size != size {
+		error.print(reg.pos, 'invalid size of register for instruction.')
+		exit(0)
+	}
+}
+
 fn scale(n u8) u8 {
 	match n {
 		1 {
@@ -532,66 +515,50 @@ fn scale(n u8) u8 {
 	}
 }
 
-// instr regi, regi
-fn (mut e Encoder) encode_regi_regi(kind InstrKind, op_code []u8, regi1 Register, regi2 Register, regi1_size int, regi2_size int) {
-	mut code := []u8{}
-	check_regi_size(regi1, regi1_size)
-	check_regi_size(regi2, regi2_size)
-
-	if regi1_size == encoder.suffix_quad {
-		code << encoder.rex_w
-	} else if regi1_size == encoder.suffix_word {
-		code << operand_size_prefix16
-	}
-
-	code << op_code
-	code << compose_mod_rm(encoder.mod_regi, regi_bits(regi1), regi_bits(regi2))
-
-	e.instrs[e.current_section] << &Instr{kind: kind, code: code, section: e.current_section, pos: regi1.pos}
+pub fn align_to(n int, align int) int {
+	return (n + align - 1) / align * align
 }
 
-// instr imm, regi
-fn (mut e Encoder) encode_imm_regi(kind InstrKind, slash u8, rax_magic u8, imm Immediate, regi Register, size int) {
-	mut code := []u8{}
+fn is_in_i8_range(n int) bool {
+	return -128 <= n && n <= 127
+}
 
-	num := eval_expr(imm.expr)
-	check_regi_size(regi, size)
+fn is_in_i32_range(n int) bool {
+	return n < (1 << 31)
+}
 
-	mod_rm := compose_mod_rm(mod_regi, slash, regi_bits(regi))
+fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
+	return (mod << 6) + (reg_op << 3) + rm
+}
 
+fn compose_sib(scale u8, index u8, base u8) u8 {
+	return (scale<<6) + (index<<3) + base
+}
+
+
+fn add_prefix_byte(size int) []u8 {
 	if size == encoder.suffix_quad {
-		code << encoder.rex_w
+		return [encoder.rex_w]
 	} else if size == encoder.suffix_word {
-		code << operand_size_prefix16
+		return [operand_size_prefix16]
 	}
+	return []
+}
 
-	if size == encoder.suffix_byte {
-		if regi.lit == 'AL' {
-			code << [rax_magic, u8(num)]
-		} else {
-			code << [u8(0x80), mod_rm, u8(num)]
-		}
-	} else if is_in_i8_range(num) {
-		code << [u8(0x83), mod_rm, u8(num)]
-	} else if size == encoder.suffix_word {
+fn encode_imm_value(imm_val int, size int) []u8 {
+	if is_in_i8_range(imm_val) || size == suffix_byte {
+		return [u8(imm_val)]
+	} else if size == suffix_word {
 		mut hex := [u8(0), 0]
-		binary.little_endian_put_u16(mut &hex, u16(num))
-		if regi.lit in ['RAX', 'EAX'] {
-			code << [rax_magic, hex[0], hex[1]]
-		} else {
-			code << [u8(0x81), mod_rm, hex[0], hex[1]]
-		}
-	} else if is_in_i32_range(num) {
+		binary.little_endian_put_u16(mut &hex, u16(imm_val))
+		return hex
+	} else if is_in_i32_range(imm_val) {
 		mut hex := [u8(0), 0, 0, 0]
-		binary.little_endian_put_u32(mut &hex, u32(num))
-		if regi.lit in ['RAX', 'EAX'] {
-			code << [rax_magic, hex[0], hex[1], hex[2], hex[3]]
-		} else {
-			code << [u8(0x81), mod_rm, hex[0], hex[1], hex[2], hex[3]]
-		}
+		binary.little_endian_put_u32(mut &hex, u32(imm_val))
+		return hex
+	} else {
+		panic('unreachable')
 	}
-
-	e.instrs[e.current_section] << &Instr{kind: kind, code: code, section: e.current_section, pos: imm.pos}
 }
 
 fn (mut e Encoder) var_instr(kind InstrKind, rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) {
@@ -622,20 +589,6 @@ fn (mut e Encoder) var_instr(kind InstrKind, rel8_code []u8, rel8_offset i64, re
 
 	e.variable_instrs << &instr
 	e.instrs[e.current_section] << &instr
-}
-
-fn (mut e Encoder) encode_regi(kind InstrKind, op_code []u8, slash u8, regi Register, size int) {
-	mut code := []u8{}
-	if size == encoder.suffix_quad {
-		code << encoder.rex_w
-	} else if size == encoder.suffix_word {
-		code << encoder.operand_size_prefix16
-	}
-	check_regi_size(regi, size)
-	mod_rm := compose_mod_rm(encoder.mod_regi, slash, regi_bits(regi))
-	code << op_code
-	code << mod_rm
-	e.instrs[e.current_section] << &Instr{kind: kind, code: code, section: e.current_section, pos: regi.pos}
 }
 
 fn (mut e Encoder) encode_instr() {
@@ -687,6 +640,24 @@ fn (mut e Encoder) encode_instr() {
 		'.QUAD' {
 			e.quad()
 		}
+		'RETQ', 'RET' {
+			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+		}
+		'SYSCALL' {
+			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
+		}
+		'NOPQ', 'NOP' {
+			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
+		}
+		'HLT' {
+			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
+		}
+		'LEAVE' {
+			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+		}
+		'CQTO' {
+			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
+		}
 		'POP', 'POPQ' {
 			e.pop()
 		}
@@ -735,59 +706,29 @@ fn (mut e Encoder) encode_instr() {
 		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
 			e.cmp(instr_name_upper)
 		}
-		'RETQ', 'RET' {
-			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+		'SHLQ', 'SHLL', 'SHLW', 'SHLB' {
+			e.sh(.shl, instr_name_upper, encoder.slash_4)
 		}
-		'SYSCALL' {
-			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
-		}
-		'NOPQ', 'NOP' {
-			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
-		}
-		'HLT' {
-			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
-		}
-		'LEAVE' {
-			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
-		}
-		'CQTO' {
-			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
+		'SHRQ', 'SHRL', 'SHRW', 'SHRB' {
+			e.sh(.shr, instr_name_upper, encoder.slash_5)
 		}
 		'SETL' {
-			regi := e.parse_operand()
-			if regi is Register {
-				e.encode_regi(.setl, [u8(0x0F), 0x9C], encoder.slash_0, regi, encoder.suffix_byte)
-			}
+			e.set(.setl, [u8(0x0F), 0x9C])
 		}
 		'SETG' {
-			regi := e.parse_operand()
-			if regi is Register {
-				e.encode_regi(.setg, [u8(0x0F), 0x9F], encoder.slash_0, regi, encoder.suffix_byte)
-			}
+			e.set(.setg, [u8(0x0F), 0x9F])
 		}
 		'SETLE' {
-			regi := e.parse_operand()
-			if regi is Register {
-				e.encode_regi(.setle, [u8(0x0F), 0x9E], encoder.slash_0, regi, encoder.suffix_byte)
-			}
+			e.set(.setle, [u8(0x0F), 0x9E])
 		}
 		'SETGE' {
-			regi := e.parse_operand()
-			if regi is Register {
-				e.encode_regi(.setge, [u8(0x0F), 0x9D], encoder.slash_0, regi, encoder.suffix_byte)
-			}
+			e.set(.setge, [u8(0x0F), 0x9D])
 		}
 		'SETE' {
-			regi := e.parse_operand()
-			if regi is Register {
-				e.encode_regi(.sete, [u8(0x0F), 0x94], encoder.slash_0, regi, encoder.suffix_byte)
-			}
+			e.set(.sete, [u8(0x0F), 0x94])
 		}
 		'SETNE' {
-			regi := e.parse_operand()
-			if regi is Register {
-				e.encode_regi(.setne, [u8(0x0F), 0x95], encoder.slash_0, regi, encoder.suffix_byte)
-			}
+			e.set(.setne, [u8(0x0F), 0x95])
 		}
 		'CALLQ', 'CALL' {
 			e.call()

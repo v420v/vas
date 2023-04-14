@@ -28,6 +28,7 @@ fn (mut e Encoder) section() {
 	e.instrs[e.current_section] << &instr
 }
 
+// .string
 fn (mut e Encoder) string() {
 	pos := e.tok.pos
 
@@ -41,6 +42,7 @@ fn (mut e Encoder) string() {
 	e.instrs[e.current_section] << &instr
 }
 
+// .byte
 fn (mut e Encoder) byte() {
 	desti := e.parse_operand()
 
@@ -68,6 +70,7 @@ fn (mut e Encoder) byte() {
 	e.instrs[e.current_section] << &instr
 }
 
+// .word
 fn (mut e Encoder) word() {
 	desti := e.parse_operand()
 
@@ -97,6 +100,7 @@ fn (mut e Encoder) word() {
 	e.instrs[e.current_section] << &instr
 }
 
+// .long
 fn (mut e Encoder) long() {
 	desti := e.parse_operand()
 
@@ -126,6 +130,7 @@ fn (mut e Encoder) long() {
 	e.instrs[e.current_section] << &instr
 }
 
+// .quad
 fn (mut e Encoder) quad() {
 	desti := e.parse_operand()
 
