@@ -165,7 +165,7 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 		check_regi_size(desti, exp_desti_size)
 		instr.code << add_prefix_byte(exp_desti_size)
 		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(source), regi_bits(desti))
+		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(desti), regi_bits(source))
 		return
 	}
 	if source is Indirection && desti is Register {
@@ -223,7 +223,7 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 		check_regi_size(desti, exp_desti_size)
 		instr.code << add_prefix_byte(exp_desti_size)
 		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(source), regi_bits(desti))
+		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(desti), regi_bits(source))
 		return
 	}
 	if source is Indirection && desti is Register {

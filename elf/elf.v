@@ -164,6 +164,15 @@ fn add_padding(mut code []u8) {
 	}
 }
 
+pub fn (mut e Elf) count_symbols_start_with_l() {
+	// symbols that start with .L
+	for name, _ in e.defined_symbols {
+		if name.to_upper().starts_with('.L') {
+			e.ignored_symbols_count++
+		}
+	}
+}
+
 fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 	for name, symbol in e.defined_symbols {
 		if symbol.binding != symbol_binding {
@@ -171,7 +180,6 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		}
 
 		if name.to_upper().starts_with('.L') && symbol_binding == stb_local {
-			e.ignored_symbols_count++
 			continue
 		}
 
@@ -201,8 +209,8 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 	// Symbols to be relocated are passed to symtab after local symbols.
 	// The index will start from local_symbols.len()
-	mut pos := e.defined_symbols.len - e.globals_count + 1 - e.ignored_symbols_count // count of local symbols
-	//                                                   ^ null symbol
+	mut pos := e.defined_symbols.len - e.globals_count - e.ignored_symbols_count + 1 // count of local symbols
+	//                                                                             ^ null symbol
 
 	for r in rela_text_users {
 		mut index := 0

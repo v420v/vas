@@ -14,12 +14,11 @@ fn (mut e Encoder) encode_imm_regi_with_ax(kind InstrKind, imm Immediate, regi R
 	}
 	check_regi_size(regi, size)
 	instr.code << add_prefix_byte(size)
-	mod_rm := compose_mod_rm(mod_regi, slash, regi_bits(regi))
 	if regi.lit in ['AL', 'EAX', 'RAX'] && !is_in_i8_range(imm_val) {
 		instr.code << rax_magic
 	} else {
 		instr.code << op_code
-		instr.code << mod_rm
+		instr.code << compose_mod_rm(mod_regi, slash, regi_bits(regi))
 	}
 	instr.code << encode_imm_value(imm_val, size)
 	e.instrs[e.current_section] << &instr

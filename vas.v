@@ -58,6 +58,7 @@ fn main() {
 	en.fix_same_section_relocations()
 
 	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count)
+	e.count_symbols_start_with_l()
 	e.rela_text_users(en.rela_text_users)
 	e.elf_symtab_strtab()
 	e.build_shstrtab()
