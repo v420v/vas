@@ -6,10 +6,7 @@ import encoding.binary
 // pop
 fn (mut e Encoder) pop() {
 	mut instr := Instr{kind: .pop, section: e.current_section, pos: e.tok.pos}
-
-	defer {
-		e.instrs[e.current_section] << &instr
-	}
+	e.instrs[e.current_section] << &instr
 
 	source := e.parse_operand()
 
@@ -40,10 +37,7 @@ fn (mut e Encoder) pop() {
 // push
 fn (mut e Encoder) push() {
 	mut instr := Instr{kind: .push, section: e.current_section, pos: e.tok.pos}
-
-	defer {
-		e.instrs[e.current_section] << &instr
-	}
+	e.instrs[e.current_section] << &instr
 
 	source := e.parse_operand()
 

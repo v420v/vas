@@ -6,10 +6,7 @@ import encoding.binary
 // movq, movl, movw, movb
 fn (mut e Encoder) mov(instr_name_upper string) {
 	mut instr := Instr{kind: .mov, section: e.current_section, pos: e.tok.pos}
-
-	defer {
-		e.instrs[e.current_section] << &instr
-	}
+	e.instrs[e.current_section] << &instr
 
 	size := get_size_by_suffix(instr_name_upper)
 	source := e.parse_operand()
@@ -135,10 +132,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 // movz...
 fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 	mut instr := Instr{kind: .movzx, section: e.current_section, pos: e.tok.pos}
-
-	defer {
-		e.instrs[e.current_section] << &instr
-	}
+	e.instrs[e.current_section] << &instr
 
 	suffix := instr_name_upper[4..].to_upper()
 	exp_source_size := get_size_by_suffix(suffix[..1])
@@ -191,10 +185,7 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 // movs...
 fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 	mut instr := Instr{kind: .movsx, section: e.current_section, pos: e.tok.pos}
-
-	defer {
-		e.instrs[e.current_section] << &instr
-	}
+	e.instrs[e.current_section] << &instr
 
 	suffix := instr_name_upper[4..].to_upper()
 	exp_source_size := get_size_by_suffix(suffix[..1])
