@@ -22,15 +22,15 @@ fib:
     subq    $24, %rsp
     movl    %edi, -20(%rbp)
     cmpl    $1, -20(%rbp)
-    jne     label_2
+    jne     .L2
     movl    $0, %eax
-    jmp     label_3
-label_2:
+    jmp     .L3
+.L2:
     cmpl    $2, -20(%rbp)
-    jne     label_4
+    jne     .L4
     movl    $1, %eax
-    jmp     label_3
-label_4:
+    jmp     .L3
+.L4:
     movl    -20(%rbp), %eax
     subl    $1, %eax
     movl    %eax, %edi
@@ -41,30 +41,30 @@ label_4:
     movl    %eax, %edi
     call    fib
     addl    %ebx, %eax
-label_3:
+.L3:
     movq    -8(%rbp), %rbx
     leave
     ret
-label_C0:
+.LC0:
     .string "%d\n"
 main:
     pushq   %rbp
     movq    %rsp, %rbp
     subq    $16, %rsp
     movl    $1, -4(%rbp)
-    jmp     label_6
-label_7:
+    jmp     .L6
+.L7:
     movl    -4(%rbp), %eax
     movl    %eax, %edi
     call    fib
     movl    %eax, %esi
-    leaq    label_C0(%rip), %rdi
+    leaq    .LC0(%rip), %rdi
     movl    $0, %eax
     call    printf
     addl    $1, -4(%rbp)
-label_6:
+.L6:
     cmpl    $14, -4(%rbp)
-    jne     label_7
+    jne     .L7
     movl    $0, %eax
     leave
     ret

@@ -34,14 +34,14 @@ loop_start:
 
 	movq $0, %rax
 	cmpq %rdx, %rax
-	jne label_1
+	jne .L1
 
 	# print fizz buzz
 	leaq fizzbuzz(%rip), %rdi
 	call printf
-	jmp label_2
+	jmp .L2
 
-label_1:
+.L1:
 	# check if it's multiple of 3
 	movq -4(%rbp), %rax
 	movq $3, %rbx
@@ -49,12 +49,12 @@ label_1:
 	idivq %rbx
 	movq $0, %rax
 	cmpq %rdx, %rax
-	jne label_3
+	jne .L3
 	leaq fizz(%rip), %rdi
 	call printf
-	jmp label_2
+	jmp .L2
 
-label_3:
+.L3:
 	# check if it's multiple of 5
 	movq -4(%rbp), %rax
 	movq $5, %rbx
@@ -62,17 +62,17 @@ label_3:
 	idivq %rbx
 	movq $0, %rax
 	cmpq %rdx, %rax
-	jne label_4
+	jne .L4
 	leaq buzz(%rip), %rdi
 	call printf
-	jmp label_2
-label_4:
+	jmp .L2
+.L4:
 	# print number
 	leaq fmt(%rip), %rdi
 	movq -4(%rbp), %rsi
 	callq printf
 
-label_2:
+.L2:
 	# increment
 	movq -4(%rbp), %rax
 	addq $1, %rax
