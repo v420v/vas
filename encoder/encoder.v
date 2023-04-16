@@ -58,16 +58,17 @@ pub enum InstrKind {
 
 pub struct Encoder {
 mut:
-	tok             token.Token // current token
-	l               lexer.Lexer // lexer
+	tok					token.Token			// current token
+	l  					lexer.Lexer			// lexer
 pub mut:
-	current_section string = '.text'
-	instrs          map[string][]&Instr
-	rela_text_users []RelaTextUser
-	variable_instrs []&Instr // variable length instructions jmp, je, jn ...
-	defined_symbols map[string]&Instr
-	sections        map[string]&UserDefinedSection
-	globals_count   int
+	current_section		string = '.text'
+	instrs         		map[string][]&Instr // map with section name as keys and instruction list as value
+	rela_text_users		[]RelaTextUser
+	variable_instrs		[]&Instr			// variable length instructions jmp, je, jn ...
+	defined_symbols		map[string]&Instr   // labels, sections...
+	sections       		map[string]&UserDefinedSection
+	globals_count  		int					// global symbols
+	local_labels_count	int					// symbols that start with `.L`
 }
 
 pub struct Instr {
@@ -331,6 +332,7 @@ fn (mut e Encoder) parse_operand() Expr {
             return e.parse_register()
         }
 		else {
+			// parse indirect
 			expr := if e.tok.kind == .lpar {
 				Expr(Number{lit: '0', pos: pos})
 			} else {
@@ -757,6 +759,11 @@ fn (mut e Encoder) encode_instr() {
 }
 
 pub fn (mut e Encoder) encode() {
+	// add .text section
+	instr := Instr{kind: .section, pos: e.tok.pos, section: '.text', symbol_type: encoder.stt_section, flags: "ax"}
+	e.defined_symbols['.text'] = &instr
+	e.instrs[e.current_section] << &instr
+
 	for e.tok.kind != .eof {
 		e.encode_instr()
 	}

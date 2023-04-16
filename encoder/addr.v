@@ -164,9 +164,6 @@ fn (mut e Encoder) change_symbol_binding(instr Instr, binding u8) {
 }
 
 pub fn (mut e Encoder) assign_addresses() {
-	e.sections['.text'] = &UserDefinedSection{
-		flags: section_flags('ax')
-	}
 	for name, mut instrs in e.instrs {
 		if name !in e.sections {
 			e.sections[name] = &UserDefinedSection{}
@@ -219,4 +216,11 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 	}
 }
 
+pub fn (mut e Encoder) count_local_labels() {
+	for name, _ in e.defined_symbols {
+		if name.to_upper().starts_with('.L') {
+			e.local_labels_count++
+		}
+	}
+}
 

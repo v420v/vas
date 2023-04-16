@@ -56,9 +56,9 @@ fn main() {
 	en.resolve_variable_length_instrs(mut en.variable_instrs)
 	en.assign_addresses()
 	en.fix_same_section_relocations()
+	en.count_local_labels()
 
-	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count)
-	e.count_symbols_start_with_l()
+	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count, en.local_labels_count)
 	e.rela_text_users(en.rela_text_users)
 	e.elf_symtab_strtab()
 	e.build_shstrtab()
