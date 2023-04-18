@@ -202,7 +202,7 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 		mut r_addend := i64(0 - 4)
 
 		// TODO: ...
-		if r.rtype == encoder.r_x86_64_32s || r.rtype == encoder.r_x86_64_32 || r.rtype == encoder.r_x86_64_64 || r.rtype == encoder.r_x86_64_32 || r.rtype == encoder.r_x86_64_16 || r.rtype == encoder.r_x86_64_8 {
+		if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
 			r_addend = 0
 		}
 

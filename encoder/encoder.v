@@ -200,23 +200,23 @@ pub const (
 	elf_shf_tls              		= 0x400
 
 	//  rela rtype
-	r_x86_64_none	   				= 0
-	r_x86_64_64		   				= 1
-	r_x86_64_pc32	   				= 2
-	r_x86_64_got32	   				= 3
-	r_x86_64_plt32	   				= 4
-	r_x86_64_copy	   				= 5
-	r_x86_64_glob_dat  				= 6
-	r_x86_64_jump_slot 				= 7
-	r_x86_64_relative  				= 8
-	r_x86_64_gotpcrel  				= 9
-	r_x86_64_32		   				= 10
-	r_x86_64_32s	   				= 11
-	r_x86_64_16		   				= 12
-	r_x86_64_pc16	   				= 13
-	r_x86_64_8		   				= 14
-	r_x86_64_pc8	   				= 15
-	r_x86_64_pc64	   				= 24
+	r_x86_64_none	   				= u64(0)
+	r_x86_64_64		   				= u64(1)
+	r_x86_64_pc32	   				= u64(2)
+	r_x86_64_got32	   				= u64(3)
+	r_x86_64_plt32	   				= u64(4)
+	r_x86_64_copy	   				= u64(5)
+	r_x86_64_glob_dat  				= u64(6)
+	r_x86_64_jump_slot 				= u64(7)
+	r_x86_64_relative  				= u64(8)
+	r_x86_64_gotpcrel  				= u64(9)
+	r_x86_64_32		   				= u64(10)
+	r_x86_64_32s	   				= u64(11)
+	r_x86_64_16		   				= u64(12)
+	r_x86_64_pc16	   				= u64(13)
+	r_x86_64_8		   				= u64(14)
+	r_x86_64_pc8	   				= u64(15)
+	r_x86_64_pc64	   				= u64(24)
 
 	// symbol
 	stb_local            	        = 0
