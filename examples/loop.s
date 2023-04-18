@@ -1,6 +1,4 @@
-# ./vas -o hello.o hello.s
-# gcc -o hello hello.o
-# ./hello
+# ../vas -o loop.o loop.s && gcc -o loop.out loop.o && ./loop.out
 # message 1
 # message 2
 # message 3
@@ -24,8 +22,6 @@
 
 .global main
 
-.global msg1
-
 .section .data, "wa"
 msg1:
 	.string "message 1"
@@ -38,22 +34,17 @@ line:
 foo:
     retq
 
-.section .text, "ax"
 main:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $16, %rsp
 
 	# int a = 0
-	movq $0, %rax
-	movq %rax, 0-4(%rbp)
+	movq $0, 0-4(%rbp)
 
 loop_main:
-	movq 0-4(%rbp), %rdi
-	movq $5, %rax
-
 	# a == 5 -> jmp loop_end
-	cmpq %rdi, %rax
+	cmpq $5, 0-4(%rbp)
 	je loop_end
 
 	leaq msg1(%rip), %rdi
@@ -69,9 +60,7 @@ loop_main:
     callq puts
 
 	# a = a + 1
-	movq 0-4(%rbp), %rax
-	addq $1, %rax
-	movq %rax, 0-4(%rbp)
+	addq $1, 0-4(%rbp)
 
 	# jmp loop_main
 	jmp loop_main

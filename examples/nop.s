@@ -1,6 +1,4 @@
-# ./vas nop.s
-# ld -o nop nop.o
-# ./nop
+# ../vas nop.s && ld -o nop.out nop.o && ./nop.out
 # echo $?
 # > 0
 

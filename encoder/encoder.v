@@ -3,41 +3,51 @@ module encoder
 import error
 import token
 import lexer
-import encoding.binary
 import strconv
-
-pub struct Encoder {
-mut:
-	tok             token.Token // current token
-	lex             lexer.Lexer
-pub mut:
-	current_section string = '.text'
-	instrs          map[string][]&Instr
-	call_targets    []CallTarget
-	rela_text_users []RelaTextUser
-	variable_instrs []&Instr // variable length instructions jmp, je, jn ...
-	defined_symbols map[string]&Instr
-	sections        map[string]&UserDefinedSection
-	globals_count   int
-}
+import encoding.binary
 
 pub enum InstrKind {
 	section
 	global
 	local
 	string
+	byte
+	word
+	long
+	quad
 	add
 	sub
+	imul
+	idiv
+	div
+	neg
 	lea
 	mov
+	movzx
+	movsx
 	xor
+	and
+	not
+	cqto
 	cmp
+	shl
+	shr
 	pop
 	push
 	call
+	setl
+	setg
+	setle
+	setge
+	sete
+	setne
 	jmp
 	jne
 	je
+	jl
+	jg
+	jle
+	jge
 	ret
 	syscall
 	nop
@@ -46,26 +56,36 @@ pub enum InstrKind {
 	label
 }
 
-pub struct Instr {
+pub struct Encoder {
+mut:
+	tok					token.Token			// current token
+	l  					lexer.Lexer			// lexer
 pub mut:
-	kind           InstrKind
-	code           []u8
-	symbol_name    string
-	flags          string
-	addr           i64
-	binding        u8
-	symbol_type    u8
-	section        string [required]
-	index          int
-	varcode        &VariableCode = unsafe{nil}
-	is_len_decided bool = true
-	pos token.Position
+	current_section		string = '.text'
+	instrs         		map[string][]&Instr // map with section name as keys and instruction list as value
+	rela_text_users		[]RelaTextUser
+	variable_instrs		[]&Instr			// variable length instructions jmp, je, jn ...
+	defined_symbols		map[string]&Instr   // labels, sections...
+	sections       		map[string]&UserDefinedSection
+	globals_count  		int					// global symbols
+	local_labels_count	int					// symbols that start with `.L`
 }
 
-pub struct CallTarget {
+pub struct Instr {
 pub mut:
-	target_symbol string
-	caller      &Instr
+	kind           		InstrKind [required]
+	code           		[]u8
+	symbol_name    		string
+	flags          		string
+	addr           		i64
+	binding        		u8
+	symbol_type    		u8
+	section        		string [required]
+	index          		int
+	varcode        		&VariableCode = unsafe{nil}
+	is_len_decided 		bool = true
+	is_already_resolved bool
+	pos token.Position [required]
 }
 
 pub struct RelaTextUser {
@@ -86,7 +106,7 @@ pub mut:
 	rel32_offset i64
 }
 
-pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop
+pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop | Neg
 
 pub struct Number {
 pub:
@@ -102,23 +122,34 @@ pub:
 	pos token.Position
 }
 
+pub struct Neg {
+pub:
+	expr Expr
+	pos token.Position
+}
+
 pub struct Register {
 pub:
 	lit string
+	size int
 	pos token.Position
 }
 
 pub struct Immediate {
 pub:
-	expr Expr
-	pos token.Position
+	expr 	Expr
+	pos		token.Position
 }
 
 pub struct Indirection {
-pub:
-	expr Expr
-	regi Register
-	pos token.Position
+pub mut:
+	disp 			Expr
+	base 			Register
+	index 			Register
+	scale 			Expr
+	pos 			token.Position
+	has_base        bool
+	has_index_scale bool
 }
 
 pub struct Ident {
@@ -127,60 +158,6 @@ pub:
 	pos token.Position
 }
 
-pub const (
-	elf_shf_write            			 = 0x1
-	elf_shf_alloc            			 = 0x2
-	elf_shf_execinstr        			 = 0x4
-	elf_shf_merge            			 = 0x10
-	elf_shf_strings          			 = 0x20
-	elf_shf_info_link        			 = 0x40
-	elf_shf_link_order       			 = 0x80
-	elf_shf_os_nonconforming 			 = 0x100
-	elf_shf_group            			 = 0x200
-	elf_shf_tls              			 = 0x400
-
-	stb_local            	             = 0
-	stb_global           	             = 1
-
-	mod_indirection_with_no_displacement = u8(0b00)
-	mod_indirection_with_displacement8   = u8(0b01)
-	mod_indirection_with_displacement32  = u8(0b10)
-	mod_regi							 = u8(0b11)
-	rex_w   							 = u8(0x48)
-
-	r_x86_64_none	   					 = 0
-	r_x86_64_64		   					 = 1
-	r_x86_64_pc32	   					 = 2
-	r_x86_64_got32	   					 = 3
-	r_x86_64_plt32	   					 = 4
-	r_x86_64_copy	   					 = 5
-	r_x86_64_glob_dat  					 = 6
-	r_x86_64_jump_slot 					 = 7
-	r_x86_64_relative  					 = 8
-	r_x86_64_gotpcrel  					 = 9
-	r_x86_64_32		   					 = 10
-	r_x86_64_32s	   					 = 11
-	r_x86_64_16		   					 = 12
-	r_x86_64_pc16	   					 = 13
-	r_x86_64_8		   					 = 14
-	r_x86_64_pc8	   					 = 15
-	r_x86_64_pc64	   					 = 24
-
-	stt_notype 			 				 = 0
-	stt_object 			 				 = 1
-	stt_func 			 				 = 2
-	stt_section 		 				 = 3
-	stt_file 			 				 = 4
-	stt_common 			 				 = 5
-	stt_tls 			 				 = 6
-	stt_relc 			 				 = 8
-	stt_srelc 			 				 = 9
-	stt_loos 			 				 = 10
-	stt_hios 			 				 = 12
-	stt_loproc 			 				 = 13
-	stt_hiproc 			 				 = 14
-)
-
 pub struct UserDefinedSection {
 pub mut:
 	code  []u8
@@ -188,17 +165,88 @@ pub mut:
 	flags int
 }
 
-pub fn new(program string, file_name string) &Encoder {
-	mut l := lexer.new(file_name, program)
+pub const (
+	// suffix
+	suffix_byte						= 8
+	suffix_word						= 16
+	suffix_long						= 32
+	suffix_quad						= 64
 
+	mod_indirection_with_no_disp	= u8(0)
+	mod_indirection_with_disp8  	= u8(1)
+	mod_indirection_with_disp32 	= u8(2)
+	mod_regi						= u8(3)
+	rex_w   						= u8(0x48)
+	operand_size_prefix16           = u8(0x66)
+	slash_0							= 0 // /0
+	slash_1							= 1 // /1
+	slash_2							= 2 // /2
+	slash_3							= 3 // /3
+	slash_4							= 4 // /4
+	slash_5							= 5 // /5
+	slash_6							= 6 // /6
+	slash_7							= 7 // /7
+
+	// section
+	elf_shf_write            		= 0x1
+	elf_shf_alloc            		= 0x2
+	elf_shf_execinstr        		= 0x4
+	elf_shf_merge            		= 0x10
+	elf_shf_strings          		= 0x20
+	elf_shf_info_link        		= 0x40
+	elf_shf_link_order       		= 0x80
+	elf_shf_os_nonconforming 		= 0x100
+	elf_shf_group            		= 0x200
+	elf_shf_tls              		= 0x400
+
+	//  rela rtype
+	r_x86_64_none	   				= 0
+	r_x86_64_64		   				= 1
+	r_x86_64_pc32	   				= 2
+	r_x86_64_got32	   				= 3
+	r_x86_64_plt32	   				= 4
+	r_x86_64_copy	   				= 5
+	r_x86_64_glob_dat  				= 6
+	r_x86_64_jump_slot 				= 7
+	r_x86_64_relative  				= 8
+	r_x86_64_gotpcrel  				= 9
+	r_x86_64_32		   				= 10
+	r_x86_64_32s	   				= 11
+	r_x86_64_16		   				= 12
+	r_x86_64_pc16	   				= 13
+	r_x86_64_8		   				= 14
+	r_x86_64_pc8	   				= 15
+	r_x86_64_pc64	   				= 24
+
+	// symbol
+	stb_local            	        = 0
+	stb_global           	        = 1
+
+	stt_notype 			 			= 0
+	stt_object 			 			= 1
+	stt_func 			 			= 2
+	stt_section 		 			= 3
+	stt_file 			 			= 4
+	stt_common 			 			= 5
+	stt_tls 			 			= 6
+	stt_relc 			 			= 8
+	stt_srelc 			 			= 9
+	stt_loos 			 			= 10
+	stt_hios 			 			= 12
+	stt_loproc 			 			= 13
+	stt_hiproc 			 			= 14
+)
+
+pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
+	tok := l.lex()
 	return &Encoder {
-		tok: l.lex()
-		lex: l
+		tok: tok
+		l: l
 	}
 }
 
 fn (mut e Encoder) next() {
-	e.tok = e.lex.lex()
+	e.tok = e.l.lex()
 }
 
 fn (mut e Encoder) expect(exp token.TokenKind) {
@@ -214,12 +262,16 @@ fn (mut e Encoder) parse_register() Register {
 	pos := e.tok.pos
 	reg_name := e.tok.lit.to_upper()
 	if reg_name !in token.registers {
-		error.print(e.tok.pos, 'invalid register name')
+		error.print(e.tok.pos, 'invalid register name `$reg_name`')
 		exit(1)
 	}
+
+	size := regi_size(reg_name)
+
 	e.next()
 	return Register{
 		lit: reg_name
+		size: size
 		pos: pos
 	}
 }
@@ -236,6 +288,11 @@ fn (mut e Encoder) parse_factor() Expr {
 			e.next()
 			return Ident{pos: e.tok.pos, lit: lit}
 		}
+		.minus {
+			e.next()
+			expr := e.parse_factor()
+			return Neg{pos: e.tok.pos, expr: expr}
+		}
 		else {
 			error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
     		exit(1)
@@ -245,7 +302,7 @@ fn (mut e Encoder) parse_factor() Expr {
 
 fn (mut e Encoder) parse_expr() Expr {
 	expr := e.parse_factor()
-	if e.tok.kind in [.plus, .minus] {
+	if e.tok.kind in [.plus, .minus, .mul, .div] {
 		op := e.tok.kind
 		pos := e.tok.pos
 		e.next()
@@ -275,88 +332,187 @@ fn (mut e Encoder) parse_operand() Expr {
             return e.parse_register()
         }
 		else {
-			expr := e.parse_expr()
+			// parse indirect
+			expr := if e.tok.kind == .lpar {
+				Expr(Number{lit: '0', pos: pos})
+			} else {
+				e.parse_expr()
+			}
 			if e.tok.kind != .lpar {
         	    return expr
         	}
 			e.next()
-			regi := e.parse_register()
-            e.expect(.rpar)
-            return Indirection{
-                expr: expr,
-                regi: regi,
+			mut indirection := Indirection{
+                disp: expr,
                 pos: pos,
             }
+			if e.tok.kind == .comma {
+				indirection.has_base = false
+			} else {
+				indirection.has_base = true
+				indirection.base = e.parse_register()
+			}
+			// has index and scale
+			if e.tok.kind == .comma {
+				indirection.has_index_scale = true
+				e.next()
+				indirection.index = e.parse_register()
+				indirection.scale = if e.tok.kind == .comma {
+					e.expect(.comma)
+					e.parse_expr()
+				} else {
+					Expr(Number{lit: '1', pos: pos})
+				}
+			}
+            e.expect(.rpar)
+			return indirection
         }
     }
 	error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 	exit(1)
 }
 
-fn get_size_by_suffix(name string) int {
-	return match name.to_upper()[name.len-1] {
-		`Q` {
-			64
+fn regi_size(name string) int {
+	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'cH', 'DH', 'BH'] {
+		return 8
+	} else if name in ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'] {
+		return 16
+	} else {
+		if name[0] == `R` {
+			return 64
+		} else if name[0] == `E` {
+			return 32
 		}
-		`L` {
-			32
-		} else {
-			panic('PANIC')
+	}
+	panic('unreachable')
+}
+
+fn regi_bits(regi Register) u8 {
+	match regi.lit[regi.lit.len-2..] {
+		'AX', 'AL' {
+			return 0
+		}
+		'CX', 'CL' {
+			return 1
+		}
+		'DX', 'DL' {
+			return 2
+		}
+		'BX', 'BL' {
+			return 3
+		}
+		'SP', 'AH' {
+			return 4
+		}
+		'BP', 'CH' {
+			return 5
+		}
+		'SI', 'DH' {
+			return 6
+		}
+		'DI', 'BH' {
+			return 7
+		}
+		else {
+			error.print(regi.pos, 'invalid operand for instruction')
+			exit(1)
 		}
 	}
 }
 
-fn regi_size(regi Register) int {
-	return if regi.lit[0] == `R` {
-		64
-	} else if  regi.lit[0] == `E` {
-		32
-	} else {
-		panic('[internal error] somthing whent wrong...')
+fn eval_expr(expr Expr) int {
+	return match expr {
+		Number {
+			int(strconv.parse_int(expr.lit, 0, 64) or {
+                error.print(expr.pos, 'invalid number `expr.lit`')
+                exit(1)
+            })
+		}
+		Binop{
+			match expr.op {
+				.plus {
+					eval_expr(expr.left_hs) + eval_expr(expr.right_hs)
+				}
+				.minus {
+					eval_expr(expr.left_hs) - eval_expr(expr.right_hs)
+				}
+				.mul {
+					eval_expr(expr.left_hs) * eval_expr(expr.right_hs)
+				}
+				.div {
+					eval_expr(expr.left_hs) / eval_expr(expr.right_hs)
+				} else {
+					panic('[internal error] somthing whent wrong...')
+				}
+			}
+		}
+		Neg {
+			eval_expr(expr.expr) * -1
+		}
+		else {
+			0
+		}
+	}
+}
+
+fn (mut e Encoder) get_symbol_from_binop(expr Expr, mut arr []string) {
+	match expr {
+		Binop {
+			e.get_symbol_from_binop(expr.left_hs, mut arr)
+			e.get_symbol_from_binop(expr.right_hs, mut arr)
+		}
+		Neg {
+			e.get_symbol_from_binop(expr.expr, mut arr)
+		}
+		Ident {
+			arr << expr.lit
+		}
+		else {
+		}
+	}
+}
+
+fn get_size_by_suffix(name string) int {
+	return match name.to_upper()[name.len-1] {
+		`Q` {
+			encoder.suffix_quad
+		}
+		`L` {
+			encoder.suffix_long
+		}
+		`W` {
+			encoder.suffix_word
+		}
+		`B` {
+			encoder.suffix_byte
+		} else {
+			panic('unkown size')
+		}
 	}
 }
 
 fn check_regi_size(reg Register, size int) {
-	reg_size := if reg.lit[0] == `R` {
-		64
-	} else {
-		32
-	}
-	if reg_size != size {
-		error.print(reg.pos, 'invalid operand for instruction')
+	if reg.size != size {
+		error.print(reg.pos, 'invalid size of register for instruction.')
 		exit(0)
 	}
 }
 
-fn reg_bits(reg Register) u8 {
-	match reg.lit {
-		'EAX', 'RAX' {
+fn scale(n u8) u8 {
+	match n {
+		1 {
 			return 0
 		}
-		'ECX', 'RCX' {
+		2 {
 			return 1
 		}
-		'EDX', 'RDX' {
+		4 {
 			return 2
 		}
-		'EBX', 'RBX' {
+		8 {
 			return 3
-		}
-		'ESP', 'RSP' {
-			return 4
-		}
-		'EBP', 'RBP' {
-			return 5
-		}
-		'ESI', 'RSI' {
-			return 6
-		}
-		'EDI', 'RDI' {
-			return 7
-		}
-		else {
-			error.print(reg.pos, 'invalid operand for instruction')
-			exit(1)
+		} else {
+			panic('scale unreachable')
 		}
 	}
 }
@@ -377,187 +533,70 @@ fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
 }
 
-fn compose_sib(scale u8, index u8, base u8) u8 {
-	return (scale<<6) + (index<<3) + base
+fn add_prefix_byte(size int) []u8 {
+	if size == encoder.suffix_quad {
+		return [encoder.rex_w]
+	} else if size == encoder.suffix_word {
+		return [operand_size_prefix16]
+	}
+	return []
 }
 
-fn eval_expr(expr Expr) int {
-	return match expr {
-		Number {
-			strconv.atoi(expr.lit) or {
-                error.print(expr.pos, 'atoi() failed')
-                exit(1)
-            }
-		}
-		Binop{
-			match expr.op {
-				.plus {
-					eval_expr(expr.left_hs) + eval_expr(expr.right_hs)
-				}
-				.minus {
-					eval_expr(expr.left_hs) - eval_expr(expr.right_hs)
-				} else {
-					panic('[internal error] somthing whent wrong...')
-				}
-			}
-		}
-		else {
-			0
-		}
-	}
-}
-
-fn (mut e Encoder) get_disp_symbol(expr Expr, mut arr []string) {
-	match expr {
-		Binop {
-			e.get_disp_symbol(expr.left_hs, mut arr)
-			e.get_disp_symbol(expr.right_hs, mut arr)
-		}
-		Ident {
-			arr << expr.lit
-		}
-		else {
-		}
-	}
-}
-
-fn (mut e Encoder) encode_indir_regi(op_code u8, indir Indirection, regi Register, mut instr &Instr, size int) {
-	// disp(base)
-
-	check_regi_size(regi, size)
-
-	disp := eval_expr(indir.expr)
-	base_is_rip := indir.regi.lit == 'RIP'
-	base_is_sp := indir.regi.lit in ['RSP', 'ESP']
-	base_is_bp := indir.regi.lit in ['RBP', 'EBP']
-
-	mut used_symbols := []string{}
-	e.get_disp_symbol(indir.expr, mut &used_symbols)
-	if used_symbols.len >= 2 {
-		error.print(indir.expr.pos, 'invalid operand for instruction')
-		exit(1)
-	}
-
-	need_rela := used_symbols.len == 1
-
-	mod_rm := if base_is_rip {
-		compose_mod_rm(mod_indirection_with_no_displacement, reg_bits(regi), 0b101) // rip relative
-	} else if need_rela {
-		compose_sib(mod_indirection_with_displacement32, reg_bits(regi), reg_bits(indir.regi))
-	} else if disp == 0 && !base_is_bp {
-		compose_mod_rm(mod_indirection_with_no_displacement, reg_bits(regi), reg_bits(indir.regi))
-	} else if is_in_i8_range(disp) {
-		compose_sib(mod_indirection_with_displacement8, reg_bits(regi), reg_bits(indir.regi))
-	} else if is_in_i32_range(disp) {
-		compose_sib(mod_indirection_with_displacement32, reg_bits(regi), reg_bits(indir.regi))
-	} else {
-		panic('disp out range!')
-	}
-
-	if regi_size(indir.regi) == 32 {
-		instr.code << 0x67
-	}
-
-	if size == 64 {
-		instr.code << encoder.rex_w
-	}
-
-	instr.code << op_code
-	instr.code << mod_rm
-
-	if base_is_sp {
-		instr.code << 0x24
-	}
-
-	instr_code_len := instr.code.len
-
-	if need_rela {
-		rtype := if base_is_rip {
-			encoder.r_x86_64_pc32
-		} else {
-			encoder.r_x86_64_32s
-		}
-		rela_text_user := encoder.RelaTextUser{
-			instr:  unsafe {instr},
-			uses:   used_symbols[0],
-			offset: instr_code_len
-			rtype:  u64(rtype)
-			adjust: eval_expr(indir.expr)
-		}
-		instr.code << [u8(0), 0, 0, 0]
-		e.rela_text_users << rela_text_user
-	} else {
-		if disp != 0 || base_is_rip || base_is_bp {
-			if base_is_rip {
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(disp))
-				instr.code << hex
-			} else if is_in_i8_range(disp) {
-				instr.code << u8(disp)
-			} else if is_in_i32_range(disp) {
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(disp))
-				instr.code << hex
-			} else {
-				panic('disp out range!')
-			}
-		}
-	}
-}
-
-fn (mut e Encoder) encode_imm_regi(slash u8, rax_magic u8, imm Immediate, regi Register, mut instr &Instr, size int) {
-	num := eval_expr(imm.expr)
-	check_regi_size(regi, size)
-
-	mod_rm := compose_mod_rm(mod_regi, slash, reg_bits(regi))
-
-	if size == 64 {
-		instr.code << encoder.rex_w
-	}
-
-	if is_in_i8_range(num) {
-		instr.code << [u8(0x83), mod_rm, u8(num)]
-	} else if is_in_i32_range(num) {
+fn encode_imm_value(imm_val int, size int) []u8 {
+	if is_in_i8_range(imm_val) || size == suffix_byte {
+		return [u8(imm_val)]
+	} else if size == suffix_word {
+		mut hex := [u8(0), 0]
+		binary.little_endian_put_u16(mut &hex, u16(imm_val))
+		return hex
+	} else if is_in_i32_range(imm_val) {
 		mut hex := [u8(0), 0, 0, 0]
-		binary.little_endian_put_u32(mut &hex, u32(num))
-		if regi.lit in ['RAX', 'EAX'] {
-			instr.code << [rax_magic, hex[0], hex[1], hex[2], hex[3]]
+		binary.little_endian_put_u32(mut &hex, u32(imm_val))
+		return hex
+	} else {
+		panic('unreachable')
+	}
+}
+
+fn (mut e Encoder) var_instr(kind InstrKind, rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) {
+	desti := e.parse_operand()
+
+	target_sym_name := match desti {
+		Ident {
+			desti.lit
 		} else {
-			instr.code << [u8(0x81), mod_rm, hex[0], hex[1], hex[2], hex[3]]
+			error.print(desti.pos, 'invalid operand for instruction')
+			exit(1)
 		}
 	}
-}
 
-fn (mut e Encoder) encode_regi_regi(op_code u8, regi Register, regi2 Register, mut instr &Instr, size int) {
-	check_regi_size(regi, size)
-	check_regi_size(regi2, size)
-	mod_rm := compose_mod_rm(mod_regi, reg_bits(regi), reg_bits(regi2))
-	if size == 64 {
-   		instr.code << encoder.rex_w
+	instr := Instr{
+		kind: kind,
+		varcode: &VariableCode{
+			trgt_symbol: target_sym_name,
+			rel8_code:   rel8_code,
+			rel8_offset: rel8_offset,
+			rel32_code:   rel32_code,
+			rel32_offset: rel32_offset,
+		},
+		is_len_decided: false,
+		pos: desti.pos,
+		section: e.current_section,
 	}
-	instr.code << op_code
-	instr.code << mod_rm
-}
 
-pub fn (mut e Encoder) add_index_to_instrs() {
-	for name, _ in e.instrs {
-		for i := 0; i < e.instrs[name].len; i++ {
-			mut instr := e.instrs[name][i]
-			instr.index = i
-		}
-	}
+	e.variable_instrs << &instr
+	e.instrs[e.current_section] << &instr
 }
 
 fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
-	mut instr := Instr{pos: pos, section: e.current_section}
 
 	instr_name := e.tok.lit
+	instr_name_upper := instr_name.to_upper()
 	e.next()
 
 	if e.tok.kind == .colon {
-		instr.kind = .label
-		instr.symbol_name = instr_name
+		instr := Instr{kind: .label, pos: pos, section: e.current_section, symbol_name: instr_name}
 		e.expect(.colon)
 
 		if instr_name in e.defined_symbols || instr_name == '.text' {
@@ -565,563 +604,168 @@ fn (mut e Encoder) encode_instr() {
 			exit(1)
 		}
 		e.defined_symbols[instr_name] = &instr
-
-		unsafe {
-			goto end
-		}
+		e.instrs[e.current_section] << &instr
+		return
 	}
 
-	match instr_name.to_upper() {
+	match instr_name_upper {
 		'.SECTION' {
-			instr.kind = .section
-			name := e.tok.lit
-
-			e.current_section = name
-			instr.section = e.current_section
-
-			e.next()
-			e.expect(.comma)
-			instr.section = name
-			instr.flags = e.tok.lit
-			e.expect(.string)
-			instr.symbol_type = encoder.stt_section
-
-			if s := e.defined_symbols[name] {
-				if s.kind == .label {
-					error.print(pos, 'symbol `$name` is already defined')
-					exit(1)
-				}
-			} else {
-				e.defined_symbols[name] = &instr
-			}
-		}
-		'RETQ', 'RET' {
-			instr.kind = .ret
-			instr.code = [u8(0xc3)]
-		}
-		'SYSCALL' {
-			instr.kind = .syscall
-			instr.code = [u8(0x0f), 0x05]
-		}
-		'NOPQ', 'NOP' {
-			instr.kind = .nop
-			instr.code = [u8(0x90)]
-		}
-		'HLT' {
-			instr.kind = .hlt
-			instr.code = [u8(0xf4)]
-		}
-		'LEAVE' {
-			instr.kind = .leave
-			instr.code = [u8(0xc9)]
+			e.section()
 		}
 		'.GLOBAL' {
-			instr.kind = .global
-			instr.symbol_name = e.tok.lit
+			instr := Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
+			e.instrs[e.current_section] << &instr
 		}
 		'.LOCAL' {
-			instr.kind = .local
-			instr.symbol_name = e.tok.lit
+			instr := Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
+			e.instrs[e.current_section] << &instr
 		}
 		'.STRING' {
-			value := e.tok.lit
-			e.expect(.string)
-
-			instr.kind = .string
-
-			instr.code = value.bytes()
-			instr.code << 0x00
+			e.string()
+		}
+		'.BYTE' {
+			e.byte()
+		}
+		'.WORD' {
+			e.word()
+		}
+		'.LONG' {
+			e.long()
+		}
+		'.QUAD' {
+			e.quad()
+		}
+		'RETQ', 'RET' {
+			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+		}
+		'SYSCALL' {
+			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
+		}
+		'NOPQ', 'NOP' {
+			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
+		}
+		'HLT' {
+			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
+		}
+		'LEAVE' {
+			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+		}
+		'CQTO' {
+			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
 		}
 		'POP', 'POPQ' {
-			instr.kind = .pop
-
-			source := e.parse_operand()
-
-			if source is Register {
-				check_regi_size(source, 64)
-				instr.code = [0x58 + reg_bits(source)]
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+			e.pop()
 		}
 		'PUSHQ', 'PUSH' {
-			instr.kind = .push
-
-			source := e.parse_operand()
-
-			if source is Register {
-				check_regi_size(source, 64)
-				instr.code = [0x50 + reg_bits(source)]
-			} else if source is Immediate {
-				num := eval_expr(source.expr)
-				if is_in_i8_range(num) {
-					instr.code = [u8(0x6a), u8(num)]
-				} else if is_in_i32_range(num) {
-					mut hex := [u8(0), 0, 0, 0]
-					binary.little_endian_put_u32(mut &hex, u32(num))
-					instr.code = [u8(0x68), hex[0], hex[1], hex[2], hex[3]]
-				} else {
-					panic('internal error')
-				}
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+			e.push()
 		}
-		'MOVQ', 'MOVL' {
-			size := get_size_by_suffix(instr_name)
-			instr.kind = .mov
-
-			source := e.parse_operand()
-			e.expect(.comma)
-			desti := e.parse_operand()
-
-			if source is Register && desti is Register {
-				e.encode_regi_regi(u8(0x89), source, desti, mut &instr, size)
-			} else if source is Indirection && desti is Register {
-				e.encode_indir_regi(u8(0x8b), source, desti, mut &instr, size)
-			} else if source is Register && desti is Indirection {
-				e.encode_indir_regi(u8(0x89), desti, source, mut &instr, size)
-			} else if source is Immediate && desti is Register {
-				check_regi_size(desti, size)
-				mut mod_rm := u8(0)
-				if size == 64 {
-					instr.code << [encoder.rex_w, 0xc7]
-					mod_rm = 0xc0 + reg_bits(desti)
-				} else if size == 32 {
-					mod_rm = 0xB8 + reg_bits(desti)
-				}
-				num := eval_expr(source.expr)
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(num))
-				instr.code << [mod_rm, hex[0], hex[1], hex[2], hex[3]]
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
+			e.mov(instr_name_upper)
 		}
-		'LEAQ', 'LEAL' {
-			size := get_size_by_suffix(instr_name)
-			instr.kind = .lea
-
-			source := e.parse_operand()
-			e.expect(.comma)
-			destination := e.parse_operand()
-
-			if source is Indirection && destination is Register {
-				e.encode_indir_regi(u8(0x8d), source, destination, mut &instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+		'MOVZBW', 'MOVZBL', 'MOVZBQ', 'MOVZWQ', 'MOVZWL' {
+			e.mov_zero_extend(instr_name_upper)
 		}
-		'ADDQ', 'ADDL' {
-			size := get_size_by_suffix(instr_name)
-			instr.kind = .add
-
-			source := e.parse_operand()
-			e.expect(.comma)
-			desti := e.parse_operand()
-
-			if source is Register && desti is Register {
-				e.encode_regi_regi(u8(0x01), source, desti, mut &instr, size)
-			} else if source is Immediate && desti is Register {
-				e.encode_imm_regi(0, 0x05, source, desti, mut instr, size)
-			} else if source is Indirection && desti is Register {
-				e.encode_indir_regi(u8(0x3), source, desti, mut &instr, size)
-			} else if source is Register && desti is Indirection {
-				e.encode_indir_regi(u8(0x1), desti, source, mut &instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}		
+		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ', 'MOVSLQ' {
+			e.mov_sign_extend(instr_name_upper)
 		}
-		'SUBQ', 'SUBL' {
-			size := get_size_by_suffix(instr_name)
-			instr.kind = .sub
-
-			source := e.parse_operand()
-			e.expect(.comma)
-			desti := e.parse_operand()
-
-			if source is Register && desti is Register {
-				e.encode_regi_regi(u8(0x29), source, desti, mut &instr, size)
-			} else if source is Immediate && desti is Register {
-				e.encode_imm_regi(5, 0x2D, source, desti, mut instr, size)
-			} else if source is Indirection && desti is Register {
-				e.encode_indir_regi(u8(0x2b), source, desti, mut &instr, size)
-			} else if source is Register && desti is Indirection {
-				e.encode_indir_regi(u8(0x29), desti, source, mut &instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+		'LEAQ', 'LEAL', 'LEAW' {
+			e.lea(instr_name_upper)
 		}
-		'XORQ', 'XORL' {
-			size := get_size_by_suffix(instr_name)
-			instr.kind = .xor
-
-			source := e.parse_operand()
-			e.expect(.comma)
-			destination := e.parse_operand()
-
-			if source is Register && destination is Register {
-				e.encode_regi_regi(u8(0x31), source, destination, mut &instr, size)
-			} else if source is Immediate && destination is Register {
-				e.encode_imm_regi(6, 0x35, source, destination, mut instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+		'ADDQ', 'ADDL', 'ADDW', 'ADDB' {
+			e.add(instr_name_upper)
 		}
-		'CMPQ', 'CMPL' {
-			size := get_size_by_suffix(instr_name)
-			instr.kind = .cmp
-
-			source := e.parse_operand()
-			e.expect(.comma)
-			destination := e.parse_operand()
-
-			if source is Register && destination is Register {
-				e.encode_regi_regi(u8(0x39), source, destination, mut &instr, size)
-			} else if source is Immediate && destination is Register {
-				e.encode_imm_regi(7, 0x3D, source, destination, mut instr, size)
-			} else {
-				error.print(pos, 'invalid operand for instruction')
-				exit(1)
-			}
+		'SUBQ', 'SUBL', 'SUBW', 'SUBB' {
+			e.sub(instr_name_upper)
+		}
+		'IDIVQ', 'IDIVL', 'IDIVW', 'IDIVB' {
+			e.idiv(instr_name_upper)
+		}
+		'DIVQ', 'DIVL', 'DIVW', 'DIVB' {
+			e.div(instr_name_upper)
+		}
+		'IMULQ', 'IMULL', 'IMULW' {
+			e.imul(instr_name_upper)
+		}
+		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
+			e.neg(instr_name_upper)
+		}
+		'XORQ', 'XORL', 'XORW', 'XORB' {
+			e.xor(instr_name_upper)
+		}
+		'ANDQ', 'ANDL', 'ANDW', 'ANDB' {
+			e.and(instr_name_upper)
+		}
+		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
+			e.not(instr_name_upper)
+		}
+		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
+			e.cmp(instr_name_upper)
+		}
+		'SHLQ', 'SHLL', 'SHLW', 'SHLB' {
+			e.sh(.shl, instr_name_upper, encoder.slash_4)
+		}
+		'SHRQ', 'SHRL', 'SHRW', 'SHRB' {
+			e.sh(.shr, instr_name_upper, encoder.slash_5)
+		}
+		'SETL' {
+			e.set(.setl, [u8(0x0F), 0x9C])
+		}
+		'SETG' {
+			e.set(.setg, [u8(0x0F), 0x9F])
+		}
+		'SETLE' {
+			e.set(.setle, [u8(0x0F), 0x9E])
+		}
+		'SETGE' {
+			e.set(.setge, [u8(0x0F), 0x9D])
+		}
+		'SETE' {
+			e.set(.sete, [u8(0x0F), 0x94])
+		}
+		'SETNE' {
+			e.set(.setne, [u8(0x0F), 0x95])
 		}
 		'CALLQ', 'CALL' {
-			instr.kind = .call
-			instr.code = [u8(0xe8), 0, 0, 0, 0]
-
-			source := e.parse_operand()
-	
-			target_sym_name := match source {
-				Ident, Number {
-					source.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			e.call_targets << CallTarget{
-				target_symbol: target_sym_name
-				caller: &instr
-			}
-
-			e.rela_text_users << encoder.RelaTextUser{
-				instr:  &instr,
-				offset: 1,
-				uses:   target_sym_name,
-				rtype:   encoder.r_x86_64_plt32
-			}
+			e.call()
 		}
-		'JMP', 'JMPQ' {
-			instr.kind = .jmp
-
-			destination := e.parse_operand()
-
-			target_sym_name := match destination {
-				Ident, Number {
-					destination.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			instr.varcode = &VariableCode{
-				trgt_symbol: target_sym_name,
-				rel8_code:   [u8(0xeb), 0],
-				rel8_offset: 1,
-				rel32_code:   [u8(0xe9), 0, 0, 0, 0],
-				rel32_offset: 1,
-			}
-
-			e.variable_instrs << &instr
+		'JMP' {
+			e.var_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
 		}
 		'JNE' {
-			instr.kind = .jne
-			destination := e.parse_operand()
-
-			target_sym_name := match destination {
-				Ident, Number {
-					destination.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			instr.varcode = &VariableCode{
-				trgt_symbol: target_sym_name,
-				rel8_code:   [u8(0x75), 0],
-				rel8_offset: 1,
-				rel32_code:   [u8(0x0f), 0x85, 0, 0, 0, 0],
-				rel32_offset: 2,
-			}
-
-			e.variable_instrs << &instr
+			e.var_instr(.jne, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
 		}
 		'JE' {
-			instr.kind = .je
-			destination := e.parse_operand()
-
-			target_sym_name := match destination {
-				Ident, Number {
-					destination.lit
-				} else {
-					error.print(pos, 'invalid operand for instruction')
-					exit(1)
-				}
-			}
-
-			instr.varcode =  &VariableCode{
-				trgt_symbol: target_sym_name,
-				rel8_code:   [u8(0x74), 0],
-				rel8_offset: 1,
-				rel32_code:   [u8(0x0f), 0x84, 0, 0, 0, 0],
-				rel32_offset: 2,
-			}
-
-			e.variable_instrs << &instr
+			e.var_instr(.je, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
+		}
+		'JL' {
+			e.var_instr(.jl, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
+		}
+		'JG' {
+			e.var_instr(.jg, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
+		}
+		'JLE' {
+			e.var_instr(.jle, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
+		}
+		'JGE' {
+			e.var_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 		}
 		else {
 			error.print(pos, 'unkwoun instruction `$instr_name`')
 			exit(1)
 		}
 	}
-
-	end:
-	e.add_instr(&instr)
-	if instr.varcode != unsafe { nil } {
-		instr.is_len_decided = false
-	}
 }
 
 pub fn (mut e Encoder) encode() {
+	// add .text section
+	instr := Instr{kind: .section, pos: e.tok.pos, section: '.text', symbol_type: encoder.stt_section, flags: "ax"}
+	e.defined_symbols['.text'] = &instr
+	e.instrs[e.current_section] << &instr
+
 	for e.tok.kind != .eof {
-		if e.tok.kind == .eol {
-			e.next()
-		} else {
-			e.encode_instr()
-		}
+		e.encode_instr()
 	}
 }
-
-fn (mut e Encoder) add_instr(instr &Instr) {
-	e.instrs[e.current_section] << instr
-}
-
-
-
-fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
-	unsafe {
-    	mut from, mut to := symdef, instrs[user_instr.index+1]
-    	forward := user_instr.index <= symdef.index
-
-    	if forward {
-    	    from, to = instrs[user_instr.index+1], symdef
-    	}
-
-    	mut has_variable_length := false
-    	mut diff, mut min, mut max := 0, 0, 0
-
-    	for instr := from; instr != to; instr = instrs[instr.index+1] {
-    	    if !instr.is_len_decided {
-    	        has_variable_length = true
-    	        len_short, len_large := instr.varcode.rel8_code.len, instr.varcode.rel32_code.len
-    	        min += len_short
-    	        max += len_large
-    	        diff += len_large
-    	    } else {
-    	        length := instr.code.len
-    	        diff += length
-    	        min += length
-    	        max += length
-    	    }
-    	}
-
-    	if !forward {
-    	    diff, min, max = -diff, -min, -max
-    	}
-	
-    	return diff, min, max, !has_variable_length
-	}
-}
-
-pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
-	mut todos := []&Instr{}
-	for index := 0; index < instrs.len; index++ {
-		name := instrs[index].varcode.trgt_symbol
-		s := e.defined_symbols[name] or {
-			panic('not implemented yet')
-			// Relocation
-			rela_text_user := encoder.RelaTextUser{
-				instr:  instrs[index],
-				offset: 1,
-				uses:   name,
-				rtype:   encoder.r_x86_64_plt32
-			}
-			e.rela_text_users << rela_text_user
-			instrs[index].code = [u8(0xe9), 0x00, 0x00, 0x00, 0x00]
-			instrs[index].is_len_decided = true
-			continue
-		}
-		if instrs[index].section != s.section {
-			panic('not implemented yet')
-			rela_text_user := encoder.RelaTextUser{
-				instr:  instrs[index],
-				offset: 1,
-				uses:   name,
-				rtype:   encoder.r_x86_64_plt32
-			}
-			e.rela_text_users << rela_text_user
-			instrs[index].code = [u8(0xe9), 0x00, 0x00, 0x00, 0x00]
-			instrs[index].is_len_decided = true
-			continue
-		}
-		diff, min, max, is_len_decided := calc_distance(instrs[index], s, e.instrs[instrs[index].section])
-		if is_len_decided {
-			if encoder.is_in_i8_range(diff) {
-				instrs[index].code = instrs[index].varcode.rel8_code
-				instrs[index].code[instrs[index].varcode.rel8_offset] = u8(diff)
-			} else {
-				diff_int32 := i32(diff)
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(diff_int32))
-
-				mut code, offset := instrs[index].varcode.rel32_code.clone(), instrs[index].varcode.rel32_offset
-				code[offset] = hex[0]
-				code[offset+1] = hex[1]
-				code[offset+2] = hex[2]
-				code[offset+3] = hex[3]
-				instrs[index].code = code
-			}
-			instrs[index].is_len_decided = true
-		} else {
-			if encoder.is_in_i8_range(max) {
-				instrs[index].is_len_decided = true
-				instrs[index].varcode.rel32_code = []u8{}
-				instrs[index].code = instrs[index].varcode.rel8_code
-			} else if !encoder.is_in_i8_range(min) {
-				instrs[index].is_len_decided = true
-				instrs[index].varcode.rel8_code = []u8{}
-				instrs[index].code = instrs[index].varcode.rel32_code
-			}
-			todos << instrs[index]
-		}
-	}
-	e.variable_instrs = todos
-	if e.variable_instrs.len > 0 {
-		e.resolve_variable_length_instrs(mut e.variable_instrs)
-	}
-}
-
-fn section_flags(flags string) int {
-	mut val := 0
-	for c in flags {
-		match c {
-			`a` {
-				val |= elf_shf_alloc
-			}
-			`x` {
-				val |= elf_shf_execinstr
-			}
-			`w` {
-				val |= elf_shf_write
-			} else {
-				panic('unkown attribute $c')
-			}
-		}
-	}
-	return val
-}
-
-fn (mut e Encoder) change_symbol_binding(instr Instr, binding u8) {
-	mut s := e.defined_symbols[instr.symbol_name] or {
-		error.print(instr.pos, 'undefined symbol `$instr.symbol_name`')
-		exit(1)
-	}
-	if binding == stb_global && s.binding == stb_local {
-		e.globals_count++
-	}
-
-	if binding == stb_local && s.binding == stb_global {
-		e.globals_count--
-	}
-
-	if binding == stb_global && s.kind == .section {
-		error.print(instr.pos, 'sections cannot be global')
-		exit(1)
-	}
-
-	s.binding = binding
-}
-
-pub fn (mut e Encoder) assign_addresses() {
-	e.sections['.text'] = &UserDefinedSection{
-		flags: section_flags('ax')
-	}
-	for name, mut instrs in e.instrs {
-		if name !in e.sections {
-			e.sections[name] = &UserDefinedSection{}
-		}
-		mut section := e.sections[name] or {
-			panic('PANIC')
-		}
-
-		for mut i in instrs {
-			match i.kind {
-				.section {
-					section.flags = section_flags(i.flags)
-				}
-				.global {
-					e.change_symbol_binding(*i, stb_global)
-				}
-				.local {
-					e.change_symbol_binding(*i, stb_local)
-				} else {}
-			}
-
-			i.addr = section.addr
-			section.addr += i.code.len
-			section.code << i.code
-		}
-
-		// padding
-		mut padding := (encoder.align_to(section.code.len, 16) - section.code.len)
-		for _ in 0 .. padding {
-			section.code << 0
-		}
-	}
-}
-
-pub fn (mut e Encoder) resolve_call_targets() {
-	for call_target in e.call_targets {
-		symbol := e.defined_symbols[call_target.target_symbol] or {
-			continue
-		}
-
-		caller_section := call_target.caller.section
-
-		// canot call symbol from a different section. need to relocate.
-		if caller_section != symbol.section {
-			panic('TODO: Needs to be relocated')
-		}
-
-		mut buf := [u8(0), 0, 0, 0]
-		binary.little_endian_put_u32(mut &buf, u32(symbol.addr - (call_target.caller.addr + 5)))
-		e.sections[caller_section].code[call_target.caller.addr+1] = buf[0]
-		e.sections[caller_section].code[call_target.caller.addr+2] = buf[1]
-		e.sections[caller_section].code[call_target.caller.addr+3] = buf[2]
-		e.sections[caller_section].code[call_target.caller.addr+4] = buf[3]
-	}
-}
-
 

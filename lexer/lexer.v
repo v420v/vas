@@ -46,7 +46,6 @@ fn (mut l Lexer) advance() {
 fn (mut l Lexer) current_pos() token.Position {
 	return token.Position{
 		line: l.line
-		col: l.col
 		file_name: l.file_name
 	}
 }
@@ -57,18 +56,36 @@ fn (mut l Lexer) skip_comment() {
 	}
 }
 
+fn (mut l Lexer) is_hex() bool {
+	return (l.c == `0`) && (l.text[l.idx+1] in [`x`, `X`])
+}
+
 fn (mut l Lexer) read_number() token.Token {
 	mut pos := l.current_pos()
 	start := l.idx
-	for {
-		if l.c >= `0` && l.c <= `9` {
-			l.advance()
-		} else {
-			break
+
+	if l.is_hex() {
+		l.advance()
+		l.advance()
+		for {
+			if (l.c >= `0` && l.c <= `9`) || (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) {
+				l.advance()
+			} else {
+				break
+			}
+		}
+	} else {
+		for {
+			if l.c >= `0` && l.c <= `9` {
+				l.advance()
+			} else {
+				break
+			}
 		}
 	}
+
 	lit := l.text[start..l.idx]
-	pos.len = lit.len
+	// pos.len = lit.len
 	return token.Token{
 		lit: lit
 		kind: .number
@@ -80,15 +97,13 @@ fn (mut l Lexer) read_ident() token.Token {
 	mut pos := l.current_pos()
 	start := l.idx
 	for {
-		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`)
-			|| (l.c >= `0` && l.c <= `9`) || l.c in [`_`, `.`, `-`] {
+		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || (l.c >= `0` && l.c <= `9`) || l.c in [`_`, `.`, `-`, `$`] {
 			l.advance()
 		} else {
 			break
 		}
 	}
 	lit := l.text[start..l.idx]
-	pos.len = lit.len
 	return token.Token{
 		lit: lit
 		kind: .ident
@@ -141,7 +156,6 @@ pub fn (mut l Lexer) lex() token.Token {
 					l.advance()
 				}
 			}
-			pos.len = lit.len + 2
 			l.advance()
 			return token.Token{
 				lit: lit.bytestr()
@@ -149,18 +163,12 @@ pub fn (mut l Lexer) lex() token.Token {
 				pos: pos
 			}
 		} else {
-			pos.len = 1
 			match l.c {
 				`#` { // skip comment
 					l.skip_comment()
 				}
 				`\n` {
 					l.advance()
-					return token.Token{
-						lit: '<eol>'
-						kind: .eol
-						pos: pos
-					}
 				}
 				`:` {
 					l.advance()
@@ -199,6 +207,22 @@ pub fn (mut l Lexer) lex() token.Token {
 					return token.Token{
 						lit: '-'
 						kind: .minus
+						pos: pos
+					}
+				}
+				`*` {
+					l.advance()
+					return token.Token{
+						lit: '*'
+						kind: .mul
+						pos: pos
+					}
+				}
+				`/` {
+					l.advance()
+					return token.Token{
+						lit: '/'
+						kind: .mul
 						pos: pos
 					}
 				}

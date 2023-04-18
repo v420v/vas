@@ -1,29 +1,26 @@
-// I know this code is messy, but it gets the job done for now.
-// Leaving this comment here to remind myself to refactor it from scratch
-// when I have more time. 
-
 module elf
 
 import os
 import encoder
 
 pub struct Elf {
-	out_file             string
-	globals_count        int   		 						// global symbols count
-	defined_symbols      map[string]&encoder.Instr   		// user-defined symbols
-	custom_sections      map[string]&encoder.UserDefinedSection // user-defined sections
+	out_file             		string
+	globals_count        		int										// global symbols count
+	defined_symbols      		map[string]&encoder.Instr				// user-defined symbols
+	user_defined_sections		map[string]&encoder.UserDefinedSection 	// user-defined sections
 mut:
-	ehdr                 Elf64_Ehdr    	// Elf header
-	rela_symbols         []string      	// symbols that are not defined
-	custom_section_names []string      	// list of user-defined section names
-	custom_section_idx   map[string]int	// user-defined sections index
-	section_name_offs    map[string]int
-	local_sym_index      map[string]int
-	strtab               []u8
-	symtab               []Elf64_Sym
-	rela                 map[string][]Elf64_Rela
-	shstrtab             []u8
-	section_headers      []Elf64_Shdr
+	ehdr                      	Elf64_Ehdr    	// Elf header
+	rela_symbols              	[]string      	// symbols that are not defined
+	user_defined_section_names	[]string      	// list of user-defined section names
+	user_defined_section_idx  	map[string]int	// user-defined sections index
+	section_name_offs			map[string]int
+	section_reloc_sym_index		map[string]int	// Save indexes in symtab for section and relocated symbols
+	strtab            			[]u8
+	symtab            			[]Elf64_Sym
+	rela              			map[string][]Elf64_Rela
+	shstrtab          			[]u8
+	local_labels_count			int           	// symbols that start from .L will not be added to strtab or symtab
+	section_headers   			[]Elf64_Shdr
 }
 
 /*
@@ -126,29 +123,27 @@ pub const (
 	shf_tls              = 0x400
 )
 
-pub fn new(out_file string, custom_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int) &Elf {
+pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int, local_labels_count int) &Elf {
 	mut e := &Elf{
 		out_file: out_file
 		globals_count: globals_count
-		local_sym_index: {
-			'': 0
-		}
-		custom_sections: custom_sections
+		user_defined_sections: user_defined_sections
 		defined_symbols: defined_symbols
+		local_labels_count: local_labels_count
 	}
 
-	mut custom_section_idx := 1
+	mut user_defined_section_idx := 1
 
-	for name, _ in custom_sections {
-		e.custom_section_names << name
-		e.custom_section_idx[name] = custom_section_idx
-		custom_section_idx++
+	for name, _ in user_defined_sections {
+		e.user_defined_section_names << name
+		e.user_defined_section_idx[name] = user_defined_section_idx
+		user_defined_section_idx++
 	}
 
 	mut idx_count := 1
 	for name, sym in defined_symbols {
-		if sym.binding == stb_local {
-			e.local_sym_index[name] = idx_count
+		if sym.kind == .section {
+			e.section_reloc_sym_index[name] = idx_count
 			idx_count++
 		}
 	}
@@ -163,46 +158,6 @@ fn add_padding(mut code []u8) {
 	}
 }
 
-pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
-	// Symbols to be relocated are passed to symtab after local symbols.
-	// The index will start from local_symbols.len()
-	mut pos := e.defined_symbols.len - e.globals_count + 1 // count of local symbols
-	//                                                   ^ null
-
-	for r in rela_text_users {
-		mut index := 0
-		mut r_addend := i64(0 - 4)
-		if r.rtype == encoder.r_x86_64_32s {
-			r_addend = 0
-		}
-
-		// already resolved call instruction
-    	if r.rtype == encoder.r_x86_64_plt32 && r.uses in e.defined_symbols {
-			continue
-		}
-
-		if s := e.defined_symbols[r.uses] {
-    	    r_addend += s.addr
-			index = e.local_sym_index[s.section] or {
-				panic('section not found `$s.section`')
-			}
-		} else if r.uses in e.rela_symbols {
-			index = e.local_sym_index[r.uses]
-    	} else {
-    	    e.rela_symbols << r.uses
-			e.local_sym_index[r.uses] = pos
-			index = pos
-    	    pos++
-    	}
-
-		e.rela['.rela' + r.instr.section] << elf.Elf64_Rela{
-    	    r_offset: u64(r.instr.addr + r.offset),
-    	    r_info: (u64(index) << 32) + r.rtype,
-    	    r_addend: r_addend + r.adjust,
-    	}
-	}
-}
-
 fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 	for name, symbol in e.defined_symbols {
 		if symbol.binding != symbol_binding {
@@ -213,9 +168,8 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 			continue
 		}
 
-
 		unsafe { *off += str.len + 1 }
-		st_shndx := u16(e.custom_section_idx[symbol.section])
+		st_shndx := u16(e.user_defined_section_idx[symbol.section])
 
 		mut st_name := u32(0)
 		if symbol.symbol_type == stt_section {
@@ -234,6 +188,48 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		e.strtab << name.bytes()
 		e.strtab << 0x00
 		str = name
+	}
+}
+
+pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
+	// Symbols to be relocated are passed to symtab after local symbols.
+	// The index will start from local_symbols.len()
+	mut pos := e.defined_symbols.len - e.globals_count - e.local_labels_count + 1 // count of local symbols
+	//                                                                             ^ null symbol
+
+	for r in rela_text_users {
+		mut index := 0
+		mut r_addend := i64(0 - 4)
+
+		// TODO: ...
+		if r.rtype == encoder.r_x86_64_32s || r.rtype == encoder.r_x86_64_32 || r.rtype == encoder.r_x86_64_64 || r.rtype == encoder.r_x86_64_32 || r.rtype == encoder.r_x86_64_16 || r.rtype == encoder.r_x86_64_8 {
+			r_addend = 0
+		}
+
+		// already resolved call instruction
+    	if r.instr.is_already_resolved {
+			continue
+		}
+
+		if s := e.defined_symbols[r.uses] {
+    	    r_addend += s.addr
+			index = e.section_reloc_sym_index[s.section] or {
+				panic('section not found `$s.section`')
+			}
+		} else if r.uses in e.rela_symbols {
+			index = e.section_reloc_sym_index[r.uses]
+    	} else {
+    	    e.rela_symbols << r.uses
+			e.section_reloc_sym_index[r.uses] = pos
+			index = pos
+    	    pos++
+    	}
+
+		e.rela['.rela' + r.instr.section] << elf.Elf64_Rela{
+    	    r_offset: u64(r.instr.addr + r.offset),
+    	    r_info: (u64(index) << 32) + r.rtype,
+    	    r_addend: r_addend + r.adjust,
+    	}
 	}
 }
 
@@ -275,7 +271,7 @@ pub fn (mut e Elf) build_shstrtab() {
 
 	// custom sections
 	mut name_offs := ''.len + 1
-	for name in e.custom_section_names {
+	for name in e.user_defined_section_names {
 		e.section_name_offs[name] = name_offs
 		name_offs += name.len + 1
 
@@ -316,8 +312,10 @@ pub fn (mut e Elf) build_headers() {
 	}
 
 	// custom sections
-	for name in e.custom_section_names {
-		section := e.custom_sections[name] or { panic('[internal error] unkown section `$name`') }
+	for name in e.user_defined_section_names {
+		section := e.user_defined_sections[name] or {
+			panic('[internal error] unkown section `$name`')
+		}
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
 			sh_type: elf.sht_progbits
@@ -368,7 +366,7 @@ pub fn (mut e Elf) build_headers() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: u32(section_idx['.strtab']) // section number of .strtab
-			sh_info: u32(e.defined_symbols.len - e.globals_count + 1) // Number of local symbols
+			sh_info: u32(e.defined_symbols.len - e.globals_count + 1 - e.local_labels_count) // Number of local symbols
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		}
@@ -387,7 +385,7 @@ pub fn (mut e Elf) build_headers() {
 			sh_offset: section_offs
 			sh_size: size
 			sh_link: u32(section_idx['.symtab'])
-			sh_info: u32(section_idx[name[5..]]) // target section number. if `.rela.text` the target will be `.text`
+			sh_info: u32(section_idx[name[5..]]) // target section index. if `.rela.text` the target will be `.text`
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Rela)
 		}
@@ -446,12 +444,16 @@ pub fn (mut e Elf) build_headers() {
 pub fn (mut e Elf) write_elf() {
 	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }
 
+	defer {
+		fp.close()
+	}
+
 	fp.write_struct(e.ehdr) or {
 		panic('somthing whent wrong while writing `elf header`')
 	}
 
-	for name in e.custom_section_names {
-		section := e.custom_sections[name] or {
+	for name in e.user_defined_section_names {
+		section := e.user_defined_sections[name] or {
 			panic('unkown section $name')
 		}
 		fp.write(section.code) or {
