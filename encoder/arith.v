@@ -504,7 +504,7 @@ fn (mut e Encoder) lea(instr_name_upper string) {
 	if source is Indirection && desti is Register {
 		op_code := [u8(0x8d)]
 		check_regi_size(desti, size)
-		e.encode_indir(.cmp, regi_bits(desti), source, op_code, size)
+		e.encode_indir(.lea, regi_bits(desti), source, op_code, size)
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')

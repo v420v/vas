@@ -88,39 +88,39 @@ struct Elf64_Phdr {
 }
 
 pub const (
-	stb_local            = 0
-	stb_global           = 1
+    stb_local            = 0
+    stb_global           = 1
 
-	stt_notype 			 = 0
-	stt_object 			 = 1
-	stt_func 			 = 2
-	stt_section 		 = 3
-	stt_file 			 = 4
-	stt_common 			 = 5
-	stt_tls 			 = 6
-	stt_relc 			 = 8
-	stt_srelc 			 = 9
-	stt_loos 			 = 10
-	stt_hios 			 = 12
-	stt_loproc 			 = 13
-	stt_hiproc 			 = 14
+    stt_notype           = 0
+    stt_object           = 1
+    stt_func             = 2
+    stt_section          = 3
+    stt_file             = 4
+    stt_common           = 5
+    stt_tls              = 6
+    stt_relc             = 8
+    stt_srelc            = 9
+    stt_loos             = 10
+    stt_hios             = 12
+    stt_loproc           = 13
+    stt_hiproc           = 14
 
-	sht_null             = 0
-	sht_progbits         = 1
-	sht_symtab           = 2
-	sht_strtab           = 3
-	sht_rela             = 4
+    sht_null             = 0
+    sht_progbits         = 1
+    sht_symtab           = 2
+    sht_strtab           = 3
+    sht_rela             = 4
 
-	shf_write            = 0x1
-	shf_alloc            = 0x2
-	shf_execinstr        = 0x4
-	shf_merge            = 0x10
-	shf_strings          = 0x20
-	shf_info_link        = 0x40
-	shf_link_order       = 0x80
-	shf_os_nonconforming = 0x100
-	shf_group            = 0x200
-	shf_tls              = 0x400
+    shf_write            = 0x1
+    shf_alloc            = 0x2
+    shf_execinstr        = 0x4
+    shf_merge            = 0x10
+    shf_strings          = 0x20
+    shf_info_link        = 0x40
+    shf_link_order       = 0x80
+    shf_os_nonconforming = 0x100
+    shf_group            = 0x200
+    shf_tls              = 0x400
 )
 
 pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int, local_labels_count int) &Elf {
@@ -195,7 +195,7 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 	// Symbols to be relocated are passed to symtab after local symbols.
 	// The index will start from local_symbols.len()
 	mut pos := e.defined_symbols.len - e.globals_count - e.local_labels_count + 1 // count of local symbols
-	//                                                                             ^ null symbol
+	//                                                                          ^ null symbol
 
 	for r in rela_text_users {
 		mut index := 0
@@ -414,16 +414,7 @@ pub fn (mut e Elf) build_headers() {
 			u8(0x7f), 0x45, 0x4c, 0x46, // Magic number ' ELF' in ascii format
 			0x02, // 2 = 64-bit
 			0x01, // 1 = little endian
-			0x01,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
+			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		]!
 		e_type: 1 // 1 = realocatable
 		e_machine: 0x3e

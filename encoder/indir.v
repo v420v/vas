@@ -11,10 +11,20 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 	if !indir.has_base {
 		return false, false, false
 	}
-	is_ip := indir.base.lit in ['RIP', 'EIP']
-	is_sp := indir.base.lit in ['RSP', 'ESP']
-	is_bp := indir.base.lit in ['RBP', 'EBP']
-	return is_ip, is_sp, is_bp
+
+	match true {
+		indir.base.lit in ['RIP', 'EIP'] {
+			return true, false, false
+		}
+		indir.base.lit in ['RSP', 'ESP'] {
+			return false, true, false
+		}
+		indir.base.lit in ['RBP', 'EBP'] {
+			return false, false, true
+		} else {
+			return false, false, false
+		}
+	}
 }
 
 fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, []u8, bool) {
