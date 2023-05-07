@@ -12,6 +12,9 @@ vas
 
 # Ignore binary output folders
 bin/
+*.py
+test.s
+nasm.s
 
 # Ignore common editor/system specific metadata
 .DS_Store

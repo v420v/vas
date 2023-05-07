@@ -61,7 +61,7 @@ mut:
 	tok					token.Token			// current token
 	l  					lexer.Lexer			// lexer
 pub mut:
-	current_section		string = '.text'
+	current_section		string
 	instrs         		map[string][]&Instr // map with section name as keys and instruction list as value
 	rela_text_users		[]RelaTextUser
 	variable_instrs		[]&Instr			// variable length instructions jmp, je, jn ...
@@ -239,10 +239,15 @@ pub const (
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
-	return &Encoder {
+	default_text_section := Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: encoder.stt_section, flags: 'ax'}
+	e := &Encoder {
 		tok: tok
 		l: l
+		current_section: '.text'
+		defined_symbols: {'.text': &default_text_section}
+		instrs: {'.text': [&default_text_section]}
 	}
+	return e
 }
 
 fn (mut e Encoder) next() {
@@ -491,9 +496,9 @@ fn get_size_by_suffix(name string) int {
 	}
 }
 
-fn check_regi_size(reg Register, size int) {
-	if reg.size != size {
-		error.print(reg.pos, 'invalid size of register for instruction.')
+fn (regi Register) check_regi_size(size int) {
+	if regi.size != size {
+		error.print(regi.pos, 'invalid size of register for instruction.')
 		exit(0)
 	}
 }
@@ -759,12 +764,10 @@ fn (mut e Encoder) encode_instr() {
 }
 
 pub fn (mut e Encoder) encode() {
-	// add .text section
-	instr := Instr{kind: .section, pos: e.tok.pos, section: '.text', symbol_type: encoder.stt_section, flags: "ax"}
-	e.defined_symbols['.text'] = &instr
-	e.instrs[e.current_section] << &instr
-
-	for e.tok.kind != .eof {
+	for {
+		if e.tok.kind == .eof {
+			break
+		}
 		e.encode_instr()
 	}
 }

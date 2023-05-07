@@ -14,20 +14,19 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 	desti := e.parse_operand()
 
 	if source is Register && desti is Register {
-		op_code := if size == encoder.suffix_byte {
+		source.check_regi_size(size)
+		desti.check_regi_size(size)
+		instr.code << add_prefix_byte(size)
+		instr.code << if size == encoder.suffix_byte {
 			u8(0x88)
 		} else {
 			u8(0x89)
 		}
-		check_regi_size(source, size)
-		check_regi_size(desti, size)
-		instr.code << add_prefix_byte(size)
-		instr.code << op_code
 		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(source), regi_bits(desti))
 		return
 	}
 	if source is Immediate && desti is Register {
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		instr.code << add_prefix_byte(size)
 		mod_rm := if size == encoder.suffix_quad {
 			instr.code << 0xc7
@@ -57,7 +56,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		} else {
 			u8(0x89)
 		}
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		if desti.base.size == suffix_long || desti.index.size == suffix_long {
 			instr.code << 0x67
 		}
@@ -78,7 +77,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		} else {
 			u8(0x8b)
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
@@ -155,15 +154,15 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 			error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 			exit(1)
 		}
-		check_regi_size(source, exp_source_size)
-		check_regi_size(desti, exp_desti_size)
+		source.check_regi_size(exp_source_size)
+		desti.check_regi_size(exp_desti_size)
 		instr.code << add_prefix_byte(exp_desti_size)
 		instr.code << op_code
 		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(desti), regi_bits(source))
 		return
 	}
 	if source is Indirection && desti is Register {
-		check_regi_size(desti, exp_desti_size)
+		desti.check_regi_size(exp_desti_size)
 		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
@@ -210,15 +209,15 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 			error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 			exit(1)
 		}
-		check_regi_size(source, exp_source_size)
-		check_regi_size(desti, exp_desti_size)
+		source.check_regi_size(exp_source_size)
+		desti.check_regi_size(exp_desti_size)
 		instr.code << add_prefix_byte(exp_desti_size)
 		instr.code << op_code
 		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(desti), regi_bits(source))
 		return
 	}
 	if source is Indirection && desti is Register {
-		check_regi_size(desti, exp_desti_size)
+		desti.check_regi_size(exp_desti_size)
 		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}

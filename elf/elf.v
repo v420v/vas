@@ -10,13 +10,15 @@ pub struct Elf {
 	user_defined_sections		map[string]&encoder.UserDefinedSection 	// user-defined sections
 mut:
 	ehdr                      	Elf64_Ehdr    	// Elf header
+	symbols						[]string        // symbols that will be added to symtab strtab
+	symtab_symbol_indexs		map[string]int  // symtab symbol index
 	rela_symbols              	[]string      	// symbols that are not defined
 	user_defined_section_names	[]string      	// list of user-defined section names
 	user_defined_section_idx  	map[string]int	// user-defined sections index
 	section_name_offs			map[string]int
-	section_reloc_sym_index		map[string]int	// Save indexes in symtab for section and relocated symbols
 	strtab            			[]u8
 	symtab            			[]Elf64_Sym
+	rela_section_names          []string
 	rela              			map[string][]Elf64_Rela
 	shstrtab          			[]u8
 	local_labels_count			int           	// symbols that start from .L will not be added to strtab or symtab
@@ -132,7 +134,7 @@ pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefine
 		local_labels_count: local_labels_count
 	}
 
-	mut user_defined_section_idx := 1
+	mut user_defined_section_idx := 1 // section header starts from `null section`
 
 	for name, _ in user_defined_sections {
 		e.user_defined_section_names << name
@@ -140,99 +142,64 @@ pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefine
 		user_defined_section_idx++
 	}
 
-	mut idx_count := 1
-	for name, sym in defined_symbols {
-		if sym.kind == .section {
-			e.section_reloc_sym_index[name] = idx_count
-			idx_count++
-		}
-	}
-
 	return e
 }
 
 fn add_padding(mut code []u8) {
-	mut padding := (encoder.align_to(code.len, 16) - code.len)
+	padding := (encoder.align_to(code.len, 16) - code.len)
 	for _ in 0 .. padding {
 		code << 0
 	}
 }
 
+/*
+
+	.symtab
+	+---------------------------+
+	|		Null symbol			|
+	+---------------------------+
+	|		Local symbols		|
+	+---------------------------+
+	|		Rela symbols		|
+	+---------------------------+
+	|		Global symbols		|
+	+---------------------------+
+
+*/
+
 fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
-	for name, symbol in e.defined_symbols {
-		if symbol.binding != symbol_binding {
-			continue
-		}
-
-		if name.to_upper().starts_with('.L') && symbol_binding == stb_local {
-			continue
-		}
-
-		unsafe { *off += str.len + 1 }
-		st_shndx := u16(e.user_defined_section_idx[symbol.section])
-
-		mut st_name := u32(0)
-		if symbol.symbol_type == stt_section {
-			st_name = 0
-		} else {
-			st_name = u32(*off)
-		}
-
-		e.symtab << Elf64_Sym{
-			st_name: st_name
-			st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
-			st_shndx: st_shndx
-			st_value: symbol.addr
-		}
-
-		e.strtab << name.bytes()
-		e.strtab << 0x00
-		str = name
-	}
-}
-
-pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
-	// Symbols to be relocated are passed to symtab after local symbols.
-	// The index will start from local_symbols.len()
-	mut pos := e.defined_symbols.len - e.globals_count - e.local_labels_count + 1 // count of local symbols
-	//                                                                          ^ null symbol
-
-	for r in rela_text_users {
-		mut index := 0
-		mut r_addend := i64(0 - 4)
-
-		// TODO: ...
-		if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
-			r_addend = 0
-		}
-
-		// already resolved call instruction
-    	if r.instr.is_already_resolved {
-			continue
-		}
-
-		if s := e.defined_symbols[r.uses] {
-    	    r_addend += s.addr
-			index = e.section_reloc_sym_index[s.section] or {
-				panic('section not found `$s.section`')
+	for name in e.symbols {
+		if symbol := e.defined_symbols[name] {
+			if symbol.binding != symbol_binding {
+				continue
 			}
-		} else if r.uses in e.rela_symbols {
-			index = e.section_reloc_sym_index[r.uses]
-    	} else {
-    	    e.rela_symbols << r.uses
-			e.section_reloc_sym_index[r.uses] = pos
-			index = pos
-    	    pos++
-    	}
 
-		e.rela['.rela' + r.instr.section] << elf.Elf64_Rela{
-    	    r_offset: u64(r.instr.addr + r.offset),
-    	    r_info: (u64(index) << 32) + r.rtype,
-    	    r_addend: r_addend + r.adjust,
-    	}
+			unsafe { *off += str.len + 1 }
+			st_shndx := u16(e.user_defined_section_idx[symbol.section])
+
+			mut st_name := u32(0)
+			if symbol.symbol_type == stt_section {
+				st_name = 0
+			} else {
+				st_name = u32(*off)
+			}
+
+			e.symtab << Elf64_Sym{
+				st_name: st_name
+				st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
+				st_shndx: st_shndx
+				st_value: symbol.addr
+			}
+
+			e.strtab << name.bytes()
+			e.strtab << 0x00
+			str = name
+		}
 	}
 }
 
+// add rela symbol to symtab and strtab
+// this function must be called after processing of local symbols.
 fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 	for symbol_name in e.rela_symbols {
 		unsafe {*off += str.len + 1}
@@ -247,7 +214,86 @@ fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 	}
 }
 
-pub fn (mut e Elf) elf_symtab_strtab() {
+// relocation table
+pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
+	for r in rela_text_users {
+		mut index := 0
+
+		mut r_addend := if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
+			i64(0)
+		} else {
+			i64(0-4)
+		}
+
+		// already resolved instruction.
+    	if r.instr.is_already_resolved {
+			continue
+		}
+
+		if s := e.defined_symbols[r.uses] {
+			if s.binding == encoder.stb_global {
+				index = e.symtab_symbol_indexs[r.uses]
+			} else {
+				r_addend += s.addr
+				index = e.symtab_symbol_indexs[s.section]
+			}
+		} else {
+			index = e.symtab_symbol_indexs[r.uses]
+    	}
+
+		rela_section_name := '.rela' + r.instr.section
+		e.rela[rela_section_name] << elf.Elf64_Rela{
+    	    r_offset: u64(r.instr.addr + r.offset),
+    	    r_info: (u64(index) << 32) + r.rtype,
+    	    r_addend: r_addend + r.adjust,
+    	}
+		if rela_section_name !in e.rela_section_names {
+			e.rela_section_names << rela_section_name
+		}
+	}
+}
+
+fn (mut e Elf) symtab_symbol_indexs(rela_text_users []encoder.RelaTextUser) {
+	mut idx := 1
+
+	// local sym
+	for name, sym in e.defined_symbols {
+		if sym.binding == encoder.stb_local {
+			if name.to_upper().starts_with('.L') {
+				continue
+			}
+			e.symbols << name
+			e.symtab_symbol_indexs[name] = idx
+			idx++
+		}
+	}
+
+	// rela sym
+	for rela in rela_text_users {
+		if rela.uses !in e.symbols {
+			if rela.uses in e.defined_symbols {
+				continue
+			}
+			e.rela_symbols << rela.uses
+			e.symbols << rela.uses
+			e.symtab_symbol_indexs[rela.uses] = idx
+			idx++
+		}
+	}
+
+	// global sym
+	for name, sym in e.defined_symbols {
+		if sym.binding == encoder.stb_global {
+			e.symbols << name
+			e.symtab_symbol_indexs[name] = idx
+			idx++
+		}
+	}
+}
+
+pub fn (mut e Elf) elf_symtab_strtab(rela_text_users []encoder.RelaTextUser) {
+	e.symtab_symbol_indexs(rela_text_users)
+
 	// null
 	e.strtab << [u8(0x00)]
 	e.symtab << Elf64_Sym{
@@ -260,6 +306,8 @@ pub fn (mut e Elf) elf_symtab_strtab() {
 	e.elf_symbol(elf.stb_local, mut &off, mut &str)  // local
 	e.elf_rela_symbol(mut &off, mut &str)            // rela local
 	e.elf_symbol(elf.stb_global, mut &off, mut &str) // global
+
+	e.rela_text_users(rela_text_users) // make rela sections
 
 	add_padding(mut e.strtab)
 }
@@ -375,8 +423,8 @@ pub fn (mut e Elf) build_headers() {
 	section_offs = symtab_ofs + symtab_size
 
 	// add rela ... to section headers
-	for name, rela in e.rela {
-		size := u32(rela.len) * sizeof(Elf64_Rela)
+	for name in e.rela_section_names {
+		size := u32(e.rela[name].len) * sizeof(Elf64_Rela)
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
 			sh_type: elf.sht_rela,
@@ -440,7 +488,7 @@ pub fn (mut e Elf) write_elf() {
 	}
 
 	fp.write_struct(e.ehdr) or {
-		panic('somthing whent wrong while writing `elf header`')
+		panic('error writing `elf header`')
 	}
 
 	for name in e.user_defined_section_names {
@@ -448,35 +496,35 @@ pub fn (mut e Elf) write_elf() {
 			panic('unkown section $name')
 		}
 		fp.write(section.code) or {
-			panic('somthing whent wrong while writing `$name`')
+			panic('error writing `$name`')
 		}
 	}
 
 	fp.write(e.strtab) or {
-		panic('somthing whent wrong while writing `.strtab`')
+		panic('error writing `.strtab`')
 	}
 
 	for s in e.symtab {
 		fp.write_struct(s) or {
-			panic('somthing whent wrong while writing `.symtab`')
+			panic('error writing `.symtab`')
 		}
 	}
 
-	for _, rela in e.rela {
-		for r in rela {
+	for name in e.rela_section_names {
+		for r in e.rela[name] {
 			fp.write_struct(r) or {
-				panic('somthing whent wrong while writing `.rela.text`')
+				panic('error writing `.rela.text`')
 			}
 		}
 	}
 
 	fp.write(e.shstrtab) or {
-		panic('somthing whent wrong while writing `.shstrtab`')
+		panic('error writing `.shstrtab`')
 	}
 
 	for sh in e.section_headers {
 		fp.write_struct(sh) or {
-			panic('somthing whent wrong while writing `section_headers`')
+			panic('error writing `section_headers`')
 		}
 	}
 }

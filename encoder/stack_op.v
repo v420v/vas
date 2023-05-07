@@ -11,7 +11,7 @@ fn (mut e Encoder) pop() {
 	source := e.parse_operand()
 
 	if source is Register {
-		check_regi_size(source, encoder.suffix_quad)
+		source.check_regi_size(encoder.suffix_quad)
 		instr.code = [0x58 + regi_bits(source)]
 		return
 	}
@@ -42,7 +42,7 @@ fn (mut e Encoder) push() {
 	source := e.parse_operand()
 
 	if source is Register {
-		check_regi_size(source, encoder.suffix_quad)
+		source.check_regi_size(encoder.suffix_quad)
 		instr.code = [0x50 + regi_bits(source)]
 		return
 	}

@@ -52,15 +52,16 @@ fn main() {
 
 	mut en := encoder.new(mut l, file_name)
 	en.encode()
-	en.add_index_to_instrs()
-	en.resolve_variable_length_instrs(mut en.variable_instrs)
+	if en.variable_instrs.len != 0 {
+		en.add_index_to_instrs()
+		en.resolve_variable_length_instrs(mut en.variable_instrs)
+	}
 	en.assign_addresses()
 	en.fix_same_section_relocations()
 	en.count_local_labels()
 
 	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count, en.local_labels_count)
-	e.rela_text_users(en.rela_text_users)
-	e.elf_symtab_strtab()
+	e.elf_symtab_strtab(en.rela_text_users)
 	e.build_shstrtab()
 	e.build_headers()
 	e.write_elf()

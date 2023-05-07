@@ -198,6 +198,9 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.section != rela.instr.section {
 				continue
 			}
+			if symbol.binding == encoder.stb_global {
+				continue
+			}
 			if rela.instr.kind != .call && rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
@@ -217,8 +220,8 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 }
 
 pub fn (mut e Encoder) count_local_labels() {
-	for name, _ in e.defined_symbols {
-		if name.to_upper().starts_with('.L') {
+	for name, sym in e.defined_symbols {
+		if name.to_upper().starts_with('.L') && sym.binding == encoder.stb_local {
 			e.local_labels_count++
 		}
 	}

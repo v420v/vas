@@ -12,7 +12,7 @@ fn (mut e Encoder) encode_imm_regi_with_ax(kind InstrKind, imm Immediate, regi R
 	} else {
 		u8(0x81)
 	}
-	check_regi_size(regi, size)
+	regi.check_regi_size(size)
 	instr.code << add_prefix_byte(size)
 	if regi.lit in ['AL', 'EAX', 'RAX'] && !is_in_i8_range(imm_val) {
 		instr.code << rax_magic
@@ -83,9 +83,9 @@ fn (mut e Encoder) add(instr_name_upper string) {
 		} else {
 			[u8(0x01)]
 		}
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			e.encode_regi(.add, regi_bits(source), desti, op_code, size)
 			return
 		}
@@ -100,7 +100,7 @@ fn (mut e Encoder) add(instr_name_upper string) {
 		} else {
 			u8(0x05)
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_imm_regi_with_ax(.add, source, desti, rax_magic, encoder.slash_0, size)
 		return
 	}
@@ -134,9 +134,9 @@ fn (mut e Encoder) sub(instr_name_upper string) {
 		} else {
 			[u8(0x29)]
 		}
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			e.encode_regi(.sub, regi_bits(source), desti, op_code, size)
 			return
 		}
@@ -151,7 +151,7 @@ fn (mut e Encoder) sub(instr_name_upper string) {
 		} else {
 			u8(0x2D)
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_imm_regi_with_ax(.sub, source, desti, rax_magic, encoder.slash_5, size)
 		return
 	}
@@ -186,7 +186,7 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 			[u8(0xf7)]
 		}
 		if source is Register {
-			check_regi_size(source, size)
+			source.check_regi_size(size)
 			e.encode_regi(.imul, encoder.slash_5, source, op_code, size)
 			return
 		}
@@ -200,15 +200,15 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 	desti_operand_1 := e.parse_operand()
 
 	if source is Indirection && desti_operand_1 is Register {
-		check_regi_size(desti_operand_1, size)
+		desti_operand_1.check_regi_size(size)
 		op_code := [u8(0x0f), 0xaf]
 		e.encode_indir(.imul, regi_bits(desti_operand_1), source, op_code, size)
 		return
 	}
 
 	if source is Register && desti_operand_1 is Register {
-		check_regi_size(source, size)
-		check_regi_size(desti_operand_1, size)
+		source.check_regi_size(size)
+		desti_operand_1.check_regi_size(size)
 		op_code := [u8(0x0f), 0xaf]
 		e.encode_regi(.imul, regi_bits(desti_operand_1), source, op_code, size)
 		return
@@ -228,8 +228,8 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 		} else {
 			u8(0x69)
 		}
-		check_regi_size(desti_operand_1, size)
-		check_regi_size(desti_operand_2, size)
+		desti_operand_1.check_regi_size(size)
+		desti_operand_2.check_regi_size(size)
 		instr.code << add_prefix_byte(size)
 		instr.code << op_code
 		instr.code << compose_mod_rm(mod_regi, regi_bits(desti_operand_2), regi_bits(desti_operand_1))
@@ -253,7 +253,7 @@ fn (mut e Encoder) idiv(instr_name_upper string) {
 	}
 
 	if source is Register {
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		e.encode_regi(.idiv, encoder.slash_7, source, op_code, size)
 		return
 	}
@@ -275,7 +275,7 @@ fn (mut e Encoder) div(instr_name_upper string) {
 		[u8(0xF7)]
 	}
 	if source is Register {
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		e.encode_regi(.div, encoder.slash_6, source, op_code, size)
 		return
 	}
@@ -299,7 +299,7 @@ fn (mut e Encoder) neg(instr_name_upper string) {
 	desti := e.parse_operand()
 
 	if desti is Register {
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_regi(.neg, encoder.slash_3, desti, op_code, size)
 		return
 	}
@@ -323,7 +323,7 @@ fn (mut e Encoder) not(instr_name_upper string) {
 	desti := e.parse_operand()
 
 	if desti is Register {
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_regi(.not, encoder.slash_3, desti, op_code, size)
 		return
 	}
@@ -348,9 +348,9 @@ fn (mut e Encoder) xor(instr_name_upper string) {
 		} else {
 			[u8(0x31)]
 		}
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			e.encode_regi(.xor, regi_bits(source), desti, op_code, size)
 			return
 		}
@@ -365,7 +365,7 @@ fn (mut e Encoder) xor(instr_name_upper string) {
 		} else {
 			u8(0x35)
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_imm_regi_with_ax(.xor, source, desti, rax_magic, encoder.slash_6, size)
 		return
 	}
@@ -379,7 +379,7 @@ fn (mut e Encoder) xor(instr_name_upper string) {
 		} else {
 			[u8(0x33)]
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_indir(.xor, regi_bits(desti), source, op_code, size)
 		return
 	}
@@ -400,7 +400,7 @@ fn (mut e Encoder) and(instr_name_upper string) {
 		} else {
 			u8(0x25)
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_imm_regi_with_ax(.and, source, desti, rax_magic, encoder.slash_4, size)
 		return
 	}
@@ -414,9 +414,9 @@ fn (mut e Encoder) and(instr_name_upper string) {
 		} else {
 			[u8(0x21)]
 		}
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			e.encode_regi(.and, regi_bits(source), desti, op_code, size)
 			return
 		}
@@ -431,7 +431,7 @@ fn (mut e Encoder) and(instr_name_upper string) {
 		} else {
 			[u8(0x23)]
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_indir(.and, regi_bits(desti), source, op_code, size)
 		return
 	}
@@ -452,9 +452,9 @@ fn (mut e Encoder) cmp(instr_name_upper string) {
 		} else {
 			[u8(0x39)]
 		}
-		check_regi_size(source, size)
+		source.check_regi_size(size)
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			e.encode_regi(.cmp, regi_bits(source), desti, op_code, size)
 			return
 		}
@@ -469,7 +469,7 @@ fn (mut e Encoder) cmp(instr_name_upper string) {
 		} else {
 			u8(0x3D)
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_imm_regi_with_ax(.cmp, source, desti, rax_magic, encoder.slash_7, size)
 		return
 	}
@@ -483,7 +483,7 @@ fn (mut e Encoder) cmp(instr_name_upper string) {
 		} else {
 			[u8(0x3B)]
 		}
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_indir(.cmp, regi_bits(desti), source, op_code, size)
 		return
 	}
@@ -503,7 +503,7 @@ fn (mut e Encoder) lea(instr_name_upper string) {
 
 	if source is Indirection && desti is Register {
 		op_code := [u8(0x8d)]
-		check_regi_size(desti, size)
+		desti.check_regi_size(size)
 		e.encode_indir(.lea, regi_bits(desti), source, op_code, size)
 		return
 	}
@@ -516,7 +516,7 @@ fn (mut e Encoder) set(kind InstrKind, op_code []u8) {
 	regi := e.parse_operand()
 
 	if regi is Register {
-		check_regi_size(regi, encoder.suffix_byte)
+		regi.check_regi_size(encoder.suffix_byte)
 		e.encode_regi(kind, encoder.slash_0, regi, op_code, encoder.suffix_byte)
 		return
 	}
@@ -550,7 +550,7 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 			}
 		}
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			instr.code << add_prefix_byte(size)
 			instr.code << op_code
 			instr.code << compose_mod_rm(encoder.mod_regi, slash, regi_bits(desti))
@@ -587,7 +587,7 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 			u8(0xD3)
 		}
 		if desti is Register {
-			check_regi_size(desti, size)
+			desti.check_regi_size(size)
 			instr.code << add_prefix_byte(size)
 			instr.code << op_code
 			instr.code << compose_mod_rm(encoder.mod_regi, slash, regi_bits(desti))
