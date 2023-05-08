@@ -5,12 +5,13 @@ import encoder
 
 pub struct Elf {
 	out_file             		string
-	globals_count        		int										// global symbols count
+	global_symbols_count        int										// global symbols count
+	local_labels_count			int           							// symbols that start from .L will not be added to strtab or symtab
 	defined_symbols      		map[string]&encoder.Instr				// user-defined symbols
 	user_defined_sections		map[string]&encoder.UserDefinedSection 	// user-defined sections
+	rela_text_users             []encoder.RelaTextUser
 mut:
 	ehdr                      	Elf64_Ehdr    	// Elf header
-	symbols						[]string        // symbols that will be added to symtab strtab
 	symtab_symbol_indexs		map[string]int  // symtab symbol index
 	rela_symbols              	[]string      	// symbols that are not defined
 	user_defined_section_names	[]string      	// list of user-defined section names
@@ -21,17 +22,8 @@ mut:
 	rela_section_names          []string
 	rela              			map[string][]Elf64_Rela
 	shstrtab          			[]u8
-	local_labels_count			int           	// symbols that start from .L will not be added to strtab or symtab
 	section_headers   			[]Elf64_Shdr
 }
-
-/*
-
-Elf format
- - https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
- - https://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/docs/elf.pdf
-
-*/
 
 struct Elf64_Ehdr {
 	e_ident     [16]u8
@@ -125,13 +117,88 @@ pub const (
     shf_tls              = 0x400
 )
 
-pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, globals_count int, local_labels_count int) &Elf {
+/*
+
+Elf format
+ - https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+ - https://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/docs/elf.pdf
+
+
+Generated Elf file
+
+	+-----------------------------------+
+	|			ElfHeader				|
+	+-----------------------------------+
+
+	+-----------------------------------+
+	|		UserDefinedSections			|
+	+-----------------------------------+
+	|				...					| 
+	+-----------------------------------+
+	|				...					|
+	+-----------------------------------+
+
+	+-----------------------------------+
+	|			.strtab					|
+	+-----------------------------------+
+	|				...					|
+	+-----------------------------------+
+
+	+-----------------------------------+
+	|			.symtab					|
+	+-----------------------------------+
+	|			Null symbol				|
+	+-----------------------------------+
+	|			Local symbols			|
+	+-----------------------------------+
+	|			Rela symbols			|
+	+-----------------------------------+
+	|			Global symbols			|
+	+-----------------------------------+
+
+	+-----------------------------------+
+	|			.rela.text				|
+	+-----------------------------------+
+	|				...					|
+	+-----------------------------------+
+
+	+-----------------------------------+
+	|			.shstrtab				|
+	+-----------------------------------+
+	|				...					|
+	+-----------------------------------+
+
+	+-----------------------------------+
+	|			SectionHeaders			|
+	+-----------------------------------+
+	|		null SectionHeader			|
+	+-----------------------------------+
+	|		UserDefined SectionHeaders	|
+	+-----------------------------------+
+	|				...					|
+	+-----------------------------------+
+	|		.strtab SectionHeader		|
+	+-----------------------------------+
+	|		.symtab SectionHeader		|
+	+-----------------------------------+
+	|		.rela SectionHeaders		|
+	+-----------------------------------+
+	|				...					|
+	+-----------------------------------+
+	|		.shstrtab SectionHeader		|
+	+-----------------------------------+
+
+*/
+
+pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, rela_text_users []encoder.RelaTextUser, global_symbols_count int, local_labels_count int) &Elf {
 	mut e := &Elf{
 		out_file: out_file
-		globals_count: globals_count
 		user_defined_sections: user_defined_sections
 		defined_symbols: defined_symbols
+		rela_text_users: rela_text_users
+		global_symbols_count: global_symbols_count
 		local_labels_count: local_labels_count
+		symtab_symbol_indexs: {'': 0} // null symbol
 	}
 
 	mut user_defined_section_idx := 1 // section header starts from `null section`
@@ -152,57 +219,47 @@ fn add_padding(mut code []u8) {
 	}
 }
 
-/*
-
-	.symtab
-	+---------------------------+
-	|		Null symbol			|
-	+---------------------------+
-	|		Local symbols		|
-	+---------------------------+
-	|		Rela symbols		|
-	+---------------------------+
-	|		Global symbols		|
-	+---------------------------+
-
-*/
-
 fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
-	for name in e.symbols {
-		if symbol := e.defined_symbols[name] {
-			if symbol.binding != symbol_binding {
-				continue
-			}
-
-			unsafe { *off += str.len + 1 }
-			st_shndx := u16(e.user_defined_section_idx[symbol.section])
-
-			mut st_name := u32(0)
-			if symbol.symbol_type == stt_section {
-				st_name = 0
-			} else {
-				st_name = u32(*off)
-			}
-
-			e.symtab << Elf64_Sym{
-				st_name: st_name
-				st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
-				st_shndx: st_shndx
-				st_value: symbol.addr
-			}
-
-			e.strtab << name.bytes()
-			e.strtab << 0x00
-			str = name
+	for name, symbol in e.defined_symbols {
+		if symbol.binding != symbol_binding {
+			continue
 		}
+		if symbol.binding == encoder.stb_local && name.to_upper().starts_with('.L') {
+			continue
+		}
+
+		e.symtab_symbol_indexs[name] = e.symtab_symbol_indexs.len
+
+		unsafe { *off += str.len + 1 }
+		st_shndx := u16(e.user_defined_section_idx[symbol.section])
+		mut st_name := u32(0)
+
+		if symbol.symbol_type == stt_section {
+			st_name = 0
+		} else {
+			st_name = u32(*off)
+		}
+
+		e.symtab << Elf64_Sym{
+			st_name: st_name
+			st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
+			st_shndx: st_shndx
+			st_value: symbol.addr
+		}
+
+		e.strtab << name.bytes()
+		e.strtab << 0x00
+		str = name
 	}
 }
 
-// add rela symbol to symtab and strtab
-// this function must be called after processing of local symbols.
+// Add rela symbol to symtab and strtab
+// This function will be called after processing local symbols.
 fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 	for symbol_name in e.rela_symbols {
 		unsafe {*off += str.len + 1}
+		e.symtab_symbol_indexs[symbol_name] = e.symtab_symbol_indexs.len
+
 		e.symtab << Elf64_Sym{
 			st_name: u32(*off)
 			st_info: u8((elf.stb_global << 4) + (elf.stt_notype & 0xf))
@@ -215,8 +272,8 @@ fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 }
 
 // relocation table
-pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
-	for r in rela_text_users {
+pub fn (mut e Elf) rela_text_users() {
+	for r in e.rela_text_users {
 		mut index := 0
 
 		mut r_addend := if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
@@ -253,47 +310,18 @@ pub fn (mut e Elf) rela_text_users(rela_text_users []encoder.RelaTextUser) {
 	}
 }
 
-fn (mut e Elf) symtab_symbol_indexs(rela_text_users []encoder.RelaTextUser) {
-	mut idx := 1
-
-	// local sym
-	for name, sym in e.defined_symbols {
-		if sym.binding == encoder.stb_local {
-			if name.to_upper().starts_with('.L') {
-				continue
-			}
-			e.symbols << name
-			e.symtab_symbol_indexs[name] = idx
-			idx++
-		}
-	}
-
-	// rela sym
-	for rela in rela_text_users {
-		if rela.uses !in e.symbols {
+pub fn (mut e Elf) collect_rela_symbols() {
+	for rela in e.rela_text_users {
+		if rela.uses !in e.rela_symbols {
 			if rela.uses in e.defined_symbols {
 				continue
 			}
 			e.rela_symbols << rela.uses
-			e.symbols << rela.uses
-			e.symtab_symbol_indexs[rela.uses] = idx
-			idx++
-		}
-	}
-
-	// global sym
-	for name, sym in e.defined_symbols {
-		if sym.binding == encoder.stb_global {
-			e.symbols << name
-			e.symtab_symbol_indexs[name] = idx
-			idx++
 		}
 	}
 }
 
-pub fn (mut e Elf) elf_symtab_strtab(rela_text_users []encoder.RelaTextUser) {
-	e.symtab_symbol_indexs(rela_text_users)
-
+pub fn (mut e Elf) build_symtab_strtab() {
 	// null
 	e.strtab << [u8(0x00)]
 	e.symtab << Elf64_Sym{
@@ -306,8 +334,6 @@ pub fn (mut e Elf) elf_symtab_strtab(rela_text_users []encoder.RelaTextUser) {
 	e.elf_symbol(elf.stb_local, mut &off, mut &str)  // local
 	e.elf_rela_symbol(mut &off, mut &str)            // rela local
 	e.elf_symbol(elf.stb_global, mut &off, mut &str) // global
-
-	e.rela_text_users(rela_text_users) // make rela sections
 
 	add_padding(mut e.strtab)
 }
@@ -348,10 +374,8 @@ pub fn (mut e Elf) build_shstrtab() {
 
 // TODO: refactor later...
 pub fn (mut e Elf) build_headers() {
-	mut idx := 0
 	mut section_offs := sizeof(Elf64_Ehdr)
-	mut section_idx := {'': idx}
-	idx++
+	mut section_idx := {'': 0}
 
 	// null section
 	e.section_headers << Elf64_Shdr{
@@ -359,7 +383,7 @@ pub fn (mut e Elf) build_headers() {
 		sh_type: elf.sht_null
 	}
 
-	// custom sections
+	// user-defined sections
 	for name in e.user_defined_section_names {
 		section := e.user_defined_sections[name] or {
 			panic('[internal error] unkown section `$name`')
@@ -377,19 +401,16 @@ pub fn (mut e Elf) build_headers() {
 			sh_entsize: 0
 		}
 		section_offs += u32(section.code.len)
-		section_idx[name] = idx
-		idx++
+		section_idx[name] = section_idx.len
 	}
 
 	strtab_ofs := section_offs
 	strtab_size := u32(e.strtab.len)
-	section_idx['.strtab'] = idx
-	idx++
+	section_idx['.strtab'] = section_idx.len
 
 	symtab_ofs := strtab_ofs + strtab_size
 	symtab_size := sizeof(Elf64_Sym) * u32(e.symtab.len)
-	section_idx['.symtab'] = idx
-	idx++
+	section_idx['.symtab'] = section_idx.len
 
 	e.section_headers << [
 		// .strtab
@@ -414,7 +435,7 @@ pub fn (mut e Elf) build_headers() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: u32(section_idx['.strtab']) // section number of .strtab
-			sh_info: u32(e.defined_symbols.len - e.globals_count + 1 - e.local_labels_count) // Number of local symbols
+			sh_info: u32(e.defined_symbols.len - e.global_symbols_count + 1 - e.local_labels_count) // Number of local symbols
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		}
@@ -479,6 +500,8 @@ pub fn (mut e Elf) build_headers() {
 		e_shstrndx: u16(e.section_headers.len - 1)
 	}
 }
+
+// I hat this.
 
 pub fn (mut e Elf) write_elf() {
 	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }

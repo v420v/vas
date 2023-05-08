@@ -60,8 +60,10 @@ fn main() {
 	en.fix_same_section_relocations()
 	en.count_local_labels()
 
-	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.globals_count, en.local_labels_count)
-	e.elf_symtab_strtab(en.rela_text_users)
+	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.rela_text_users, en.globals_count, en.local_labels_count)
+	e.collect_rela_symbols()
+	e.build_symtab_strtab()
+	e.rela_text_users()
 	e.build_shstrtab()
 	e.build_headers()
 	e.write_elf()
