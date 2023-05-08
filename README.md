@@ -16,7 +16,7 @@ Supports Linux x86-64 AT&T syntax only.
 
 .section .data, "aw"
 msg:
-  .string "Hello, world!"
+  .string "Hello, world!\n"
 
 .section .text, "ax"
 _start:
@@ -27,7 +27,7 @@ _start:
   movq $1, %rax
   movq $1, %rdi
   leaq msg(%rip), %rsi
-  movq $13, %rdx
+  movq $14, %rdx
   syscall
 
   movq $60, %rax
@@ -41,7 +41,7 @@ _start:
 ## Quick Start
 
 ```sh
-$ v . -prod -autofree
+$ v . -prod -gc none
 ```
 
 ## Run
