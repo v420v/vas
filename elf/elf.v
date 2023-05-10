@@ -11,8 +11,11 @@ pub struct Elf {
 	user_defined_sections		map[string]&encoder.UserDefinedSection 	// user-defined sections
 	rela_text_users             []encoder.RelaTextUser
 mut:
+	keep_locals					bool // flag to keep local labels. labels that start from `.L`
+
 	ehdr                      	Elf64_Ehdr    	// Elf header
 	symtab_symbol_indexs		map[string]int  // symtab symbol index
+	local_symbols_count         int // used in .symtab section header
 	rela_symbols              	[]string      	// symbols that are not defined
 	user_defined_section_names	[]string      	// list of user-defined section names
 	user_defined_section_idx  	map[string]int	// user-defined sections index
@@ -190,7 +193,7 @@ Generated Elf file
 
 */
 
-pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, rela_text_users []encoder.RelaTextUser, global_symbols_count int, local_labels_count int) &Elf {
+pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, rela_text_users []encoder.RelaTextUser, global_symbols_count int, local_labels_count int, keep_locals bool) &Elf {
 	mut e := &Elf{
 		out_file: out_file
 		user_defined_sections: user_defined_sections
@@ -198,15 +201,12 @@ pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefine
 		rela_text_users: rela_text_users
 		global_symbols_count: global_symbols_count
 		local_labels_count: local_labels_count
-		symtab_symbol_indexs: {'': 0} // null symbol
+		keep_locals: keep_locals
 	}
-
-	mut user_defined_section_idx := 1 // section header starts from `null section`
 
 	for name, _ in user_defined_sections {
 		e.user_defined_section_names << name
-		e.user_defined_section_idx[name] = user_defined_section_idx
-		user_defined_section_idx++
+		e.user_defined_section_idx[name] = e.user_defined_section_idx.len + 1
 	}
 
 	return e
@@ -224,8 +224,12 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		if symbol.binding != symbol_binding {
 			continue
 		}
-		if symbol.binding == encoder.stb_local && name.to_upper().starts_with('.L') {
-			continue
+
+		if symbol.binding == encoder.stb_local {
+			if !e.keep_locals && symbol.binding == encoder.stb_local && name.to_upper().starts_with('.L') {
+				continue
+			}
+			e.local_symbols_count++
 		}
 
 		e.symtab_symbol_indexs[name] = e.symtab_symbol_indexs.len
@@ -328,6 +332,9 @@ pub fn (mut e Elf) build_symtab_strtab() {
 		st_name: 0
 		st_info: u8((elf.stb_local << 4) + (elf.stt_notype & 0xf))
 	}
+	e.symtab_symbol_indexs[''] = e.symtab_symbol_indexs.len // null symbol
+	e.local_symbols_count++
+
 	mut off := 0
 	mut str := ''
 
@@ -435,7 +442,7 @@ pub fn (mut e Elf) build_headers() {
 			sh_offset: symtab_ofs
 			sh_size: symtab_size
 			sh_link: u32(section_idx['.strtab']) // section number of .strtab
-			sh_info: u32(e.defined_symbols.len - e.global_symbols_count + 1 - e.local_labels_count) // Number of local symbols
+			sh_info: u32(e.local_symbols_count) // Number of local symbols
 			sh_addralign: 8
 			sh_entsize: sizeof(Elf64_Sym)
 		}
@@ -500,8 +507,6 @@ pub fn (mut e Elf) build_headers() {
 		e_shstrndx: u16(e.section_headers.len - 1)
 	}
 }
-
-// I hat this.
 
 pub fn (mut e Elf) write_elf() {
 	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }

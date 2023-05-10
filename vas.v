@@ -22,6 +22,7 @@ fn main() {
     fp.version('v0.0.0')
     fp.skip_executable()
     mut out_file := fp.string('o', `o`, 'out_file_none', 'set output file name')
+	keep_locals := fp.bool('keep-locals', 0, false, 'keeps local symbols (e.g., those starting with `.L`)')
 
     additional_args := fp.finalize() or {
         println(fp.usage())
@@ -60,7 +61,7 @@ fn main() {
 	en.fix_same_section_relocations()
 	en.count_local_labels()
 
-	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.rela_text_users, en.globals_count, en.local_labels_count)
+	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.rela_text_users, en.globals_count, en.local_labels_count, keep_locals)
 	e.collect_rela_symbols()
 	e.build_symtab_strtab()
 	e.rela_text_users()
