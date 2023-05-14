@@ -277,17 +277,23 @@ fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 
 // relocation table
 pub fn (mut e Elf) rela_text_users() {
+	/*
+		x86: 再配置型
+		https://docs.oracle.com/cd/E19683-01/817-4912/6mkdg542u/index.html#chapter6-26
+	*/
 	for r in e.rela_text_users {
 		mut index := 0
 
 		mut r_addend := if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
 			i64(0)
+		} else if r.rtype in [encoder.r_x86_64_pc32] {
+			i64(r.offset - r.instr.code.len)
 		} else {
 			i64(0-4)
 		}
 
 		// already resolved instruction.
-    	if r.instr.is_already_resolved {
+    	if r.is_already_resolved {
 			continue
 		}
 
@@ -308,6 +314,7 @@ pub fn (mut e Elf) rela_text_users() {
     	    r_info: (u64(index) << 32) + r.rtype,
     	    r_addend: r_addend + r.adjust,
     	}
+
 		if rela_section_name !in e.rela_section_names {
 			e.rela_section_names << rela_section_name
 		}

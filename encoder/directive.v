@@ -48,13 +48,13 @@ fn (mut e Encoder) byte() {
 
 	mut instr := Instr{kind: .byte, pos: desti.pos, section: e.current_section}
 
-	adjust := eval_expr(desti)
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(desti, mut &used_symbols)
+	adjust := eval_expr_get_symbol(desti, mut used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(desti.pos, 'invalid operand for instruction')
+		error.print(desti.pos, 'invalid operand')
 		exit(1)
 	}
+
 	if used_symbols.len == 1 {
 		rela_text_users := &RelaTextUser{
 			uses: used_symbols[0],
@@ -76,13 +76,13 @@ fn (mut e Encoder) word() {
 
 	mut instr := Instr{kind: .word, pos: desti.pos, section: e.current_section}
 
-	adjust := eval_expr(desti)
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(desti, mut &used_symbols)
+	adjust := eval_expr_get_symbol(desti, mut used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(desti.pos, 'invalid operand for instruction')
+		error.print(desti.pos, 'invalid operand')
 		exit(1)
 	}
+
 	if used_symbols.len == 1 {
 		rela_text_users := &RelaTextUser{
 			uses: used_symbols[0],
@@ -106,13 +106,13 @@ fn (mut e Encoder) long() {
 
 	mut instr := Instr{kind: .long, pos: desti.pos, section: e.current_section}
 
-	adjust := eval_expr(desti)
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(desti, mut &used_symbols)
+	adjust := eval_expr_get_symbol(desti, mut used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(desti.pos, 'invalid operand for instruction')
+		error.print(desti.pos, 'invalid operand')
 		exit(1)
 	}
+
 	if used_symbols.len == 1 {
 		rela_text_users := &RelaTextUser{
 			uses: used_symbols[0],
@@ -136,13 +136,13 @@ fn (mut e Encoder) quad() {
 
 	mut instr := Instr{kind: .quad, pos: desti.pos, section: e.current_section}
 
-	adjust := eval_expr(desti)
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(desti, mut &used_symbols)
+	adjust := eval_expr_get_symbol(desti, mut used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(desti.pos, 'invalid operand for instruction')
+		error.print(desti.pos, 'invalid operand')
 		exit(1)
 	}
+
 	if used_symbols.len == 1 {
 		rela_text_users := &RelaTextUser{
 			uses: used_symbols[0],

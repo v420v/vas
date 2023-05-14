@@ -14,7 +14,7 @@ _start:
 
 	movq $1, %rax
 	movq $1, %rdi
-	leaq msg(%rip), %rsi
+	movq $msg, %rsi
 	movq $14, %rdx
 	syscall
 

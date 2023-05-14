@@ -15,6 +15,7 @@ bin/
 *.py
 test.s
 nasm.s
+label_test.s
 
 # Ignore common editor/system specific metadata
 .DS_Store

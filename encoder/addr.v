@@ -214,7 +214,7 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			e.sections[rela.instr.section].code[rela.instr.addr + rela.offset+2] = hex[2]
 			e.sections[rela.instr.section].code[rela.instr.addr + rela.offset+3] = hex[3]
 
-			rela.instr.is_already_resolved = true
+			rela.is_already_resolved = true
 		}
 	}
 }

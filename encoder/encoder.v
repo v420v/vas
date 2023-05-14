@@ -58,17 +58,17 @@ pub enum InstrKind {
 
 pub struct Encoder {
 mut:
-	tok					token.Token			// current token
-	l  					lexer.Lexer			// lexer
+	tok					token.Token						// current token
+	l  					lexer.Lexer						// lexer
 pub mut:
 	current_section		string
-	instrs         		map[string][]&Instr // map with section name as keys and instruction list as value
+	instrs         		map[string][]&Instr 			// map with section name as keys and instruction list as value
 	rela_text_users		[]RelaTextUser
-	variable_instrs		[]&Instr			// variable length instructions jmp, je, jn ...
-	defined_symbols		map[string]&Instr   // labels, sections...
+	variable_instrs		[]&Instr						// variable length instructions jmp, je, jn ...
+	defined_symbols		map[string]&Instr   			// labels, sections...
 	sections       		map[string]&UserDefinedSection
-	globals_count  		int					// global symbols
-	local_labels_count	int					// symbols that start with `.L`
+	globals_count  		int								// global symbols
+	local_labels_count	int								// symbols that start with `.L`
 }
 
 pub struct Instr {
@@ -84,17 +84,17 @@ pub mut:
 	index          		int
 	varcode        		&VariableCode = unsafe{nil}
 	is_len_decided 		bool = true
-	is_already_resolved bool
 	pos token.Position [required]
 }
 
 pub struct RelaTextUser {
 pub mut:
-	uses   string
-	instr  &Instr
-	offset i64
-	rtype  u64
-	adjust int
+	uses  				string
+	instr 				&Instr
+	offset				i64
+	rtype 				u64
+	adjust				int
+	is_already_resolved	bool
 }
 
 pub struct VariableCode {
@@ -131,7 +131,7 @@ pub:
 pub struct Register {
 pub:
 	lit string
-	size int
+	size DataSize
 	pos token.Position
 }
 
@@ -165,13 +165,14 @@ pub mut:
 	flags int
 }
 
-pub const (
-	// suffix
+enum DataSize {
 	suffix_byte						= 8
 	suffix_word						= 16
 	suffix_long						= 32
 	suffix_quad						= 64
+}
 
+pub const (
 	mod_indirection_with_no_disp	= u8(0)
 	mod_indirection_with_disp8  	= u8(1)
 	mod_indirection_with_disp32 	= u8(2)
@@ -377,16 +378,16 @@ fn (mut e Encoder) parse_operand() Expr {
 	exit(1)
 }
 
-fn regi_size(name string) int {
+fn regi_size(name string) DataSize {
 	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'cH', 'DH', 'BH'] {
-		return 8
+		return .suffix_byte
 	} else if name in ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'] {
-		return 16
+		return .suffix_word
 	} else {
 		if name[0] == `R` {
-			return 64
+			return .suffix_quad
 		} else if name[0] == `E` {
-			return 32
+			return .suffix_long
 		}
 	}
 	panic('unreachable')
@@ -421,6 +422,45 @@ fn regi_bits(regi Register) u8 {
 		else {
 			error.print(regi.pos, 'invalid operand for instruction')
 			exit(1)
+		}
+	}
+}
+
+fn eval_expr_get_symbol(expr Expr, mut arr[]string) int {
+	return match expr {
+		Number {
+			int(strconv.parse_int(expr.lit, 0, 64) or {
+                error.print(expr.pos, 'invalid number `expr.lit`')
+                exit(1)
+            })
+		}
+		Binop{
+			match expr.op {
+				.plus {
+					eval_expr_get_symbol(expr.left_hs, mut arr) + eval_expr_get_symbol(expr.right_hs, mut arr)
+				}
+				.minus {
+					eval_expr_get_symbol(expr.left_hs, mut arr) - eval_expr_get_symbol(expr.right_hs, mut arr)
+				}
+				.mul {
+					eval_expr_get_symbol(expr.left_hs, mut arr) * eval_expr_get_symbol(expr.right_hs, mut arr)
+				}
+				.div {
+					eval_expr_get_symbol(expr.left_hs, mut arr) / eval_expr_get_symbol(expr.right_hs, mut arr)
+				} else {
+					panic('[internal error] somthing whent wrong...')
+				}
+			}
+		}
+		Ident {
+			arr << expr.lit
+			0
+		}
+		Neg {
+			eval_expr_get_symbol(expr.expr, mut arr) * -1
+		}
+		else {
+			0
 		}
 	}
 }
@@ -460,43 +500,26 @@ fn eval_expr(expr Expr) int {
 	}
 }
 
-fn (mut e Encoder) get_symbol_from_binop(expr Expr, mut arr []string) {
-	match expr {
-		Binop {
-			e.get_symbol_from_binop(expr.left_hs, mut arr)
-			e.get_symbol_from_binop(expr.right_hs, mut arr)
-		}
-		Neg {
-			e.get_symbol_from_binop(expr.expr, mut arr)
-		}
-		Ident {
-			arr << expr.lit
-		}
-		else {
-		}
-	}
-}
-
-fn get_size_by_suffix(name string) int {
+fn get_size_by_suffix(name string) DataSize {
 	return match name.to_upper()[name.len-1] {
 		`Q` {
-			encoder.suffix_quad
+			DataSize.suffix_quad
 		}
 		`L` {
-			encoder.suffix_long
+			DataSize.suffix_long
 		}
 		`W` {
-			encoder.suffix_word
+			DataSize.suffix_word
 		}
 		`B` {
-			encoder.suffix_byte
+			DataSize.suffix_byte
 		} else {
 			panic('unkown size')
 		}
 	}
 }
 
-fn (regi Register) check_regi_size(size int) {
+fn (regi Register) check_regi_size(size DataSize) {
 	if regi.size != size {
 		error.print(regi.pos, 'invalid size of register for instruction.')
 		exit(0)
@@ -538,19 +561,18 @@ fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
 }
 
-fn add_prefix_byte(size int) []u8 {
-	if size == encoder.suffix_quad {
-		return [encoder.rex_w]
-	} else if size == encoder.suffix_word {
-		return [operand_size_prefix16]
+fn (mut instr Instr) add_prefix_byte(size DataSize) {
+	if size == .suffix_quad {
+		instr.code << encoder.rex_w
+	} else if size == .suffix_word {
+		instr.code << operand_size_prefix16
 	}
-	return []
 }
 
-fn encode_imm_value(imm_val int, size int) []u8 {
-	if is_in_i8_range(imm_val) || size == suffix_byte {
+fn encode_imm_value(imm_val int, size DataSize) []u8 {
+	if is_in_i8_range(imm_val) || size == DataSize.suffix_byte {
 		return [u8(imm_val)]
-	} else if size == suffix_word {
+	} else if size == DataSize.suffix_word {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(imm_val))
 		return hex

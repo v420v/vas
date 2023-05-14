@@ -11,7 +11,7 @@ fn (mut e Encoder) pop() {
 	source := e.parse_operand()
 
 	if source is Register {
-		source.check_regi_size(encoder.suffix_quad)
+		source.check_regi_size(.suffix_quad)
 		instr.code = [0x58 + regi_bits(source)]
 		return
 	}
@@ -42,7 +42,7 @@ fn (mut e Encoder) push() {
 	source := e.parse_operand()
 
 	if source is Register {
-		source.check_regi_size(encoder.suffix_quad)
+		source.check_regi_size(.suffix_quad)
 		instr.code = [0x50 + regi_bits(source)]
 		return
 	}
@@ -80,13 +80,12 @@ fn (mut e Encoder) push() {
 fn (mut e Encoder) call() {
 	instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section, code: [u8(0xe8), 0, 0, 0, 0]}
 
-	source := e.parse_operand()
-	adjust := eval_expr(source)
+	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(source, mut &used_symbols)
-	if used_symbols.len >= 2 || used_symbols.len == 0 {
-		error.print(source.pos, 'invalid operand for instruction')
+	adjust := eval_expr_get_symbol(desti, mut used_symbols)
+	if used_symbols.len >= 2 {
+		error.print(desti.pos, 'invalid operand for instruction')
 		exit(1)
 	}
 

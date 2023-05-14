@@ -4,7 +4,7 @@ import error
 import encoding.binary
 
 fn (indir Indirection) base_or_index_is_long() bool {
-	return indir.base.size == encoder.suffix_long || indir.index.size == encoder.suffix_long
+	return indir.base.size == .suffix_long || indir.index.size == .suffix_long
 }
 
 fn (indir Indirection) check_base_register() (bool, bool, bool) {
@@ -35,12 +35,10 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 
-	disp := eval_expr(indir.disp)
-
 	mut used_symbols := []string{}
-	e.get_symbol_from_binop(indir.disp, mut &used_symbols)
+	disp := eval_expr_get_symbol(indir.disp, mut used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(indir.disp.pos, 'invalid `disp` for operand indirect')
+		error.print(indir.disp.pos, 'invalid operand')
 		exit(1)
 	}
 	need_rela := used_symbols.len == 1
@@ -111,7 +109,7 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 	if need_rela {
 		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
-		} else if indir.base.size == suffix_quad {
+		} else if indir.base.size == .suffix_quad {
 			encoder.r_x86_64_32s
 		} else {
 			encoder.r_x86_64_32	
