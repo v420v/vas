@@ -27,7 +27,16 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 	}
 }
 
-fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, []u8, bool) {
+// This function is used when encoding instructions that use indirection.
+// `calculate_modrm_sib_disp` will return `rela` struct. The `rela` struct wont contain info about offset.
+// This function assigns the offset to the `rela` struct.
+fn (mut r RelaTextUser) assign_offset_to_rela(offset int, instr &Instr) {
+	r.offset = instr.code.len
+	r.instr = unsafe { instr }
+}
+
+// returns modrm_sib, disp and relocation struct if it's needed.
+fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, []u8, &RelaTextUser) {
 	if !indir.has_base && !indir.has_index_scale {
 		error.print(indir.pos, 'syntax not supported yet. `disp(,,)`')
 		exit(1)
@@ -43,48 +52,48 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 	}
 	need_rela := used_symbols.len == 1
 
-	// modrm
-	mod_rm := if indir.has_index_scale {
-		if base_is_ip {
-			error.print(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
-			exit(1)
-		}
+	mut mod_rm_sib := [
+		// mod_rm
+		if indir.has_index_scale {
+			if base_is_ip {
+				error.print(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
+				exit(1)
+			}
 
-		if indir.base.size != indir.index.size && indir.has_base {
-			error.print(indir.base.pos, 'base register is $indir.base.size-bit, but index register is not')
-			exit(1)
-		}
+			if indir.base.size != indir.index.size && indir.has_base {
+				error.print(indir.base.pos, 'base register is $indir.base.size-bit, but index register is not')
+				exit(1)
+			}
 
-		if !indir.has_base {
-			compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
-		} else if need_rela {
-			compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
-		} else if disp == 0 && !base_is_bp {
-			compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
-		} else if is_in_i8_range(disp) {
-			compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
-		} else if is_in_i32_range(disp) {
-			compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
+			if !indir.has_base {
+				compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+			} else if need_rela {
+				compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
+			} else if disp == 0 && !base_is_bp {
+				compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+			} else if is_in_i8_range(disp) {
+				compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
+			} else if is_in_i32_range(disp) {
+				compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
+			} else {
+				panic('disp out range!')
+			}
 		} else {
-			panic('disp out range!')
-		}
-	} else {
-		if base_is_ip {
-			compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
-		} else if need_rela {
-			compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
-		} else if disp == 0 && !base_is_bp {
-			compose_mod_rm(mod_indirection_with_no_disp, index, regi_bits(indir.base))
-		} else if is_in_i8_range(disp) {
-			compose_mod_rm(mod_indirection_with_disp8, index, regi_bits(indir.base))
-		} else if is_in_i32_range(disp) {
-			compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
-		} else {
-			panic('disp out range!')
-		}
-	}
-
-	mut mod_rm_sib := [mod_rm]
+			if base_is_ip {
+				compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
+			} else if need_rela {
+				compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
+			} else if disp == 0 && !base_is_bp {
+				compose_mod_rm(mod_indirection_with_no_disp, index, regi_bits(indir.base))
+			} else if is_in_i8_range(disp) {
+				compose_mod_rm(mod_indirection_with_disp8, index, regi_bits(indir.base))
+			} else if is_in_i32_range(disp) {
+				compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
+			} else {
+				panic('disp out range!')
+			}
+		},
+	]
 
 	// scale
 	if indir.has_index_scale {
@@ -93,10 +102,10 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 			error.print(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
 			exit(0)
 		}
-		if indir.has_base {
-			mod_rm_sib << regi_bits(indir.base) + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
+		mod_rm_sib << if indir.has_base {
+			regi_bits(indir.base) + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
 		} else {
-			mod_rm_sib << 0x5 + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
+			0x5 + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
 		}
 	}
 
@@ -122,7 +131,7 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 			adjust: eval_expr(indir.disp)
 		}
 		disp_code = [u8(0), 0, 0, 0]
-		e.rela_text_users << rela_text_user
+		return mod_rm_sib, disp_code, &rela_text_user
 	} else {
 		if !indir.has_base {
 			mut hex := [u8(0), 0, 0, 0]
@@ -145,5 +154,5 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 		}
 	}
 
-	return mod_rm_sib, disp_code, need_rela
+	return mod_rm_sib, disp_code, unsafe { nil }
 }

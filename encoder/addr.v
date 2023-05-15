@@ -55,30 +55,25 @@ pub fn (mut e Encoder) resolve_variable_length_instrs(mut instrs []&Instr) {
 
 		// check if the symbol is defined
 		s := e.defined_symbols[name] or {
-			rela_text_user := encoder.RelaTextUser{
-				instr:  instrs[index],
-				offset: instrs[index].varcode.rel32_offset,
-				uses:   name,
-				rtype:  encoder.r_x86_64_plt32
+			rela: {
+				rela_text_user := encoder.RelaTextUser{
+					instr:  instrs[index],
+					offset: instrs[index].varcode.rel32_offset,
+					uses:   name,
+					rtype:  encoder.r_x86_64_plt32
+				}
+				e.rela_text_users << rela_text_user
+				instrs[index].code = instrs[index].varcode.rel32_code
+				instrs[index].is_len_decided = true
 			}
-			e.rela_text_users << rela_text_user
-			instrs[index].code = instrs[index].varcode.rel32_code
-			instrs[index].is_len_decided = true
 			continue
 		}
 
 		// Check if the symbol and instruction are declared in the same section
 		if instrs[index].section != s.section {
-			rela_text_user := encoder.RelaTextUser{
-				instr:  instrs[index],
-				offset: instrs[index].varcode.rel32_offset,
-				uses:   name,
-				rtype:  encoder.r_x86_64_plt32
+			unsafe {
+				goto rela
 			}
-			e.rela_text_users << rela_text_user
-			instrs[index].code = instrs[index].varcode.rel32_code
-			instrs[index].is_len_decided = true
-			continue
 		}
 
 		diff, min, max, is_len_decided := calc_distance(instrs[index], s, e.instrs[instrs[index].section])

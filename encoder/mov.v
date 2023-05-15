@@ -13,27 +13,41 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 	e.expect(.comma)
 	desti := e.parse_operand()
 
-	if source is Register && desti is Register {
-		source.check_regi_size(size)
-		desti.check_regi_size(size)
-		instr.add_prefix_byte(size)
-		instr.code << if size == .suffix_byte {
+	if source is Register {
+		op_code := if size == .suffix_byte {
 			u8(0x88)
 		} else {
 			u8(0x89)
 		}
-		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(source), regi_bits(desti))
-		return
-	}
-	if source is Immediate /*&& desti is Register*/ {
-		mut used_symbols := []string{}
-		imm_val := eval_expr_get_symbol(source.expr, mut used_symbols)
-		if used_symbols.len >= 2 {
-			error.print(source.pos, 'invalid immediate operand indirect')
-			exit(1)
-		}
-		need_rela := used_symbols.len == 1
+		source.check_regi_size(size)
 
+		if desti is Register {
+			desti.check_regi_size(size)
+			instr.add_prefix_byte(size)
+			instr.code << op_code
+			instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(source), regi_bits(desti))
+			return
+		}
+		if desti is Indirection {
+			instr.add_prefix_byte(size)
+			if desti.base_or_index_is_long() {
+				instr.code << 0x67
+			}
+			instr.code << op_code
+			mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, regi_bits(source))
+			instr.code << mod_rm_sib
+			if rela_text_user != unsafe {nil} {
+				rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+				e.rela_text_users << rela_text_user
+			}
+			instr.code << disp
+			return
+		}
+	}
+
+	// mov imm, regi
+	// mov imm, indir
+	if source is Immediate {
 		match desti {
 			Register {
 				desti.check_regi_size(size)
@@ -48,7 +62,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 				}
 			}
 			Indirection {
-				if desti.base.size == .suffix_long || desti.index.size == .suffix_long {
+				if desti.base_or_index_is_long() {
 					instr.code << 0x67
 				}
 				instr.add_prefix_byte(size)
@@ -57,20 +71,30 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 				} else {
 					u8(0xc7)
 				}
-				mod_rm_sib, disp, disp_need_rela := e.calculate_modrm_sib_disp(desti, encoder.slash_0)
+				mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, encoder.slash_0)
 				instr.code << mod_rm_sib
-				if disp_need_rela {
-					e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-					e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+				if rela_text_user != unsafe {nil} {
+					rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+					e.rela_text_users << rela_text_user
 				}
 				instr.code << disp
 			} else {
-				panic('PANIC')
+				error.print(desti.pos, 'invalid operand for instruction')
+				exit(1)
 			}
 		}
-		if need_rela {
+
+		mut imm_used_symbols := []string{}
+		imm_val := eval_expr_get_symbol(source.expr, mut imm_used_symbols)
+		if imm_used_symbols.len >= 2 {
+			error.print(source.pos, 'invalid immediate operand indirect')
+			exit(1)
+		}
+		imm_need_rela := imm_used_symbols.len == 1
+
+		if imm_need_rela {
 			mut rela_text_users := &RelaTextUser{
-				uses: used_symbols[0],
+				uses: imm_used_symbols[0],
 				instr: &instr,
 				adjust: imm_val,
 				offset: instr.code.len,
@@ -111,27 +135,6 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 		return
 	}
-	if source is Register && desti is Indirection {
-		op_code := if size == .suffix_byte {
-			u8(0x88)
-		} else {
-			u8(0x89)
-		}
-		source.check_regi_size(size)
-		if desti.base.size == .suffix_long || desti.index.size == .suffix_long {
-			instr.code << 0x67
-		}
-		instr.add_prefix_byte(size)
-		instr.code << op_code
-		mod_rm_sib, disp, need_rela := e.calculate_modrm_sib_disp(desti, regi_bits(source))
-		instr.code << mod_rm_sib
-		if need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
-		}
-		instr.code << disp
-		return
-	}
 	if source is Indirection && desti is Register {
 		op_code := if size == .suffix_byte {
 			u8(0x8a)
@@ -144,32 +147,31 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(size)
 		instr.code << op_code
-		mod_rm_sib, disp, need_rela := e.calculate_modrm_sib_disp(source, regi_bits(desti))
+		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, regi_bits(desti))
 		instr.code << mod_rm_sib
-		if need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+		if rela_text_user != unsafe {nil} {
+			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+			e.rela_text_users << rela_text_user
 		}
 		instr.code << disp
 		return
 	}
 	if source is Immediate && desti is Indirection {
-		panic('not implemented yet')
 		op_code := if size == .suffix_byte {
 			u8(0xc6)
 		} else {
 			u8(0xc7)
 		}
-		if desti.base.size == .suffix_long || desti.index.size == .suffix_long {
+		if desti.base_or_index_is_long() {
 			instr.code << 0x67
 		}
 		instr.add_prefix_byte(size)
 		instr.code << op_code
-		mod_rm_sib, disp, disp_need_rela := e.calculate_modrm_sib_disp(desti, encoder.slash_0)
+		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, encoder.slash_0)
 		instr.code << mod_rm_sib
-		if disp_need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+		if rela_text_user != unsafe {nil} {
+			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+			e.rela_text_users << rela_text_user
 		}
 		instr.code << disp
 		imm_val := eval_expr(source.expr)
@@ -191,7 +193,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 	exit(1)
 }
 
-// movz...
+// movzx
 fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 	mut instr := Instr{kind: .movzx, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
@@ -231,11 +233,11 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(exp_desti_size)
 		instr.code << op_code
-		mod_rm_sib, disp, need_rela := e.calculate_modrm_sib_disp(source, regi_bits(desti))
+		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, regi_bits(desti))
 		instr.code << mod_rm_sib
-		if need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+		if rela_text_user != unsafe {nil} {
+			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+			e.rela_text_users << rela_text_user
 		}
 		instr.code << disp
 		return
@@ -244,7 +246,7 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 	exit(1)
 }
 
-// movs...
+// movsx
 fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 	mut instr := Instr{kind: .movsx, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
@@ -286,11 +288,11 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(exp_desti_size)
 		instr.code << op_code
-		mod_rm_sib, disp, need_rela := e.calculate_modrm_sib_disp(source, regi_bits(desti))
+		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, regi_bits(desti))
 		instr.code << mod_rm_sib
-		if need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+		if rela_text_user != unsafe {nil} {
+			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+			e.rela_text_users << rela_text_user
 		}
 		instr.code << disp
 		return

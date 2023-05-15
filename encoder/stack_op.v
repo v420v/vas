@@ -20,11 +20,11 @@ fn (mut e Encoder) pop() {
 			instr.code << 0x67
 		}
 		instr.code << 0x8f // op_code
-		mod_rm_sib, disp, need_rela := e.calculate_modrm_sib_disp(source, encoder.slash_0)
+		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, encoder.slash_0)
 		instr.code << mod_rm_sib
-		if need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+		if rela_text_user != unsafe {nil} {
+			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+			e.rela_text_users << rela_text_user
 		}
 		instr.code << disp
 		return
@@ -62,11 +62,11 @@ fn (mut e Encoder) push() {
 			instr.code << 0x67
 		}
 		instr.code << u8(0xff) // op_code
-		mod_rm_sib, disp, need_rela := e.calculate_modrm_sib_disp(source, encoder.slash_6)
+		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, encoder.slash_6)
 		instr.code << mod_rm_sib
-		if need_rela {
-			e.rela_text_users[e.rela_text_users.len-1].offset = instr.code.len
-			e.rela_text_users[e.rela_text_users.len-1].instr = &instr
+		if rela_text_user != unsafe {nil} {
+			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
+			e.rela_text_users << rela_text_user
 		}
 		instr.code << disp
 		return
