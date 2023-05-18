@@ -38,10 +38,10 @@ _start:
 
 [If V is not installed](https://github.com/vlang/v)
 
-## Quick Start
+## Build
 
 ```sh
-$ v . -prod -gc none
+$ v . -prod
 ```
 
 ## Run
@@ -51,6 +51,11 @@ $ ld <filename>.o
 $ ./a.out
 
 > Hello world!
+```
+
+## Run examples
+```
+$ sh example.sh
 ```
 
 ## License
