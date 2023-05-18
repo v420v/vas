@@ -18,3 +18,5 @@ set -x
 
 ./vas -o ./examples/nop.o ./examples/nop.s && ld -o ./examples/nop.out ./examples/nop.o && ./examples/nop.out && echo $?
 
+./vas -o ./examples/print_int.o examples/print_int.s && gcc -o examples/print_int.out examples/print_int.o && ./examples/print_int.out
+
