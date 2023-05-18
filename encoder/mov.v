@@ -34,13 +34,10 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 				instr.code << 0x67
 			}
 			instr.code << op_code
-			mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, regi_bits(source))
-			instr.code << mod_rm_sib
+			rela_text_user := instr.add_modrm_sib_disp(desti, regi_bits(source))
 			if rela_text_user != unsafe {nil} {
-				rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 				e.rela_text_users << rela_text_user
 			}
-			instr.code << disp
 			return
 		}
 	}
@@ -71,13 +68,10 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 				} else {
 					u8(0xc7)
 				}
-				mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, encoder.slash_0)
-				instr.code << mod_rm_sib
+				rela_text_user := instr.add_modrm_sib_disp(desti, encoder.slash_0)
 				if rela_text_user != unsafe {nil} {
-					rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 					e.rela_text_users << rela_text_user
 				}
-				instr.code << disp
 			} else {
 				error.print(desti.pos, 'invalid operand for instruction')
 				exit(1)
@@ -93,33 +87,8 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		imm_need_rela := imm_used_symbols.len == 1
 
 		if imm_need_rela {
-			mut rela_text_users := &RelaTextUser{
-				uses: imm_used_symbols[0],
-				instr: &instr,
-				adjust: imm_val,
-				offset: instr.code.len,
-			}
-
-			match size {
-				.suffix_byte {
-					rela_text_users.rtype = encoder.r_x86_64_8
-					instr.code << u8(0)
-				}
-				.suffix_word {
-					rela_text_users.rtype = encoder.r_x86_64_16
-					instr.code << [u8(0), 0]
-				}
-				.suffix_long {
-					rela_text_users.rtype = encoder.r_x86_64_32
-					instr.code << [u8(0), 0, 0, 0]
-				}
-				.suffix_quad {
-					rela_text_users.rtype = encoder.r_x86_64_32s
-					instr.code << [u8(0), 0, 0, 0]
-				}
-			}
-
-			e.rela_text_users << rela_text_users
+			rela_text_users := instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+			e.rela_text_users << &rela_text_users
 		} else {
 			if size == .suffix_byte {
 				instr.code << [u8(imm_val)]
@@ -147,13 +116,10 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(size)
 		instr.code << op_code
-		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, regi_bits(desti))
-		instr.code << mod_rm_sib
+		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
 		if rela_text_user != unsafe {nil} {
-			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 			e.rela_text_users << rela_text_user
 		}
-		instr.code << disp
 		return
 	}
 	if source is Immediate && desti is Indirection {
@@ -167,13 +133,11 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(size)
 		instr.code << op_code
-		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, encoder.slash_0)
-		instr.code << mod_rm_sib
+		rela_text_user := instr.add_modrm_sib_disp(desti, encoder.slash_0)
 		if rela_text_user != unsafe {nil} {
-			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 			e.rela_text_users << rela_text_user
 		}
-		instr.code << disp
+
 		imm_val := eval_expr(source.expr)
 
 		if size == .suffix_byte {
@@ -233,13 +197,10 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(exp_desti_size)
 		instr.code << op_code
-		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, regi_bits(desti))
-		instr.code << mod_rm_sib
+		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
 		if rela_text_user != unsafe {nil} {
-			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 			e.rela_text_users << rela_text_user
 		}
-		instr.code << disp
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')
@@ -288,13 +249,10 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 		}
 		instr.add_prefix_byte(exp_desti_size)
 		instr.code << op_code
-		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, regi_bits(desti))
-		instr.code << mod_rm_sib
+		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
 		if rela_text_user != unsafe {nil} {
-			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 			e.rela_text_users << rela_text_user
 		}
-		instr.code << disp
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')

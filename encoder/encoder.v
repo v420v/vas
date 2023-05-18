@@ -74,7 +74,7 @@ pub mut:
 pub struct Instr {
 pub mut:
 	kind           		InstrKind [required]
-	code           		[]u8
+	code           		[]u8 = []u8{cap: 16}
 	symbol_name    		string
 	flags          		string
 	addr           		i64

@@ -20,13 +20,10 @@ fn (mut e Encoder) pop() {
 			instr.code << 0x67
 		}
 		instr.code << 0x8f // op_code
-		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, encoder.slash_0)
-		instr.code << mod_rm_sib
+		rela_text_user := instr.add_modrm_sib_disp(source, encoder.slash_0)
 		if rela_text_user != unsafe {nil} {
-			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 			e.rela_text_users << rela_text_user
 		}
-		instr.code << disp
 		return
 	}
 
@@ -61,14 +58,11 @@ fn (mut e Encoder) push() {
 		if source.base_or_index_is_long() {
 			instr.code << 0x67
 		}
-		instr.code << u8(0xff) // op_code
-		mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(source, encoder.slash_6)
-		instr.code << mod_rm_sib
+		instr.code << 0xff // op_code
+		rela_text_user := instr.add_modrm_sib_disp(source, encoder.slash_6)
 		if rela_text_user != unsafe {nil} {
-			rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 			e.rela_text_users << rela_text_user
 		}
-		instr.code << disp
 		return
 	}
 

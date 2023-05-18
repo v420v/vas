@@ -27,16 +27,7 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 	}
 }
 
-// This function is used when encoding instructions that use indirection.
-// `calculate_modrm_sib_disp` will return `rela` struct. The `rela` struct wont contain info about offset.
-// This function assigns the offset to the `rela` struct.
-fn (mut r RelaTextUser) assign_offset_to_rela(offset int, instr &Instr) {
-	r.offset = instr.code.len
-	r.instr = unsafe { instr }
-}
-
-// returns modrm_sib, disp and relocation struct if it's needed.
-fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, []u8, &RelaTextUser) {
+fn (mut instr Instr) add_modrm_sib_disp(indir Indirection, index u8) &RelaTextUser {
 	if !indir.has_base && !indir.has_index_scale {
 		error.print(indir.pos, 'syntax not supported yet. `disp(,,)`')
 		exit(1)
@@ -52,69 +43,65 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 	}
 	need_rela := used_symbols.len == 1
 
-	mut mod_rm_sib := [
-		// mod_rm
-		if indir.has_index_scale {
-			if base_is_ip {
-				error.print(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
-				exit(1)
-			}
+	if indir.has_index_scale {
+		if base_is_ip {
+			error.print(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
+			exit(1)
+		}
 
-			if indir.base.size != indir.index.size && indir.has_base {
-				error.print(indir.base.pos, 'base register is $indir.base.size-bit, but index register is not')
-				exit(1)
-			}
+		if indir.base.size != indir.index.size && indir.has_base {
+			error.print(indir.base.pos, 'base register is $indir.base.size-bit, but index register is not')
+			exit(1)
+		}
 
-			if !indir.has_base {
-				compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
-			} else if need_rela {
-				compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
-			} else if disp == 0 && !base_is_bp {
-				compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
-			} else if is_in_i8_range(disp) {
-				compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
-			} else if is_in_i32_range(disp) {
-				compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
-			} else {
-				panic('disp out range!')
-			}
+		if !indir.has_base {
+			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+		} else if need_rela {
+			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
+		} else if disp == 0 && !base_is_bp {
+			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+		} else if is_in_i8_range(disp) {
+			instr.code << compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
+		} else if is_in_i32_range(disp) {
+			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
 		} else {
-			if base_is_ip {
-				compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
-			} else if need_rela {
-				compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
-			} else if disp == 0 && !base_is_bp {
-				compose_mod_rm(mod_indirection_with_no_disp, index, regi_bits(indir.base))
-			} else if is_in_i8_range(disp) {
-				compose_mod_rm(mod_indirection_with_disp8, index, regi_bits(indir.base))
-			} else if is_in_i32_range(disp) {
-				compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
-			} else {
-				panic('disp out range!')
-			}
-		},
-	]
+			panic('disp out range!')
+		}
+	} else {
+		if base_is_ip {
+			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
+		} else if need_rela {
+			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
+		} else if disp == 0 && !base_is_bp {
+			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, regi_bits(indir.base))
+		} else if is_in_i8_range(disp) {
+			instr.code << compose_mod_rm(mod_indirection_with_disp8, index, regi_bits(indir.base))
+		} else if is_in_i32_range(disp) {
+			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, regi_bits(indir.base))
+		} else {
+			panic('disp out range!')
+		}
+	}
 
-	// scale
+	// add sib byte
 	if indir.has_index_scale {
 		scale_num := u8(eval_expr(indir.scale))
 		if scale_num !in [1, 2, 4, 8] {
 			error.print(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
 			exit(0)
 		}
-		mod_rm_sib << if indir.has_base {
-			regi_bits(indir.base) + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
+		if indir.has_base {
+			instr.code << regi_bits(indir.base) + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
 		} else {
-			0x5 + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
+			instr.code << 0x5 + (regi_bits(indir.index) << 3) + (scale(scale_num) << 6)
 		}
 	}
 
 	if base_is_sp && !indir.has_index_scale {
-		mod_rm_sib << 0x24
+		instr.code << 0x24
 	}
 
 	// disp
-	mut disp_code := []u8{}
 	if need_rela {
 		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
@@ -124,35 +111,36 @@ fn (mut e Encoder) calculate_modrm_sib_disp(indir Indirection, index u8) ([]u8, 
 			encoder.r_x86_64_32	
 		}
 		rela_text_user := encoder.RelaTextUser{
-			instr:  unsafe {nil} // assign latter
+			instr:  unsafe{ instr }
 			uses:   used_symbols[0]
-			offset: 0 // assign latter
+			offset: instr.code.len
 			rtype:  u64(rtype)
 			adjust: eval_expr(indir.disp)
 		}
-		disp_code = [u8(0), 0, 0, 0]
-		return mod_rm_sib, disp_code, &rela_text_user
-	} else {
-		if !indir.has_base {
+		instr.code << [u8(0), 0, 0, 0]
+
+		return &rela_text_user
+	}
+
+	if !indir.has_base {
+		mut hex := [u8(0), 0, 0, 0]
+		binary.little_endian_put_u32(mut &hex, u32(disp))
+		instr.code << hex
+	} else if disp != 0 || base_is_ip || base_is_bp {
+		if base_is_ip {
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(disp))
-			disp_code << hex
-		} else if disp != 0 || base_is_ip || base_is_bp {
-			if base_is_ip {
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(disp))
-				disp_code << hex
-			} else if is_in_i8_range(disp) {
-				disp_code << u8(disp)
-			} else if is_in_i32_range(disp) {
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(disp))
-				disp_code << hex
-			} else {
-				panic('disp out range!')
-			}
+			instr.code << hex
+		} else if is_in_i8_range(disp) {
+			instr.code << u8(disp)
+		} else if is_in_i32_range(disp) {
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(disp))
+			instr.code << hex
+		} else {
+			panic('disp out range!')
 		}
 	}
 
-	return mod_rm_sib, disp_code, unsafe { nil }
+	return unsafe { nil }
 }

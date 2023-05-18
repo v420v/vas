@@ -2,6 +2,34 @@ module encoder
 
 import error
 
+fn (mut instr Instr) add_imm_rela(symbol string, imm_val int, size DataSize) RelaTextUser {
+	mut rela := RelaTextUser{
+		uses: symbol,
+		instr: unsafe{ instr },
+		adjust: imm_val,
+		offset: instr.code.len,
+	}
+	match size {
+		.suffix_byte {
+			rela.rtype = encoder.r_x86_64_8
+			instr.code << u8(0)
+		}
+		.suffix_word {
+			rela.rtype = encoder.r_x86_64_16
+			instr.code << [u8(0), 0]
+		}
+		.suffix_long {
+			rela.rtype = encoder.r_x86_64_32
+			instr.code << [u8(0), 0, 0, 0]
+		}
+		.suffix_quad {
+			rela.rtype = encoder.r_x86_64_32s
+			instr.code << [u8(0), 0, 0, 0]
+		}
+	}
+	return rela
+}
+
 // instr_name imm, regi
 fn (mut e Encoder) encode_imm_regi_with_ax(kind InstrKind, imm Immediate, regi Register, rax_magic u8, slash u8, size DataSize) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
@@ -32,31 +60,8 @@ fn (mut e Encoder) encode_imm_regi_with_ax(kind InstrKind, imm Immediate, regi R
 	}
 
 	if imm_need_rela {
-		mut rela_text_users := &RelaTextUser{
-			uses: imm_used_symbols[0],
-			instr: &instr,
-			adjust: imm_val,
-			offset: instr.code.len,
-		}
-		match size {
-			.suffix_byte {
-				rela_text_users.rtype = encoder.r_x86_64_8
-				instr.code << u8(0)
-			}
-			.suffix_word {
-				rela_text_users.rtype = encoder.r_x86_64_16
-				instr.code << [u8(0), 0]
-			}
-			.suffix_long {
-				rela_text_users.rtype = encoder.r_x86_64_32
-				instr.code << [u8(0), 0, 0, 0]
-			}
-			.suffix_quad {
-				rela_text_users.rtype = encoder.r_x86_64_32s
-				instr.code << [u8(0), 0, 0, 0]
-			}
-		}
-		e.rela_text_users << rela_text_users
+		rela_text_users := instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+		e.rela_text_users << &rela_text_users
 	} else {
 		instr.code << encode_imm_value(imm_val, size)
 	}
@@ -88,40 +93,14 @@ fn (mut e Encoder) encode_imm_indir(kind InstrKind, imm Immediate, indir Indirec
 
 	instr.add_prefix_byte(size)
 	instr.code << op_code
-	mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(indir, slash)
-	instr.code << mod_rm_sib
+	rela_text_user := instr.add_modrm_sib_disp(indir, slash)
 	if rela_text_user != unsafe {nil} {
-		rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 		e.rela_text_users << rela_text_user
 	}
-	instr.code << disp
 
 	if imm_need_rela {
-		mut rela_text_users := &RelaTextUser{
-			uses: imm_used_symbols[0],
-			instr: &instr,
-			adjust: imm_val,
-			offset: instr.code.len,
-		}
-		match size {
-			.suffix_byte {
-				rela_text_users.rtype = encoder.r_x86_64_8
-				instr.code << u8(0)
-			}
-			.suffix_word {
-				rela_text_users.rtype = encoder.r_x86_64_16
-				instr.code << [u8(0), 0]
-			}
-			.suffix_long {
-				rela_text_users.rtype = encoder.r_x86_64_32
-				instr.code << [u8(0), 0, 0, 0]
-			}
-			.suffix_quad {
-				rela_text_users.rtype = encoder.r_x86_64_32s
-				instr.code << [u8(0), 0, 0, 0]
-			}
-		}
-		e.rela_text_users << rela_text_users
+		rela_text_users := instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+		e.rela_text_users << &rela_text_users
 	} else {
 		instr.code << encode_imm_value(imm_val, size)
 	}
@@ -137,13 +116,10 @@ fn (mut e Encoder) encode_indir(kind InstrKind, index u8, indir Indirection, op_
 	}
 	instr.add_prefix_byte(size)
 	instr.code << op_code
-	mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(indir, index)
-	instr.code << mod_rm_sib
+	rela_text_user := instr.add_modrm_sib_disp(indir, index)
 	if rela_text_user != unsafe {nil} {
-		rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 		e.rela_text_users << rela_text_user
 	}
-	instr.code << disp
 }
 
 // instr_name regi
@@ -307,13 +283,13 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 	}
 
 	if source is Immediate && desti_operand_1 is Register && desti_operand_2 is Register {
-		mut used_symbols := []string{}
-		imm_val := eval_expr_get_symbol(source.expr, mut used_symbols)
-		if used_symbols.len >= 2 {
+		mut imm_used_symbols := []string{}
+		imm_val := eval_expr_get_symbol(source.expr, mut imm_used_symbols)
+		if imm_used_symbols.len >= 2 {
 			error.print(source.pos, 'invalid immediate operand indirect')
 			exit(1)
 		}
-		need_rela := used_symbols.len == 1
+		need_rela := imm_used_symbols.len == 1
 
 		op_code := if is_in_i8_range(imm_val) && !need_rela {
 			u8(0x6b)
@@ -327,33 +303,9 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 		instr.code << op_code
 		instr.code << compose_mod_rm(mod_regi, regi_bits(desti_operand_2), regi_bits(desti_operand_1))
 
-		// TODO: refactor later
 		if need_rela {
-			mut rela_text_users := &RelaTextUser{
-				uses: used_symbols[0],
-				instr: &instr,
-				adjust: imm_val,
-				offset: instr.code.len,
-			}
-			match size {
-				.suffix_byte {
-					rela_text_users.rtype = encoder.r_x86_64_8
-					instr.code << u8(0)
-				}
-				.suffix_word {
-					rela_text_users.rtype = encoder.r_x86_64_16
-					instr.code << [u8(0), 0]
-				}
-				.suffix_long {
-					rela_text_users.rtype = encoder.r_x86_64_32
-					instr.code << [u8(0), 0, 0, 0]
-				}
-				.suffix_quad {
-					rela_text_users.rtype = encoder.r_x86_64_32s
-					instr.code << [u8(0), 0, 0, 0]
-				}
-			}
-			e.rela_text_users << rela_text_users
+			rela_text_users := instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+			e.rela_text_users << &rela_text_users
 		} else {
 			instr.code << encode_imm_value(imm_val, size)
 		}
@@ -666,9 +618,9 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 			error.print(source.expr.pos, 'invalid immediate')
 			exit(1)
 		}
-		need_rela := used_symbols.len == 1
 
-		op_code := if imm_val == 1 && !need_rela {
+		imm_need_rela := used_symbols.len == 1
+		op_code := if imm_val == 1 && !imm_need_rela {
 			if size == DataSize.suffix_byte {
 				u8(0xD0)
 			} else  {
@@ -695,20 +647,17 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 				}
 				instr.add_prefix_byte(size)
 				instr.code << op_code
-				mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, slash)
-				instr.code << mod_rm_sib
+				rela_text_user := instr.add_modrm_sib_disp(desti, slash)
 				if rela_text_user != unsafe {nil} {
-					rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 					e.rela_text_users << rela_text_user
 				}
-				instr.code << disp
 			} else {
 				error.print(desti.pos, 'invalid operand for instruction')
 				exit(1)
 			}
 		}
 
-		if need_rela {
+		if imm_need_rela {
 			rela_text_users := &RelaTextUser{
 				uses: used_symbols[0],
 				instr: &instr,
@@ -745,13 +694,10 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 			}
 			instr.add_prefix_byte(size)
 			instr.code << op_code
-			mod_rm_sib, disp, mut rela_text_user := e.calculate_modrm_sib_disp(desti, slash)
-			instr.code << mod_rm_sib
+			rela_text_user := instr.add_modrm_sib_disp(desti, slash)
 			if rela_text_user != unsafe {nil} {
-				rela_text_user.assign_offset_to_rela(instr.code.len, &instr)
 				e.rela_text_users << rela_text_user
 			}
-			instr.code << disp
 			return
 		}
 	}
