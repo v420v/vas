@@ -87,10 +87,7 @@ fn (mut e Encoder) encode_imm_indir(kind InstrKind, imm Immediate, indir Indirec
 	} else {
 		u8(0x81)
 	}
-	if indir.base_or_index_is_long() {
-		instr.code << 0x67
-	}
-
+	instr.add_segment_override_prefix(indir)
 	instr.add_prefix_byte(size)
 	instr.code << op_code
 	rela_text_user := instr.add_modrm_sib_disp(indir, slash)
@@ -110,10 +107,7 @@ fn (mut e Encoder) encode_imm_indir(kind InstrKind, imm Immediate, indir Indirec
 fn (mut e Encoder) encode_indir(kind InstrKind, index u8, indir Indirection, op_code []u8, size DataSize) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
-
-	if indir.base_or_index_is_long() {
-		instr.code << 0x67
-	}
+	instr.add_segment_override_prefix(indir)
 	instr.add_prefix_byte(size)
 	instr.code << op_code
 	rela_text_user := instr.add_modrm_sib_disp(indir, index)
@@ -642,9 +636,7 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 				instr.code << compose_mod_rm(encoder.mod_regi, slash, regi_bits(desti))
 			}
 			Indirection {
-				if desti.base_or_index_is_long() {
-					instr.code << 0x67
-				}
+				instr.add_segment_override_prefix(desti)
 				instr.add_prefix_byte(size)
 				instr.code << op_code
 				rela_text_user := instr.add_modrm_sib_disp(desti, slash)
@@ -689,9 +681,7 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 			instr.code << compose_mod_rm(encoder.mod_regi, slash, regi_bits(desti))
 			return
 		} else if desti is Indirection {
-			if desti.base_or_index_is_long() {
-				instr.code << 0x67
-			}
+			instr.add_segment_override_prefix(desti)
 			instr.add_prefix_byte(size)
 			instr.code << op_code
 			rela_text_user := instr.add_modrm_sib_disp(desti, slash)

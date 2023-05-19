@@ -30,9 +30,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 		if desti is Indirection {
 			instr.add_prefix_byte(size)
-			if desti.base_or_index_is_long() {
-				instr.code << 0x67
-			}
+			instr.add_segment_override_prefix(desti)
 			instr.code << op_code
 			rela_text_user := instr.add_modrm_sib_disp(desti, regi_bits(source))
 			if rela_text_user != unsafe {nil} {
@@ -59,9 +57,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 				}
 			}
 			Indirection {
-				if desti.base_or_index_is_long() {
-					instr.code << 0x67
-				}
+				instr.add_segment_override_prefix(desti)
 				instr.add_prefix_byte(size)
 				instr.code <<  if size == .suffix_byte {
 					u8(0xc6)
@@ -111,9 +107,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 			u8(0x8b)
 		}
 		desti.check_regi_size(size)
-		if source.base_or_index_is_long() {
-			instr.code << 0x67
-		}
+		instr.add_segment_override_prefix(source)
 		instr.add_prefix_byte(size)
 		instr.code << op_code
 		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
@@ -128,9 +122,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		} else {
 			u8(0xc7)
 		}
-		if desti.base_or_index_is_long() {
-			instr.code << 0x67
-		}
+		instr.add_segment_override_prefix(desti)
 		instr.add_prefix_byte(size)
 		instr.code << op_code
 		rela_text_user := instr.add_modrm_sib_disp(desti, encoder.slash_0)
@@ -192,9 +184,7 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 	}
 	if source is Indirection && desti is Register {
 		desti.check_regi_size(exp_desti_size)
-		if source.base_or_index_is_long() {
-			instr.code << 0x67
-		}
+		instr.add_segment_override_prefix(source)
 		instr.add_prefix_byte(exp_desti_size)
 		instr.code << op_code
 		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
@@ -244,9 +234,7 @@ fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
 	}
 	if source is Indirection && desti is Register {
 		desti.check_regi_size(exp_desti_size)
-		if source.base_or_index_is_long() {
-			instr.code << 0x67
-		}
+		instr.add_segment_override_prefix(source)
 		instr.add_prefix_byte(exp_desti_size)
 		instr.code << op_code
 		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))

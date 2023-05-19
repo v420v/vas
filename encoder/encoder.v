@@ -459,6 +459,9 @@ fn eval_expr_get_symbol(expr Expr, mut arr[]string) int {
 		Neg {
 			eval_expr_get_symbol(expr.expr, mut arr) * -1
 		}
+		Immediate {
+			eval_expr_get_symbol(expr.expr, mut arr)
+		}
 		else {
 			0
 		}
@@ -473,7 +476,7 @@ fn eval_expr(expr Expr) int {
                 exit(1)
             })
 		}
-		Binop{
+		Binop {
 			match expr.op {
 				.plus {
 					eval_expr(expr.left_hs) + eval_expr(expr.right_hs)
@@ -493,6 +496,9 @@ fn eval_expr(expr Expr) int {
 		}
 		Neg {
 			eval_expr(expr.expr) * -1
+		}
+		Immediate {
+			eval_expr(expr.expr)
 		}
 		else {
 			0
