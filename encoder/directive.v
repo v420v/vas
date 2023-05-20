@@ -159,3 +159,5 @@ fn (mut e Encoder) quad() {
 	}
 	e.instrs[e.current_section] << &instr
 }
+
+

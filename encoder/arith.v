@@ -38,7 +38,7 @@ fn (mut e Encoder) encode_imm_regi_with_ax(kind InstrKind, imm Immediate, regi R
 	mut imm_used_symbols := []string{}
 	imm_val := eval_expr_get_symbol(imm.expr, mut imm_used_symbols)
 	if imm_used_symbols.len >= 2 {
-		error.print(imm.pos, 'invalid immediate operand indirect')
+		error.print(imm.pos, 'invalid immediate operand')
 		exit(1)
 	}
 	imm_need_rela := imm_used_symbols.len == 1
@@ -75,21 +75,22 @@ fn (mut e Encoder) encode_imm_indir(kind InstrKind, imm Immediate, indir Indirec
 	mut imm_used_symbols := []string{}
 	imm_val := eval_expr_get_symbol(imm.expr, mut imm_used_symbols)
 	if imm_used_symbols.len >= 2 {
-		error.print(imm.pos, 'invalid immediate operand indirect')
+		error.print(imm.pos, 'invalid immediate operand')
 		exit(1)
 	}
 	imm_need_rela := imm_used_symbols.len == 1
 
-	op_code := if size == DataSize.suffix_byte {
+	instr.add_segment_override_prefix(indir)
+	instr.add_prefix_byte(size)
+
+	instr.code << if size == DataSize.suffix_byte {
 		u8(0x80)
 	} else if is_in_i8_range(imm_val) && !imm_need_rela {
 		u8(0x83)
 	} else {
 		u8(0x81)
 	}
-	instr.add_segment_override_prefix(indir)
-	instr.add_prefix_byte(size)
-	instr.code << op_code
+
 	rela_text_user := instr.add_modrm_sib_disp(indir, slash)
 	if rela_text_user != unsafe {nil} {
 		e.rela_text_users << rela_text_user
@@ -125,102 +126,50 @@ fn (mut e Encoder) encode_regi(kind InstrKind, index u8, desti_regi Register, op
 	instr.code << compose_mod_rm(encoder.mod_regi, index, regi_bits(desti_regi))
 }
 
-// addq, addl, addw, addb
-fn (mut e Encoder) add(instr_name_upper string) {
-	size := get_size_by_suffix(instr_name_upper)
+fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size DataSize) {
 	source := e.parse_operand()
 	e.expect(.comma)
 	desti := e.parse_operand()
 
 	if source is Register {
 		op_code := if size == DataSize.suffix_byte {
-			[u8(0x00)]
+			[op_code_base]
 		} else {
-			[u8(0x01)]
+			[op_code_base + 1]
 		}
 		source.check_regi_size(size)
 		if desti is Register {
 			desti.check_regi_size(size)
-			e.encode_regi(.add, regi_bits(source), desti, op_code, size)
+			e.encode_regi(.xor, regi_bits(source), desti, op_code, size)
 			return
 		}
 		if desti is Indirection {
-			e.encode_indir(.add, regi_bits(source), desti, op_code, size)
+			e.encode_indir(.xor, regi_bits(source), desti, op_code, size)
 			return
 		}
-	}
-	if source is Immediate && desti is Register {
-		rax_magic := if size == DataSize.suffix_byte {
-			u8(0x04)
-		} else {
-			u8(0x05)
-		}
-		desti.check_regi_size(size)
-		e.encode_imm_regi_with_ax(.add, source, desti, rax_magic, encoder.slash_0, size)
-		return
 	}
 	if source is Indirection && desti is Register {
 		op_code := if size == DataSize.suffix_byte {
-			[u8(0x02)]
+			[op_code_base + 2]
 		} else {
-			[u8(0x03)]
+			[op_code_base + 3]
 		}
-		e.encode_indir(.add, regi_bits(desti), source, op_code, size)
+		desti.check_regi_size(size)
+		e.encode_indir(.xor, regi_bits(desti), source, op_code, size)
 		return
-	}
-	if source is Immediate && desti is Indirection {
-		e.encode_imm_indir(.add, source, desti, encoder.slash_0, size)
-		return
-	}
-	error.print(source.pos, 'invalid operand for instruction')
-	exit(1)
-}
-
-// subq, subl, subw, subb
-fn (mut e Encoder) sub(instr_name_upper string) {
-	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
-
-	if source is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x28)]
-		} else {
-			[u8(0x29)]
-		}
-		source.check_regi_size(size)
-		if desti is Register {
-			desti.check_regi_size(size)
-			e.encode_regi(.sub, regi_bits(source), desti, op_code, size)
-			return
-		}
-		if desti is Indirection {
-			e.encode_indir(.sub, regi_bits(source), desti, op_code, size)
-			return
-		}
 	}
 	if source is Immediate && desti is Register {
 		rax_magic := if size == DataSize.suffix_byte {
-			u8(0x2C)
+			op_code_base + 4
 		} else {
-			u8(0x2D)
+			op_code_base + 5
 		}
 		desti.check_regi_size(size)
-		e.encode_imm_regi_with_ax(.sub, source, desti, rax_magic, encoder.slash_5, size)
-		return
-	}
-	if source is Indirection && desti is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x2A)]
-		} else {
-			[u8(0x2B)]
-		}
-		e.encode_indir(.sub, regi_bits(desti), source, op_code, size)
+		e.encode_imm_regi_with_ax(.xor, source, desti, rax_magic, slash, size)
 		return
 	}
 	if source is Immediate && desti is Indirection {
-		e.encode_imm_indir(.sub, source, desti, encoder.slash_5, size)
+		e.encode_imm_indir(.xor, source, desti, slash, size)
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')
@@ -280,7 +229,7 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 		mut imm_used_symbols := []string{}
 		imm_val := eval_expr_get_symbol(source.expr, mut imm_used_symbols)
 		if imm_used_symbols.len >= 2 {
-			error.print(source.pos, 'invalid immediate operand indirect')
+			error.print(source.pos, 'invalid immediate operand')
 			exit(1)
 		}
 		need_rela := imm_used_symbols.len == 1
@@ -311,49 +260,27 @@ fn (mut e Encoder) imul(instr_name_upper string) {
 	exit(1)
 }
 
-// idivq, idivl
-fn (mut e Encoder) idiv(instr_name_upper string) {
+// notq, notl, notw, notb
+fn (mut e Encoder) not(instr_name_upper string) {
 	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-
 	op_code := if size == DataSize.suffix_byte {
 		[u8(0xF6)]
 	} else {
 		[u8(0xF7)]
 	}
 
-	if source is Register {
-		source.check_regi_size(size)
-		e.encode_regi(.idiv, encoder.slash_7, source, op_code, size)
-		return
-	}
-	if source is Indirection {
-		e.encode_indir(.idiv, encoder.slash_7, source, op_code, size)
-		return
-	}
-	error.print(source.pos, 'invalid operand for instruction')
-	exit(1)
-}
+	desti := e.parse_operand()
 
-// divq, divl
-fn (mut e Encoder) div(instr_name_upper string) {
-	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-	op_code := if size == DataSize.suffix_byte {
-		[u8(0xF6)]
-	} else {
-		[u8(0xF7)]
-	}
-	if source is Register {
-		source.check_regi_size(size)
-		e.encode_regi(.div, encoder.slash_6, source, op_code, size)
+	if desti is Register {
+		desti.check_regi_size(size)
+		e.encode_regi(.not, encoder.slash_2, desti, op_code, size)
 		return
 	}
-	if source is Indirection {
-		e.encode_indir(.div, encoder.slash_6, source, op_code, size)
+	if desti is Indirection {
+		e.encode_indir(.not, encoder.slash_2, desti, op_code, size)
 		return
 	}
-	error.print(source.pos, 'invalid operand for instruction')
+	error.print(desti.pos, 'invalid operand for instruction')
 	exit(1)
 }
 
@@ -381,180 +308,46 @@ fn (mut e Encoder) neg(instr_name_upper string) {
 	exit(1)
 }
 
-// notq, notl, notw, notb
-fn (mut e Encoder) not(instr_name_upper string) {
+// divq, divl
+fn (mut e Encoder) div(instr_name_upper string) {
 	size := get_size_by_suffix(instr_name_upper)
+	source := e.parse_operand()
+	op_code := if size == DataSize.suffix_byte {
+		[u8(0xF6)]
+	} else {
+		[u8(0xF7)]
+	}
+	if source is Register {
+		source.check_regi_size(size)
+		e.encode_regi(.div, encoder.slash_6, source, op_code, size)
+		return
+	}
+	if source is Indirection {
+		e.encode_indir(.div, encoder.slash_6, source, op_code, size)
+		return
+	}
+	error.print(source.pos, 'invalid operand for instruction')
+	exit(1)
+}
+
+// idivq, idivl
+fn (mut e Encoder) idiv(instr_name_upper string) {
+	size := get_size_by_suffix(instr_name_upper)
+	source := e.parse_operand()
+
 	op_code := if size == DataSize.suffix_byte {
 		[u8(0xF6)]
 	} else {
 		[u8(0xF7)]
 	}
 
-	desti := e.parse_operand()
-
-	if desti is Register {
-		desti.check_regi_size(size)
-		e.encode_regi(.not, encoder.slash_3, desti, op_code, size)
-		return
-	}
-	if desti is Indirection {
-		e.encode_indir(.not, encoder.slash_2, desti, op_code, size)
-		return
-	}
-	error.print(desti.pos, 'invalid operand for instruction')
-	exit(1)
-}
-
-// xorq, xorl, xorw, xorb
-fn (mut e Encoder) xor(instr_name_upper string) {
-	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
-
 	if source is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x30)]
-		} else {
-			[u8(0x31)]
-		}
 		source.check_regi_size(size)
-		if desti is Register {
-			desti.check_regi_size(size)
-			e.encode_regi(.xor, regi_bits(source), desti, op_code, size)
-			return
-		}
-		if desti is Indirection {
-			e.encode_indir(.xor, regi_bits(source), desti, op_code, size)
-			return
-		}
-	}
-	if source is Immediate && desti is Register {
-		rax_magic := if size == DataSize.suffix_byte {
-			u8(0x34)
-		} else {
-			u8(0x35)
-		}
-		desti.check_regi_size(size)
-		e.encode_imm_regi_with_ax(.xor, source, desti, rax_magic, encoder.slash_6, size)
+		e.encode_regi(.idiv, encoder.slash_7, source, op_code, size)
 		return
 	}
-	if source is Immediate && desti is Indirection {
-		e.encode_imm_indir(.xor, source, desti, encoder.slash_6, size)
-		return
-	}
-	if source is Indirection && desti is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x32)]
-		} else {
-			[u8(0x33)]
-		}
-		desti.check_regi_size(size)
-		e.encode_indir(.xor, regi_bits(desti), source, op_code, size)
-		return
-	}
-	error.print(source.pos, 'invalid operand for instruction')
-	exit(1)
-}
-
-// andq, andl, andw, andb
-fn (mut e Encoder) and(instr_name_upper string) {
-	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
-
-	if source is Immediate && desti is Register {
-		rax_magic := if size == DataSize.suffix_byte {
-			u8(0x24)
-		} else {
-			u8(0x25)
-		}
-		desti.check_regi_size(size)
-		e.encode_imm_regi_with_ax(.and, source, desti, rax_magic, encoder.slash_4, size)
-		return
-	}
-	if source is Immediate && desti is Indirection {
-		e.encode_imm_indir(.and, source, desti, encoder.slash_4, size)
-		return
-	}
-	if source is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x20)]
-		} else {
-			[u8(0x21)]
-		}
-		source.check_regi_size(size)
-		if desti is Register {
-			desti.check_regi_size(size)
-			e.encode_regi(.and, regi_bits(source), desti, op_code, size)
-			return
-		}
-		if desti is Indirection {
-			e.encode_indir(.and, regi_bits(source), desti, op_code, size)
-			return
-		}
-	}
-	if source is Indirection && desti is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x22)]
-		} else {
-			[u8(0x23)]
-		}
-		desti.check_regi_size(size)
-		e.encode_indir(.and, regi_bits(desti), source, op_code, size)
-		return
-	}
-	error.print(source.pos, 'invalid operand for instruction')
-	exit(1)
-}
-
-// cmpq, cmpl, cmpw, cmpb
-fn (mut e Encoder) cmp(instr_name_upper string) {
-	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
-
-	if source is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x38)]
-		} else {
-			[u8(0x39)]
-		}
-		source.check_regi_size(size)
-		if desti is Register {
-			desti.check_regi_size(size)
-			e.encode_regi(.cmp, regi_bits(source), desti, op_code, size)
-			return
-		}
-		if desti is Indirection {
-			e.encode_indir(.cmp, regi_bits(source), desti, op_code, size)
-			return
-		}
-	}
-	if source is Immediate && desti is Register {
-		rax_magic := if size == DataSize.suffix_byte {
-			u8(0x3C)
-		} else {
-			u8(0x3D)
-		}
-		desti.check_regi_size(size)
-		e.encode_imm_regi_with_ax(.cmp, source, desti, rax_magic, encoder.slash_7, size)
-		return
-	}
-	if source is Immediate && desti is Indirection {
-		e.encode_imm_indir(.cmp, source, desti, encoder.slash_7, size)
-		return
-	}
-	if source is Indirection && desti is Register {
-		op_code := if size == DataSize.suffix_byte {
-			[u8(0x3A)]
-		} else {
-			[u8(0x3B)]
-		}
-		desti.check_regi_size(size)
-		e.encode_indir(.cmp, regi_bits(desti), source, op_code, size)
+	if source is Indirection {
+		e.encode_indir(.idiv, encoder.slash_7, source, op_code, size)
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')
@@ -595,7 +388,7 @@ fn (mut e Encoder) set(kind InstrKind, op_code []u8) {
 }
 
 // shl, shr
-fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
+fn (mut e Encoder) shift(kind InstrKind, instr_name_upper string, slash u8) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
@@ -609,7 +402,7 @@ fn (mut e Encoder) sh(kind InstrKind, instr_name_upper string, slash u8) {
 		imm_val := eval_expr_get_symbol(source.expr, mut used_symbols)
 
 		if used_symbols.len >= 2 {
-			error.print(source.expr.pos, 'invalid immediate')
+			error.print(source.expr.pos, 'invalid immediate operand')
 			exit(1)
 		}
 

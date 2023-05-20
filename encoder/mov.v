@@ -40,8 +40,23 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 	}
 
-	// mov imm, regi
-	// mov imm, indir
+	if source is Indirection && desti is Register {
+		op_code := if size == .suffix_byte {
+			u8(0x8a)
+		} else {
+			u8(0x8b)
+		}
+		desti.check_regi_size(size)
+		instr.add_segment_override_prefix(source)
+		instr.add_prefix_byte(size)
+		instr.code << op_code
+		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
+		if rela_text_user != unsafe {nil} {
+			e.rela_text_users << rela_text_user
+		}
+		return
+	}
+
 	if source is Immediate {
 		match desti {
 			Register {
@@ -77,7 +92,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		mut imm_used_symbols := []string{}
 		imm_val := eval_expr_get_symbol(source.expr, mut imm_used_symbols)
 		if imm_used_symbols.len >= 2 {
-			error.print(source.pos, 'invalid immediate operand indirect')
+			error.print(source.pos, 'invalid immediate operand')
 			exit(1)
 		}
 		imm_need_rela := imm_used_symbols.len == 1
@@ -97,22 +112,6 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 				binary.little_endian_put_u32(mut &hex, u32(imm_val))
 				instr.code << [hex[0], hex[1], hex[2], hex[3]]
 			}
-		}
-		return
-	}
-	if source is Indirection && desti is Register {
-		op_code := if size == .suffix_byte {
-			u8(0x8a)
-		} else {
-			u8(0x8b)
-		}
-		desti.check_regi_size(size)
-		instr.add_segment_override_prefix(source)
-		instr.add_prefix_byte(size)
-		instr.code << op_code
-		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
-		if rela_text_user != unsafe {nil} {
-			e.rela_text_users << rela_text_user
 		}
 		return
 	}
@@ -150,42 +149,30 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 }
 
 // movzx
-fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
+fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, desti_size DataSize) {
 	mut instr := Instr{kind: .movzx, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	suffix := instr_name_upper[4..].to_upper()
-	exp_source_size := get_size_by_suffix(suffix[..1])
-	exp_desti_size := get_size_by_suffix(suffix[1..])
-
 	source := e.parse_operand()
 	e.expect(.comma)
 	desti := e.parse_operand()
 
-	op_code := if exp_source_size == .suffix_byte {
-		[u8(0x0F), 0xB6]
-	} else if exp_source_size == .suffix_word {
-		[u8(0x0F), 0xB7]
-	} else {
-		panic('unreachable')
-	}
-
 	if source is Register && desti is Register {
-		if exp_desti_size == .suffix_quad && source.lit in ['AH','CH','DH','BH'] {
+		if desti_size == .suffix_quad && source.lit in ['AH','CH','DH','BH'] {
 			error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
 			exit(1)
 		}
-		source.check_regi_size(exp_source_size)
-		desti.check_regi_size(exp_desti_size)
-		instr.add_prefix_byte(exp_desti_size)
+		source.check_regi_size(source_size)
+		desti.check_regi_size(desti_size)
+		instr.add_prefix_byte(desti_size)
 		instr.code << op_code
 		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(desti), regi_bits(source))
 		return
 	}
 	if source is Indirection && desti is Register {
-		desti.check_regi_size(exp_desti_size)
+		desti.check_regi_size(desti_size)
 		instr.add_segment_override_prefix(source)
-		instr.add_prefix_byte(exp_desti_size)
+		instr.add_prefix_byte(desti_size)
 		instr.code << op_code
 		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
 		if rela_text_user != unsafe {nil} {
@@ -197,52 +184,4 @@ fn (mut e Encoder) mov_zero_extend(instr_name_upper string) {
 	exit(1)
 }
 
-// movsx
-fn (mut e Encoder) mov_sign_extend(instr_name_upper string) {
-	mut instr := Instr{kind: .movsx, section: e.current_section, pos: e.tok.pos}
-	e.instrs[e.current_section] << &instr
 
-	suffix := instr_name_upper[4..].to_upper()
-	exp_source_size := get_size_by_suffix(suffix[..1])
-	exp_desti_size := get_size_by_suffix(suffix[1..])
-
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
-
-	op_code := if exp_source_size == .suffix_long && exp_desti_size == .suffix_quad {
-		[u8(0x63)]
-	} else if exp_source_size == .suffix_byte {
-		[u8(0x0F), 0xBE]
-	} else if exp_source_size == .suffix_word {
-		[u8(0x0F), 0xBF]
-	} else {
-		panic('unreachable')
-	}
-
-	if source is Register && desti is Register {
-		if exp_desti_size == .suffix_quad && source.lit in ['AH','CH','DH','BH'] {
-			error.print(source.pos, 'can\'t encode `%$source.lit` in an instruction requiring REX prefix')
-			exit(1)
-		}
-		source.check_regi_size(exp_source_size)
-		desti.check_regi_size(exp_desti_size)
-		instr.add_prefix_byte(exp_desti_size)
-		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, regi_bits(desti), regi_bits(source))
-		return
-	}
-	if source is Indirection && desti is Register {
-		desti.check_regi_size(exp_desti_size)
-		instr.add_segment_override_prefix(source)
-		instr.add_prefix_byte(exp_desti_size)
-		instr.code << op_code
-		rela_text_user := instr.add_modrm_sib_disp(source, regi_bits(desti))
-		if rela_text_user != unsafe {nil} {
-			e.rela_text_users << rela_text_user
-		}
-		return
-	}
-	error.print(source.pos, 'invalid operand for instruction')
-	exit(1)
-}

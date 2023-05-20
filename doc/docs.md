@@ -77,6 +77,8 @@ You should see the output:
 Hello, world!
 ```
 
+More examples in the examples folder.
+
 ## Assembly Syntax
 
 VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Intel syntax (which is used by some other assemblers) are:
@@ -120,6 +122,18 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `subl`
 - [x] `subw`
 - [x] `subb`
+- [x] `orq`
+- [x] `orl`
+- [x] `orw`
+- [x] `orb`
+- [x] `adcq`
+- [x] `adcl`
+- [x] `adcw`
+- [x] `adcb`
+- [x] `sbbq`
+- [x] `sbbl`
+- [x] `sbbw`
+- [x] `sbbb`
 - [x] `idivq`
 - [x] `idivl`
 - [x] `idivw`

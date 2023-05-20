@@ -17,6 +17,11 @@ pub enum InstrKind {
 	quad
 	add
 	sub
+	instr_or
+	adc
+	sbb
+	xor
+	and
 	imul
 	idiv
 	div
@@ -25,8 +30,6 @@ pub enum InstrKind {
 	mov
 	movzx
 	movsx
-	xor
-	and
 	not
 	cqto
 	cmp
@@ -670,47 +673,17 @@ fn (mut e Encoder) encode_instr() {
 		'.QUAD' {
 			e.quad()
 		}
-		'RETQ', 'RET' {
-			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
-		}
-		'SYSCALL' {
-			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
-		}
-		'NOPQ', 'NOP' {
-			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
-		}
-		'HLT' {
-			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
-		}
-		'LEAVE' {
-			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
-		}
-		'CQTO' {
-			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
-		}
 		'POP', 'POPQ' {
 			e.pop()
 		}
 		'PUSHQ', 'PUSH' {
 			e.push()
 		}
-		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
-			e.mov(instr_name_upper)
-		}
-		'MOVZBW', 'MOVZBL', 'MOVZBQ', 'MOVZWQ', 'MOVZWL' {
-			e.mov_zero_extend(instr_name_upper)
-		}
-		'MOVSBL', 'MOVSBW', 'MOVSBQ', 'MOVSWL', 'MOVSWQ', 'MOVSLQ' {
-			e.mov_sign_extend(instr_name_upper)
+		'CALLQ', 'CALL' {
+			e.call()
 		}
 		'LEAQ', 'LEAL', 'LEAW' {
 			e.lea(instr_name_upper)
-		}
-		'ADDQ', 'ADDL', 'ADDW', 'ADDB' {
-			e.add(instr_name_upper)
-		}
-		'SUBQ', 'SUBL', 'SUBW', 'SUBB' {
-			e.sub(instr_name_upper)
 		}
 		'IDIVQ', 'IDIVL', 'IDIVW', 'IDIVB' {
 			e.idiv(instr_name_upper)
@@ -724,23 +697,74 @@ fn (mut e Encoder) encode_instr() {
 		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
 			e.neg(instr_name_upper)
 		}
-		'XORQ', 'XORL', 'XORW', 'XORB' {
-			e.xor(instr_name_upper)
-		}
-		'ANDQ', 'ANDL', 'ANDW', 'ANDB' {
-			e.and(instr_name_upper)
-		}
 		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
 			e.not(instr_name_upper)
 		}
+		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
+			e.mov(instr_name_upper)
+		}
+		'MOVZBW' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xB6], DataSize.suffix_byte, DataSize.suffix_word)
+		}
+		'MOVZBL' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xB6], DataSize.suffix_byte, DataSize.suffix_long)
+		}
+		'MOVZBQ' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xB6], DataSize.suffix_byte, DataSize.suffix_quad)
+		}
+		'MOVZWQ' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xB7], DataSize.suffix_word, DataSize.suffix_quad)
+		}
+		'MOVZWL' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xB7], DataSize.suffix_word, DataSize.suffix_long)
+		}
+		'MOVSBL' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xBE], DataSize.suffix_byte, DataSize.suffix_long)
+		}
+		'MOVSBW' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xBE], DataSize.suffix_byte, DataSize.suffix_word)
+		}
+		'MOVSBQ' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xBE], DataSize.suffix_byte, DataSize.suffix_quad)
+		}
+		'MOVSWL' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xBF], DataSize.suffix_word, DataSize.suffix_long)
+		}
+		'MOVSWQ' {
+			e.mov_zero_or_sign_extend([u8(0x0F), 0xBF], DataSize.suffix_word, DataSize.suffix_quad)
+		}
+		'MOVSLQ' {
+			e.mov_zero_or_sign_extend([u8(0x63)], DataSize.suffix_long, DataSize.suffix_quad)
+		}
+		'ADDQ', 'ADDL', 'ADDW', 'ADDB' {
+			e.arith_instr(.add, 0, encoder.slash_0, get_size_by_suffix(instr_name_upper))
+		}
+		'ORQ', 'ORL', 'ORW', 'ORB' {
+			e.arith_instr(.instr_or, 0x8, encoder.slash_1, get_size_by_suffix(instr_name_upper))
+		}
+		'ADCQ', 'ADCL', 'ADCW', 'ADCB' {
+			e.arith_instr(.adc, 0x10, encoder.slash_2, get_size_by_suffix(instr_name_upper))
+		}
+		'SBBQ', 'SBBL', 'SBBW', 'SBBB' {
+			e.arith_instr(.sbb, 0x18, encoder.slash_3, get_size_by_suffix(instr_name_upper))
+		}
+		'ANDQ', 'ANDL', 'ANDW', 'ANDB' {
+			e.arith_instr(.and, 0x20, encoder.slash_4, get_size_by_suffix(instr_name_upper))
+		}
+		'SUBQ', 'SUBL', 'SUBW', 'SUBB' {
+			e.arith_instr(.sub, 0x28, encoder.slash_5, get_size_by_suffix(instr_name_upper))
+		}
+		'XORQ', 'XORL', 'XORW', 'XORB' {
+			e.arith_instr(.xor, 0x30, encoder.slash_6, get_size_by_suffix(instr_name_upper))
+		}
 		'CMPQ', 'CMPL', 'CMPW', 'CMPB' {
-			e.cmp(instr_name_upper)
+			e.arith_instr(.cmp, 0x38, encoder.slash_7, get_size_by_suffix(instr_name_upper))
 		}
 		'SHLQ', 'SHLL', 'SHLW', 'SHLB' {
-			e.sh(.shl, instr_name_upper, encoder.slash_4)
+			e.shift(.shl, instr_name_upper, encoder.slash_4)
 		}
 		'SHRQ', 'SHRL', 'SHRW', 'SHRB' {
-			e.sh(.shr, instr_name_upper, encoder.slash_5)
+			e.shift(.shr, instr_name_upper, encoder.slash_5)
 		}
 		'SETL' {
 			e.set(.setl, [u8(0x0F), 0x9C])
@@ -759,9 +783,6 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'SETNE' {
 			e.set(.setne, [u8(0x0F), 0x95])
-		}
-		'CALLQ', 'CALL' {
-			e.call()
 		}
 		'JMP' {
 			e.var_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
@@ -783,6 +804,24 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'JGE' {
 			e.var_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
+		}
+		'RETQ', 'RET' {
+			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+		}
+		'SYSCALL' {
+			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
+		}
+		'NOPQ', 'NOP' {
+			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
+		}
+		'HLT' {
+			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
+		}
+		'LEAVE' {
+			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+		}
+		'CQTO' {
+			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
 		}
 		else {
 			error.print(pos, 'unkwoun instruction `$instr_name`')

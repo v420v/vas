@@ -45,7 +45,7 @@ fn (mut e Encoder) push() {
 		mut used_symbols := []string{}
 		imm_val := eval_expr_get_symbol(source, mut used_symbols)
 		if used_symbols.len >= 2 {
-			error.print(source.pos, 'invalid operand for instruction')
+			error.print(source.pos, 'invalid immediate operand')
 			exit(1)
 		}
 		imm_need_rela := used_symbols.len == 1
