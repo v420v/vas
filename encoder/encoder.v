@@ -685,23 +685,74 @@ fn (mut e Encoder) encode_instr() {
 		'LEAQ', 'LEAL', 'LEAW' {
 			e.lea(instr_name_upper)
 		}
-		'IDIVQ', 'IDIVL', 'IDIVW', 'IDIVB' {
-			e.idiv(instr_name_upper)
+		'NOTQ' {
+			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_quad)
 		}
-		'DIVQ', 'DIVL', 'DIVW', 'DIVB' {
-			e.div(instr_name_upper)
+		'NOTL' {
+			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_long)
 		}
-		'IMULQ', 'IMULL', 'IMULW' {
-			e.imul(instr_name_upper)
+		'NOTW' {
+			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_word)
 		}
-		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
-			e.neg(instr_name_upper)
+		'NOTB' {
+			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_byte)
 		}
-		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
-			e.not(instr_name_upper)
+		'NEGQ' {
+			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_quad)
 		}
-		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
-			e.mov(instr_name_upper)
+		'NEGL' {
+			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_long)
+		}
+		'NEGW' {
+			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_word)
+		}
+		'NEGB' {
+			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_byte)
+		}
+		'DIVQ' {
+			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_quad)
+		}
+		'DIVL' {
+			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_long)
+		}
+		'DIVW' {
+			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_word)
+		}
+		'DIVB' {
+			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_byte)
+		}
+		'IDIVQ' {
+			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_quad)
+		}
+		'IDIVL' {
+			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_long)
+		}
+		'IDIVW' {
+			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_word)
+		}
+		'IDIVB' {
+			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_byte)
+		}
+		'IMULQ' {
+			e.imul(DataSize.suffix_quad)
+		}
+		'IMULL' {
+			e.imul(DataSize.suffix_long)
+		}
+		'IMULW' {
+			e.imul(DataSize.suffix_word)
+		}
+		'MOVQ'{
+			e.mov(DataSize.suffix_quad)
+		}
+		'MOVL'{
+			e.mov(DataSize.suffix_long)
+		}
+		'MOVW'{
+			e.mov(DataSize.suffix_word)
+		}
+		'MOVB' {
+			e.mov(DataSize.suffix_byte)
 		}
 		'MOVZBW' {
 			e.mov_zero_or_sign_extend([u8(0x0F), 0xB6], DataSize.suffix_byte, DataSize.suffix_word)

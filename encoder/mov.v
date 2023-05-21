@@ -4,11 +4,10 @@ import error
 import encoding.binary
 
 // movq, movl, movw, movb
-fn (mut e Encoder) mov(instr_name_upper string) {
+fn (mut e Encoder) mov(size DataSize) {
 	mut instr := Instr{kind: .mov, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	size := get_size_by_suffix(instr_name_upper)
 	source := e.parse_operand()
 	e.expect(.comma)
 	desti := e.parse_operand()
@@ -115,35 +114,7 @@ fn (mut e Encoder) mov(instr_name_upper string) {
 		}
 		return
 	}
-	if source is Immediate && desti is Indirection {
-		op_code := if size == .suffix_byte {
-			u8(0xc6)
-		} else {
-			u8(0xc7)
-		}
-		instr.add_segment_override_prefix(desti)
-		instr.add_prefix_byte(size)
-		instr.code << op_code
-		rela_text_user := instr.add_modrm_sib_disp(desti, encoder.slash_0)
-		if rela_text_user != unsafe {nil} {
-			e.rela_text_users << rela_text_user
-		}
 
-		imm_val := eval_expr(source.expr)
-
-		if size == .suffix_byte {
-			instr.code << u8(imm_val)
-		} else if size == .suffix_word {
-			mut hex := [u8(0), 0]
-			binary.little_endian_put_u16(mut &hex, u16(imm_val))
-			instr.code << hex
-		} else {
-			mut hex := [u8(0), 0, 0, 0]
-			binary.little_endian_put_u32(mut &hex, u32(imm_val))
-			instr.code << hex
-		}
-		return
-	}
 	error.print(source.pos, 'invalid operand for instruction')
 	exit(1)
 }

@@ -41,6 +41,15 @@ fn (mut e Encoder) push() {
 		instr.code = [0x50 + regi_bits(source)]
 		return
 	}
+	if source is Indirection {
+		instr.add_segment_override_prefix(source)
+		instr.code << 0xff // op_code
+		rela_text_user := instr.add_modrm_sib_disp(source, encoder.slash_6)
+		if rela_text_user != unsafe {nil} {
+			e.rela_text_users << rela_text_user
+		}
+		return
+	}
 	if source is Immediate {
 		mut used_symbols := []string{}
 		imm_val := eval_expr_get_symbol(source, mut used_symbols)
@@ -66,15 +75,6 @@ fn (mut e Encoder) push() {
 				binary.little_endian_put_u32(mut &hex, u32(imm_val))
 				instr.code = [u8(0x68), hex[0], hex[1], hex[2], hex[3]]
 			}
-		}
-		return
-	}
-	if source is Indirection {
-		instr.add_segment_override_prefix(source)
-		instr.code << 0xff // op_code
-		rela_text_user := instr.add_modrm_sib_disp(source, encoder.slash_6)
-		if rela_text_user != unsafe {nil} {
-			e.rela_text_users << rela_text_user
 		}
 		return
 	}
