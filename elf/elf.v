@@ -5,27 +5,21 @@ import encoder
 
 pub struct Elf {
 	out_file             		string
-	global_symbols_count        int										// global symbols count
-	local_labels_count			int           							// symbols that start from .L will not be added to strtab or symtab
-	defined_symbols      		map[string]&encoder.Instr				// user-defined symbols
-	user_defined_sections		map[string]&encoder.UserDefinedSection 	// user-defined sections
-	rela_text_users             []encoder.RelaTextUser
 mut:
-	keep_locals					bool // flag to keep local labels. labels that start from `.L`
-
+	keep_locals					bool			// flag to keep local labels. labels that start from `.L`
 	ehdr                      	Elf64_Ehdr    	// Elf header
 	symtab_symbol_indexs		map[string]int  // symtab symbol index
-	local_symbols_count         int // used in .symtab section header
+	local_symbols_count			int				// used in .symtab section header
 	rela_symbols              	[]string      	// symbols that are not defined
 	user_defined_section_names	[]string      	// list of user-defined section names
 	user_defined_section_idx  	map[string]int	// user-defined sections index
 	section_name_offs			map[string]int
 	strtab            			[]u8
 	symtab            			[]Elf64_Sym
-	rela_section_names          []string
-	rela              			map[string][]Elf64_Rela
-	shstrtab          			[]u8
-	section_headers   			[]Elf64_Shdr
+	rela_section_names			[]string
+	rela						map[string][]Elf64_Rela
+	shstrtab					[]u8
+	section_headers				[]Elf64_Shdr
 }
 
 struct Elf64_Ehdr {
@@ -193,14 +187,9 @@ Generated Elf file
 
 */
 
-pub fn new(out_file string, user_defined_sections map[string]&encoder.UserDefinedSection, defined_symbols map[string]&encoder.Instr, rela_text_users []encoder.RelaTextUser, global_symbols_count int, local_labels_count int, keep_locals bool) &Elf {
+pub fn new(out_file string, keep_locals bool) &Elf {
 	mut e := &Elf{
 		out_file: out_file
-		user_defined_sections: user_defined_sections
-		defined_symbols: defined_symbols
-		rela_text_users: rela_text_users
-		global_symbols_count: global_symbols_count
-		local_labels_count: local_labels_count
 		keep_locals: keep_locals
 	}
 
@@ -220,7 +209,7 @@ fn add_padding(mut code []u8) {
 }
 
 fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
-	for name, symbol in e.defined_symbols {
+	for name, symbol in user_defined_symbols {
 		if symbol.binding != symbol_binding {
 			continue
 		}
@@ -258,7 +247,7 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 }
 
 // Add rela symbol to symtab and strtab
-// This function will be called after processing local symbols.
+// This function should be called after processing local symbols.
 fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 	for symbol_name in e.rela_symbols {
 		unsafe {*off += str.len + 1}
@@ -281,7 +270,7 @@ pub fn (mut e Elf) rela_text_users() {
 		x86: 再配置型
 		https://docs.oracle.com/cd/E19683-01/817-4912/6mkdg542u/index.html#chapter6-26
 	*/
-	for r in e.rela_text_users {
+	for r in rela_text_users {
 		mut index := 0
 
 		mut r_addend := if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
@@ -297,7 +286,7 @@ pub fn (mut e Elf) rela_text_users() {
 			continue
 		}
 
-		if s := e.defined_symbols[r.uses] {
+		if s := user_defined_symbols[r.uses] {
 			if s.binding == encoder.stb_global {
 				index = e.symtab_symbol_indexs[r.uses]
 			} else {
@@ -322,9 +311,9 @@ pub fn (mut e Elf) rela_text_users() {
 }
 
 pub fn (mut e Elf) collect_rela_symbols() {
-	for rela in e.rela_text_users {
+	for rela in rela_text_users {
 		if rela.uses !in e.rela_symbols {
-			if rela.uses in e.defined_symbols {
+			if rela.uses in user_defined_symbols {
 				continue
 			}
 			e.rela_symbols << rela.uses
@@ -399,7 +388,7 @@ pub fn (mut e Elf) build_headers() {
 
 	// user-defined sections
 	for name in e.user_defined_section_names {
-		section := e.user_defined_sections[name] or {
+		section := user_defined_sections[name] or {
 			panic('[internal error] unkown section `$name`')
 		}
 		e.section_headers << Elf64_Shdr{
@@ -527,7 +516,7 @@ pub fn (mut e Elf) write_elf() {
 	}
 
 	for name in e.user_defined_section_names {
-		section := e.user_defined_sections[name] or {
+		section := user_defined_sections[name] or {
 			panic('unkown section $name')
 		}
 		fp.write(section.code) or {

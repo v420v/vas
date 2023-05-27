@@ -16,19 +16,31 @@ fn (mut e Encoder) section() {
 
 	instr := Instr{kind: .section, pos: pos, section: section_name, symbol_type: encoder.stt_section, flags: section_flags}
 
-	if s := e.defined_symbols[section_name] {
+	if s := user_defined_symbols[section_name] {
 		if s.kind == .label {
 			error.print(pos, 'symbol `$section_name` is already defined')
 			exit(1)
 		}
 	} else {
-		e.defined_symbols[section_name] = &instr
+		user_defined_symbols[section_name] = &instr
 	}
 
 	e.instrs[e.current_section] << &instr
 }
 
-// .string
+fn (mut e Encoder) zero() {
+	operand := e.parse_operand()
+
+	n := eval_expr(operand)
+
+	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
+
+	for _ in 0..n {
+		instr.code << 0
+	}
+}
+
 fn (mut e Encoder) string() {
 	pos := e.tok.pos
 
@@ -42,7 +54,6 @@ fn (mut e Encoder) string() {
 	e.instrs[e.current_section] << &instr
 }
 
-// .byte
 fn (mut e Encoder) byte() {
 	desti := e.parse_operand()
 
@@ -56,21 +67,20 @@ fn (mut e Encoder) byte() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users := &RelaTextUser{
+		rela := &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_8
 		}
 		instr.code = [u8(0)]
-		e.rela_text_users << rela_text_users
+		rela_text_users << rela
 	} else {
 		instr.code << u8(adjust)
 	}
 	e.instrs[e.current_section] << &instr
 }
 
-// .word
 fn (mut e Encoder) word() {
 	desti := e.parse_operand()
 
@@ -84,14 +94,14 @@ fn (mut e Encoder) word() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users := &RelaTextUser{
+		rela := &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_16
 		}
 		instr.code = [u8(0), 0]
-		e.rela_text_users << rela_text_users
+		rela_text_users << rela
 	} else {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(adjust))
@@ -100,7 +110,6 @@ fn (mut e Encoder) word() {
 	e.instrs[e.current_section] << &instr
 }
 
-// .long
 fn (mut e Encoder) long() {
 	desti := e.parse_operand()
 
@@ -114,14 +123,14 @@ fn (mut e Encoder) long() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users := &RelaTextUser{
+		rela := &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_32
 		}
 		instr.code = [u8(0), 0, 0, 0]
-		e.rela_text_users << rela_text_users
+		rela_text_users << rela
 	} else {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(adjust))
@@ -130,7 +139,6 @@ fn (mut e Encoder) long() {
 	e.instrs[e.current_section] << &instr
 }
 
-// .quad
 fn (mut e Encoder) quad() {
 	desti := e.parse_operand()
 
@@ -144,14 +152,14 @@ fn (mut e Encoder) quad() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users := &RelaTextUser{
+		rela := &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_64
 		}
 		instr.code = [u8(0), 0, 0, 0, 0, 0, 0, 0]
-		e.rela_text_users << rela_text_users
+		rela_text_users << rela
 	} else {
 		mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
 		binary.little_endian_put_u64(mut &hex, u64(adjust))

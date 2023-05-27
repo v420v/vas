@@ -7,6 +7,7 @@ import strconv
 import encoding.binary
 
 pub enum InstrKind {
+	@none
 	section
 	global
 	local
@@ -32,9 +33,12 @@ pub enum InstrKind {
 	movsx
 	not
 	cqto
+	cltq
 	cmp
 	shl
 	shr
+	sar
+	sal
 	pop
 	push
 	call
@@ -51,6 +55,7 @@ pub enum InstrKind {
 	jg
 	jle
 	jge
+	jbe
 	ret
 	syscall
 	nop
@@ -66,12 +71,7 @@ mut:
 pub mut:
 	current_section		string
 	instrs         		map[string][]&Instr 			// map with section name as keys and instruction list as value
-	rela_text_users		[]RelaTextUser
 	variable_instrs		[]&Instr						// variable length instructions jmp, je, jn ...
-	defined_symbols		map[string]&Instr   			// labels, sections...
-	sections       		map[string]&UserDefinedSection
-	globals_count  		int								// global symbols
-	local_labels_count	int								// symbols that start with `.L`
 }
 
 pub struct Instr {
@@ -90,7 +90,7 @@ pub mut:
 	pos token.Position [required]
 }
 
-pub struct RelaTextUser {
+pub struct Rela {
 pub mut:
 	uses  				string
 	instr 				&Instr
@@ -134,6 +134,7 @@ pub:
 pub struct Register {
 pub:
 	lit string
+	kind Regi
 	size DataSize
 	pos token.Position
 }
@@ -173,6 +174,27 @@ enum DataSize {
 	suffix_word						= 16
 	suffix_long						= 32
 	suffix_quad						= 64
+}
+
+enum Regi {
+	@none
+	rax
+	rcx
+	rdx
+	rbx
+	rsp
+	rbp
+	rsi
+	rdi
+	r8
+	r9
+	r10
+	r11
+	r12
+	r13
+	r14
+	r15
+	rip
 }
 
 pub const (
@@ -244,11 +266,11 @@ pub const (
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
 	default_text_section := Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: encoder.stt_section, flags: 'ax'}
+	user_defined_symbols = {'.text': &default_text_section}
 	e := &Encoder {
 		tok: tok
 		l: l
 		current_section: '.text'
-		defined_symbols: {'.text': &default_text_section}
 		instrs: {'.text': [&default_text_section]}
 	}
 	return e
@@ -266,20 +288,126 @@ fn (mut e Encoder) expect(exp token.TokenKind) {
 	e.next()
 }
 
+fn (mut e Encoder) regi_kind(regi_name string) Regi {
+	match regi_name {
+		'RAX',  'EAX',  'AX', 'AL' {
+			return .rax
+		}
+		'RCX',  'ECX',  'CX', 'CL' {
+			return .rcx
+		}
+		'RDX',  'EDX',  'DX', 'DL' {
+			return .rdx
+		}
+		'RBX',  'EBX',  'BX', 'BL' {
+			return .rbx
+		}
+		'RSP',  'ESP',  'SP', 'AH' {
+			return .rsp
+		}
+		'RBP',  'EBP',  'BP', 'CH' {
+			return .rbp
+		}
+		'RSI',  'ESI',  'SI', 'DH' {
+			return .rsi
+		}
+		'RDI',  'EDI',  'DI', 'BH' {
+			return .rdi
+		}
+		'RIP',  'EIP',  'IP' {
+			return .rip
+		}
+		'R8', 	'R8D', 'R8W', 'R8B' {
+			return .r8
+		}
+		'R9', 	'R9D', 'R9W', 'R9B' {
+			return .r9
+		}
+		'R10', 'R10D', 'R10W', 'R10B' {
+			return .r10
+		}
+		'R11', 'R11D', 'R11W', 'R11B' {
+			return .r11
+		}
+		'R12', 'R12D', 'R12W', 'R12B' {
+			return .r12
+		}
+		'R13', 'R13D', 'R13W', 'R13B' {
+			return .r13
+		}
+		'R14', 'R14D', 'R14W', 'R14B' {
+			return .r14
+		}
+		'R15', 'R15D', 'R15W', 'R15B' {
+			return .r15
+		} else {
+			panic('unreachable')
+		}
+	}
+}
+
+fn regi_size(name string) ?DataSize {
+	if name in ['RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI', 'RIP', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15'] {
+		return .suffix_quad
+	}
+	if name in ['EAX', 'ECX', 'EDX', 'EBX', 'ESP', 'EBP', 'ESI', 'EDI', 'EIP', 'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D'] {
+		return .suffix_long
+	}
+	if name in ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI', 'IP', 'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W'] {
+		return .suffix_word
+	}
+	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'CH', 'DH', 'BH', 'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B'] {
+		return .suffix_byte
+	}
+
+	return none
+}
+
+fn (regi Register) regi_bits() u8 {
+	match regi.kind {
+		.rax, .r8 {
+			return 0
+		}
+		.rcx, .r9 {
+			return 1
+		}
+		.rdx, .r10 {
+			return 2
+		}
+		.rbx, .r11 {
+			return 3
+		}
+		.rsp, .r12 {
+			return 4
+		}
+		.rbp, .r13 {
+			return 5
+		}
+		.rsi, .r14 {
+			return 6
+		}
+		.rdi, .r15 {
+			return 7
+		} else {
+			panic('unreachable')
+		}
+	}
+}
+
 fn (mut e Encoder) parse_register() Register {
 	e.expect(.percent)
 	pos := e.tok.pos
-	reg_name := e.tok.lit.to_upper()
-	if reg_name !in token.registers {
-		error.print(e.tok.pos, 'invalid register name `$reg_name`')
+	regi_name := e.tok.lit.to_upper()
+
+	size := regi_size(regi_name) or {
+		error.print(e.tok.pos, 'invalid register name `$regi_name`')
 		exit(1)
 	}
 
-	size := regi_size(reg_name)
-
 	e.next()
 	return Register{
-		lit: reg_name
+		lit: regi_name
+		kind: e.regi_kind(regi_name)
 		size: size
 		pos: pos
 	}
@@ -381,54 +509,6 @@ fn (mut e Encoder) parse_operand() Expr {
 	exit(1)
 }
 
-fn regi_size(name string) DataSize {
-	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'cH', 'DH', 'BH'] {
-		return .suffix_byte
-	} else if name in ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'] {
-		return .suffix_word
-	} else {
-		if name[0] == `R` {
-			return .suffix_quad
-		} else if name[0] == `E` {
-			return .suffix_long
-		}
-	}
-	panic('unreachable')
-}
-
-fn regi_bits(regi Register) u8 {
-	match regi.lit[regi.lit.len-2..] {
-		'AX', 'AL' {
-			return 0
-		}
-		'CX', 'CL' {
-			return 1
-		}
-		'DX', 'DL' {
-			return 2
-		}
-		'BX', 'BL' {
-			return 3
-		}
-		'SP', 'AH' {
-			return 4
-		}
-		'BP', 'CH' {
-			return 5
-		}
-		'SI', 'DH' {
-			return 6
-		}
-		'DI', 'BH' {
-			return 7
-		}
-		else {
-			error.print(regi.pos, 'invalid operand for instruction')
-			exit(1)
-		}
-	}
-}
-
 fn eval_expr_get_symbol(expr Expr, mut arr[]string) int {
 	return match expr {
 		Number {
@@ -523,7 +603,7 @@ fn get_size_by_suffix(name string) DataSize {
 		`B` {
 			DataSize.suffix_byte
 		} else {
-			panic('unkown size')
+			panic('unkown DataSize')
 		}
 	}
 }
@@ -532,25 +612,6 @@ fn (regi Register) check_regi_size(size DataSize) {
 	if regi.size != size {
 		error.print(regi.pos, 'invalid size of register for instruction.')
 		exit(0)
-	}
-}
-
-fn scale(n u8) u8 {
-	match n {
-		1 {
-			return 0
-		}
-		2 {
-			return 1
-		}
-		4 {
-			return 2
-		}
-		8 {
-			return 3
-		} else {
-			panic('scale unreachable')
-		}
 	}
 }
 
@@ -635,11 +696,12 @@ fn (mut e Encoder) encode_instr() {
 		instr := Instr{kind: .label, pos: pos, section: e.current_section, symbol_name: instr_name}
 		e.expect(.colon)
 
-		if instr_name in e.defined_symbols || instr_name == '.text' {
+		if instr_name in user_defined_symbols || instr_name == '.text' {
 			error.print(pos, 'symbol `$instr_name` is already defined')
 			exit(1)
 		}
-		e.defined_symbols[instr_name] = &instr
+
+		user_defined_symbols[instr_name] = &instr
 		e.instrs[e.current_section] << &instr
 		return
 	}
@@ -672,6 +734,9 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'.QUAD' {
 			e.quad()
+		}
+		'.ZERO' {
+			e.zero()
 		}
 		'POP', 'POPQ' {
 			e.pop()
@@ -812,10 +877,16 @@ fn (mut e Encoder) encode_instr() {
 			e.arith_instr(.cmp, 0x38, encoder.slash_7, get_size_by_suffix(instr_name_upper))
 		}
 		'SHLQ', 'SHLL', 'SHLW', 'SHLB' {
-			e.shift(.shl, instr_name_upper, encoder.slash_4)
+			e.shift(.shl, instr_name_upper, encoder.slash_4, get_size_by_suffix(instr_name_upper))
 		}
 		'SHRQ', 'SHRL', 'SHRW', 'SHRB' {
-			e.shift(.shr, instr_name_upper, encoder.slash_5)
+			e.shift(.shr, instr_name_upper, encoder.slash_5, get_size_by_suffix(instr_name_upper))
+		}
+		'SARQ', 'SARL', 'SARW', 'SARB' {
+			e.shift(.sar, instr_name_upper, encoder.slash_7, get_size_by_suffix(instr_name_upper))
+		}
+		'SALQ', 'SALL', 'SALW', 'SALB' {
+			e.shift(.sal, instr_name_upper, encoder.slash_4, get_size_by_suffix(instr_name_upper))
 		}
 		'SETL' {
 			e.set(.setl, [u8(0x0F), 0x9C])
@@ -856,6 +927,9 @@ fn (mut e Encoder) encode_instr() {
 		'JGE' {
 			e.var_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 		}
+		'JBE' {
+			e.var_instr(.jbe, [u8(0x76), 0], 1, [u8(0x0F), 0x86, 0, 0, 0, 0], 2)
+		}
 		'RETQ', 'RET' {
 			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
 		}
@@ -870,6 +944,9 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'LEAVE' {
 			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+		}
+		'CLTQ' {
+			e.instrs[e.current_section] << &Instr{kind: .cltq, pos: pos, section: e.current_section, code: [u8(0x48), 0x98]}
 		}
 		'CQTO' {
 			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}

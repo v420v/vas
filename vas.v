@@ -16,6 +16,12 @@ fn file_name_without_ext(file_name string) string {
 	}
 }
 
+__global (
+	rela_text_users			[]encoder.Rela
+	user_defined_symbols	map[string]&encoder.Instr
+	user_defined_sections	map[string]&encoder.UserDefinedSection
+)
+
 fn main() {
 	mut fp := flag.new_flag_parser(os.args)
     fp.application('vas')
@@ -59,9 +65,8 @@ fn main() {
 	}
 	en.assign_addresses()
 	en.fix_same_section_relocations()
-	en.count_local_labels()
 
-	mut e := elf.new(out_file, en.sections, en.defined_symbols, en.rela_text_users, en.globals_count, en.local_labels_count, keep_locals)
+	mut e := elf.new(out_file, keep_locals)
 	e.collect_rela_symbols()
 	e.build_symtab_strtab()
 	e.rela_text_users()

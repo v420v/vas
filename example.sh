@@ -20,3 +20,5 @@ set -x
 
 ./vas -o ./examples/print_int.o examples/print_int.s && gcc -o examples/print_int.out examples/print_int.o && ./examples/print_int.out
 
+./vas -o ./examples/rule110.o examples/rule110.s && gcc -o examples/rule110.out examples/rule110.o && ./examples/rule110.out
+

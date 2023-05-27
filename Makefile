@@ -1,6 +1,6 @@
 
 build:
-	v . -prod
+	v . -prod -enable-globals
 
 clean:
 	rm *.o *.out ./vas examples/*.o

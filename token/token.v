@@ -1,50 +1,5 @@
 module token
 
-pub const registers = [
-	// 64bit
-	'RAX',
-	'RCX',
-	'RDX',
-	'RBX',
-	'RSP',
-	'RBP',
-	'RSI',
-	'RDI',
-	'RIP',
-
-	// 32bit
-	'EAX',
-	'ECX',
-	'EDX',
-	'EBX',
-	'ESP',
-	'EBP',
-	'ESI',
-	'EDI',
-	'EIP',
-
-	// 16bit
-	'AX',
-	'CX',
-	'DX',
-	'BX',
-	'SP',
-	'BP',
-	'SI',
-	'DI',
-	'IP',
-
-	// 8bit
-	'AL',
-	'CL',
-	'DL',
-	'BL',
-	'AH',
-	'CH',
-	'DH',
-	'BH',
-]
-
 pub struct Position {
 pub mut:
 	file_name string

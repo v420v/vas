@@ -3,7 +3,6 @@ module encoder
 import error
 import encoding.binary
 
-// pop
 fn (mut e Encoder) pop() {
 	mut instr := Instr{kind: .pop, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
@@ -12,16 +11,28 @@ fn (mut e Encoder) pop() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		instr.code = [0x58 + regi_bits(source)]
+		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
+		if source.kind in regi_index_over_8 {
+			instr.code << rex(0, 0, 0, 1)
+		}
+		instr.code << [0x58 + source.regi_bits()]
 		return
 	}
 	if source is Indirection {
 		instr.add_segment_override_prefix(source)
-		instr.code << 0x8f // op_code
-		rela_text_user := instr.add_modrm_sib_disp(source, encoder.slash_0)
-		if rela_text_user != unsafe {nil} {
-			e.rela_text_users << rela_text_user
+		mut x, mut b := u8(0), u8(0)
+		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
+		if source.index.kind in regi_index_over_8 {
+			x = 1
 		}
+		if source.base.kind in regi_index_over_8 {
+			b = 1
+		}
+		if x != 0 || b != 0 {
+			instr.code << rex(0, 0, x, b)
+		}
+		instr.code << 0x8f // op_code
+		instr.add_modrm_sib_disp(source, encoder.slash_0)
 		return
 	}
 
@@ -29,7 +40,6 @@ fn (mut e Encoder) pop() {
 	exit(1)
 }
 
-// push
 fn (mut e Encoder) push() {
 	mut instr := Instr{kind: .push, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
@@ -38,16 +48,29 @@ fn (mut e Encoder) push() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		instr.code = [0x50 + regi_bits(source)]
+		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
+		if source.kind in regi_index_over_8 {
+			instr.code << rex(0, 0, 0, 1)
+		}
+		source.check_regi_size(.suffix_quad)
+		instr.code = [0x50 + source.regi_bits()]
 		return
 	}
 	if source is Indirection {
 		instr.add_segment_override_prefix(source)
-		instr.code << 0xff // op_code
-		rela_text_user := instr.add_modrm_sib_disp(source, encoder.slash_6)
-		if rela_text_user != unsafe {nil} {
-			e.rela_text_users << rela_text_user
+		mut x, mut b := u8(0), u8(0)
+		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
+		if source.index.kind in regi_index_over_8 {
+			x = 1
 		}
+		if source.base.kind in regi_index_over_8 {
+			b = 1
+		}
+		if x != 0 || b != 0 {
+			instr.code << rex(0, 0, x, b)
+		}
+		instr.code << 0xff // op_code
+		instr.add_modrm_sib_disp(source, encoder.slash_6)
 		return
 	}
 	if source is Immediate {
@@ -60,7 +83,7 @@ fn (mut e Encoder) push() {
 		imm_need_rela := used_symbols.len == 1
 		if imm_need_rela {
 			instr.code << [u8(0x68), 0, 0, 0, 0]
-			e.rela_text_users << &RelaTextUser{
+			rela_text_users << &Rela{
 				uses: used_symbols[0],
 				instr: &instr,
 				offset: 0x1,
@@ -83,7 +106,6 @@ fn (mut e Encoder) push() {
 	exit(1)
 }
 
-// call
 fn (mut e Encoder) call() {
 	instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section, code: [u8(0xe8), 0, 0, 0, 0]}
 
@@ -96,7 +118,7 @@ fn (mut e Encoder) call() {
 		exit(1)
 	}
 
-	e.rela_text_users << encoder.RelaTextUser{
+	rela_text_users << encoder.Rela{
 		instr:  &instr,
 		offset: 1,
 		uses:   used_symbols[0],

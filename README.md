@@ -41,7 +41,7 @@ _start:
 ## Build
 
 ```sh
-$ v . -prod
+$ v . -prod -enable-globals
 ```
 
 ## Run
@@ -55,6 +55,8 @@ $ ./a.out
 
 ## Run examples
 ```
+$ v . -prod -enable-globals
+
 $ sh example.sh
 ```
 
