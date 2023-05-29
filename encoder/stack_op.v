@@ -11,8 +11,7 @@ fn (mut e Encoder) pop() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-		if source.kind in regi_index_over_8 {
+		if source.lit in r8_r15 {
 			instr.code << rex(0, 0, 0, 1)
 		}
 		instr.code << [0x58 + source.regi_bits()]
@@ -21,11 +20,10 @@ fn (mut e Encoder) pop() {
 	if source is Indirection {
 		instr.add_segment_override_prefix(source)
 		mut x, mut b := u8(0), u8(0)
-		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-		if source.index.kind in regi_index_over_8 {
+		if source.index.lit in r8_r15 {
 			x = 1
 		}
-		if source.base.kind in regi_index_over_8 {
+		if source.base.lit in r8_r15 {
 			b = 1
 		}
 		if x != 0 || b != 0 {
@@ -48,8 +46,7 @@ fn (mut e Encoder) push() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-		if source.kind in regi_index_over_8 {
+		if source.lit in r8_r15 {
 			instr.code << rex(0, 0, 0, 1)
 		}
 		source.check_regi_size(.suffix_quad)
@@ -59,11 +56,10 @@ fn (mut e Encoder) push() {
 	if source is Indirection {
 		instr.add_segment_override_prefix(source)
 		mut x, mut b := u8(0), u8(0)
-		regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-		if source.index.kind in regi_index_over_8 {
+		if source.index.lit in r8_r15 {
 			x = 1
 		}
-		if source.base.kind in regi_index_over_8 {
+		if source.base.lit in r8_r15 {
 			b = 1
 		}
 		if x != 0 || b != 0 {

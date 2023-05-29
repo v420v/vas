@@ -36,12 +36,11 @@ pub fn rex(w u8, r u8, x u8, b u8) u8 {
 }
 
 fn (mut instr Instr) add_rex_prefix_regi_regi(source_regi Register, desti_regi Register, size DataSize) {
-	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
-	regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-	if source_regi.kind in regi_index_over_8 {
+	mut w, mut r, x, mut b := u8(0), u8(0), u8(0), u8(0)
+	if source_regi.lit in r8_r15 {
 		r = 1
 	}
-	if desti_regi.kind in regi_index_over_8 {
+	if desti_regi.lit in r8_r15 {
 		b = 1
 	}
 	match size {
@@ -59,14 +58,13 @@ fn (mut instr Instr) add_rex_prefix_regi_regi(source_regi Register, desti_regi R
 
 fn (mut instr Instr) add_rex_prefix_regi_indir(regi Register, indir Indirection, size DataSize) {
 	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
-	regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-	if regi.kind in regi_index_over_8 {
+	if regi.lit in r8_r15 {
 		r = 1
 	}
-	if indir.index.kind in regi_index_over_8 {
+	if indir.index.lit in r8_r15 {
 		x = 1
 	}
-	if indir.base.kind in regi_index_over_8 {
+	if indir.base.lit in r8_r15 {
 		b = 1
 	}
 	match size {
@@ -83,9 +81,8 @@ fn (mut instr Instr) add_rex_prefix_regi_indir(regi Register, indir Indirection,
 }
 
 fn (mut instr Instr) add_rex_prefix_regi(regi Register, size DataSize) {
-	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
-	regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-	if regi.kind in regi_index_over_8 {
+	mut w, r, x, mut b := u8(0), u8(0), u8(0), u8(0)
+	if regi.lit in r8_r15 {
 		b = 1
 	}
 	match size {
@@ -102,12 +99,11 @@ fn (mut instr Instr) add_rex_prefix_regi(regi Register, size DataSize) {
 }
 
 fn (mut instr Instr) add_rex_prefix_indir(indir Indirection, size DataSize) {
-	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
-	regi_index_over_8 := [Regi.r8, .r9, .r10, .r11, .r12, .r13, .r14, .r15]
-	if indir.index.kind in regi_index_over_8 {
+	mut w, r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
+	if indir.index.lit in r8_r15 {
 		x = 1
 	}
-	if indir.base.kind in regi_index_over_8 {
+	if indir.base.lit in r8_r15 {
 		b = 1
 	}
 	match size {

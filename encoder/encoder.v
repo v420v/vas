@@ -134,7 +134,6 @@ pub:
 pub struct Register {
 pub:
 	lit string
-	kind Regi
 	size DataSize
 	pos token.Position
 }
@@ -174,27 +173,6 @@ enum DataSize {
 	suffix_word						= 16
 	suffix_long						= 32
 	suffix_quad						= 64
-}
-
-enum Regi {
-	@none
-	rax
-	rcx
-	rdx
-	rbx
-	rsp
-	rbp
-	rsi
-	rdi
-	r8
-	r9
-	r10
-	r11
-	r12
-	r13
-	r14
-	r15
-	rip
 }
 
 pub const (
@@ -261,6 +239,17 @@ pub const (
 	stt_hios 			 			= 12
 	stt_loproc 			 			= 13
 	stt_hiproc 			 			= 14
+
+	r8_r15 = [
+		'R8', 'R8D', 'R8W', 'R8B',
+		'R9', 'R9D', 'R9W', 'R9B',
+		'R10', 'R10D', 'R10W', 'R10B',
+		'R11', 'R11D', 'R11W', 'R11B',
+		'R12', 'R12D', 'R12W', 'R12B',
+		'R13', 'R13D', 'R13W', 'R13B',
+		'R14', 'R14D', 'R14W', 'R14B',
+		'R15', 'R15D', 'R15W', 'R15B',
+	]
 )
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
@@ -288,64 +277,6 @@ fn (mut e Encoder) expect(exp token.TokenKind) {
 	e.next()
 }
 
-fn (mut e Encoder) regi_kind(regi_name string) Regi {
-	match regi_name {
-		'RAX',  'EAX',  'AX', 'AL' {
-			return .rax
-		}
-		'RCX',  'ECX',  'CX', 'CL' {
-			return .rcx
-		}
-		'RDX',  'EDX',  'DX', 'DL' {
-			return .rdx
-		}
-		'RBX',  'EBX',  'BX', 'BL' {
-			return .rbx
-		}
-		'RSP',  'ESP',  'SP', 'AH' {
-			return .rsp
-		}
-		'RBP',  'EBP',  'BP', 'CH' {
-			return .rbp
-		}
-		'RSI',  'ESI',  'SI', 'DH' {
-			return .rsi
-		}
-		'RDI',  'EDI',  'DI', 'BH' {
-			return .rdi
-		}
-		'RIP',  'EIP',  'IP' {
-			return .rip
-		}
-		'R8', 	'R8D', 'R8W', 'R8B' {
-			return .r8
-		}
-		'R9', 	'R9D', 'R9W', 'R9B' {
-			return .r9
-		}
-		'R10', 'R10D', 'R10W', 'R10B' {
-			return .r10
-		}
-		'R11', 'R11D', 'R11W', 'R11B' {
-			return .r11
-		}
-		'R12', 'R12D', 'R12W', 'R12B' {
-			return .r12
-		}
-		'R13', 'R13D', 'R13W', 'R13B' {
-			return .r13
-		}
-		'R14', 'R14D', 'R14W', 'R14B' {
-			return .r14
-		}
-		'R15', 'R15D', 'R15W', 'R15B' {
-			return .r15
-		} else {
-			panic('unreachable')
-		}
-	}
-}
-
 fn regi_size(name string) ?DataSize {
 	if name in ['RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI', 'RIP', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15'] {
 		return .suffix_quad
@@ -363,37 +294,6 @@ fn regi_size(name string) ?DataSize {
 	return none
 }
 
-fn (regi Register) regi_bits() u8 {
-	match regi.kind {
-		.rax, .r8 {
-			return 0
-		}
-		.rcx, .r9 {
-			return 1
-		}
-		.rdx, .r10 {
-			return 2
-		}
-		.rbx, .r11 {
-			return 3
-		}
-		.rsp, .r12 {
-			return 4
-		}
-		.rbp, .r13 {
-			return 5
-		}
-		.rsi, .r14 {
-			return 6
-		}
-		.rdi, .r15 {
-			return 7
-		} else {
-			panic('unreachable')
-		}
-	}
-}
-
 fn (mut e Encoder) parse_register() Register {
 	e.expect(.percent)
 	pos := e.tok.pos
@@ -407,7 +307,6 @@ fn (mut e Encoder) parse_register() Register {
 	e.next()
 	return Register{
 		lit: regi_name
-		kind: e.regi_kind(regi_name)
 		size: size
 		pos: pos
 	}
@@ -604,6 +503,37 @@ fn get_size_by_suffix(name string) DataSize {
 			DataSize.suffix_byte
 		} else {
 			panic('unkown DataSize')
+		}
+	}
+}
+
+fn (regi Register) regi_bits() u8 {
+	match regi.lit {
+		'RAX', 'EAX', 'AX', 'AL', 'R8', 'R8D', 'R8W', 'R8B' {
+			return 0
+		}
+		'RCX', 'ECX', 'CX', 'CL', 'R9', 'R9D', 'R9W', 'R9B' {
+			return 1
+		}
+		'RDX', 'EDX', 'DX', 'DL', 'R10', 'R10D', 'R10W', 'R10B' {
+			return 2
+		}
+		'RBX', 'EBX', 'BX', 'BL', 'R11', 'R11D', 'R11W', 'R11B' {
+			return 3
+		}
+		'RSP', 'ESP', 'SP', 'AH', 'R12', 'R12D', 'R12W', 'R12B' {
+			return 4
+		}
+		'RBP', 'EBP', 'BP', 'CH', 'R13', 'R13D', 'R13W', 'R13B' {
+			return 5
+		}
+		'RSI', 'ESI', 'SI', 'DH', 'R14', 'R14D', 'R14W', 'R14B' {
+			return 6
+		}
+		'RDI', 'EDI', 'DI', 'BH', 'R15', 'R15D', 'R15W', 'R15B' {
+			return 7
+		} else {
+			panic('unreachable')
 		}
 	}
 }
