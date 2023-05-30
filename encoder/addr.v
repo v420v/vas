@@ -181,6 +181,22 @@ pub fn (mut e Encoder) assign_addresses() {
 }
 
 pub fn (mut e Encoder) fix_same_section_relocations() {
+	/*
+	.section .text, "ax"
+	foo:
+		retq
+
+		callq foo # relocation is not needed
+	*/
+
+	/*
+	.section .text, "ax"
+	msg:
+		.string "Hello, world!\n"
+
+		leaq msg(%rip), %rsi # relocation is not needed
+	*/
+
 	for mut rela in rela_text_users {
 		if symbol := user_defined_symbols[rela.uses] {
 			if symbol.section != rela.instr.section {
