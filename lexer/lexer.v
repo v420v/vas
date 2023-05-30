@@ -14,9 +14,10 @@ mut:
 }
 
 pub fn new(file_name string, text string) &Lexer {
-	mut c := `\0`
-	if text.len != 0 {
-		c = text[0]
+	c := if text.len == 0 {
+		`\0`
+	} else {
+		text[0]
 	}
 	return &Lexer{
 		text: text
@@ -57,7 +58,11 @@ fn (mut l Lexer) skip_comment() {
 }
 
 fn (mut l Lexer) is_hex() bool {
-	return (l.c == `0`) && (l.text[l.idx+1] in [`x`, `X`])
+	if l.text.len == l.idx+1 {
+		return false
+	} else {
+		return (l.c == `0`) && (l.text[l.idx+1] in [`x`, `X`])
+	}
 }
 
 fn (mut l Lexer) read_number() token.Token {
@@ -85,7 +90,6 @@ fn (mut l Lexer) read_number() token.Token {
 	}
 
 	lit := l.text[start..l.idx]
-	// pos.len = lit.len
 	return token.Token{
 		lit: lit
 		kind: .number
