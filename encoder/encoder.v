@@ -4,7 +4,6 @@ import error
 import token
 import lexer
 import strconv
-import encoding.binary
 
 pub enum InstrKind {
 	@none
@@ -561,60 +560,6 @@ fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
 }
 
-fn (mut instr Instr) add_prefix_byte(size DataSize) {
-	if size == .suffix_quad {
-		instr.code << encoder.rex_w
-	} else if size == .suffix_word {
-		instr.code << operand_size_prefix16
-	}
-}
-
-fn encode_imm_value(imm_val int, size DataSize) []u8 {
-	if is_in_i8_range(imm_val) || size == DataSize.suffix_byte {
-		return [u8(imm_val)]
-	} else if size == DataSize.suffix_word {
-		mut hex := [u8(0), 0]
-		binary.little_endian_put_u16(mut &hex, u16(imm_val))
-		return hex
-	} else if is_in_i32_range(imm_val) {
-		mut hex := [u8(0), 0, 0, 0]
-		binary.little_endian_put_u32(mut &hex, u32(imm_val))
-		return hex
-	} else {
-		panic('unreachable')
-	}
-}
-
-fn (mut e Encoder) var_instr(kind InstrKind, rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) {
-	desti := e.parse_operand()
-
-	target_sym_name := match desti {
-		Ident {
-			desti.lit
-		} else {
-			error.print(desti.pos, 'invalid operand for instruction')
-			exit(1)
-		}
-	}
-
-	instr := Instr{
-		kind: kind,
-		varcode: &VariableCode{
-			trgt_symbol: target_sym_name,
-			rel8_code:   rel8_code,
-			rel8_offset: rel8_offset,
-			rel32_code:   rel32_code,
-			rel32_offset: rel32_offset,
-		},
-		is_len_decided: false,
-		pos: desti.pos,
-		section: e.current_section,
-	}
-
-	e.variable_instrs << &instr
-	e.instrs[e.current_section] << &instr
-}
-
 fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
 
@@ -680,74 +625,23 @@ fn (mut e Encoder) encode_instr() {
 		'LEAQ', 'LEAL', 'LEAW' {
 			e.lea(instr_name_upper)
 		}
-		'NOTQ' {
-			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_quad)
+		'NOTQ', 'NOTL', 'NOTW', 'NOTB' {
+			e.one_operand_arith(.not, encoder.slash_2, get_size_by_suffix(instr_name_upper))
 		}
-		'NOTL' {
-			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_long)
+		'NEGQ', 'NEGL', 'NEGW', 'NEGB' {
+			e.one_operand_arith(.neg, encoder.slash_3, get_size_by_suffix(instr_name_upper))
 		}
-		'NOTW' {
-			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_word)
+		'DIVQ', 'DIVL', 'DIVW', 'DIVB' {
+			e.one_operand_arith(.div, encoder.slash_6, get_size_by_suffix(instr_name_upper))
 		}
-		'NOTB' {
-			e.one_operand_arith(.not, encoder.slash_2, DataSize.suffix_byte)
+		'IDIVQ', 'IDIVL', 'IDIVW', 'IDIVB' {
+			e.one_operand_arith(.idiv, encoder.slash_7, get_size_by_suffix(instr_name_upper))
 		}
-		'NEGQ' {
-			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_quad)
+		'IMULQ', 'IMULL', 'IMULW' {
+			e.imul(get_size_by_suffix(instr_name_upper))
 		}
-		'NEGL' {
-			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_long)
-		}
-		'NEGW' {
-			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_word)
-		}
-		'NEGB' {
-			e.one_operand_arith(.neg, encoder.slash_3, DataSize.suffix_byte)
-		}
-		'DIVQ' {
-			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_quad)
-		}
-		'DIVL' {
-			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_long)
-		}
-		'DIVW' {
-			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_word)
-		}
-		'DIVB' {
-			e.one_operand_arith(.div, encoder.slash_6, DataSize.suffix_byte)
-		}
-		'IDIVQ' {
-			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_quad)
-		}
-		'IDIVL' {
-			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_long)
-		}
-		'IDIVW' {
-			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_word)
-		}
-		'IDIVB' {
-			e.one_operand_arith(.idiv, encoder.slash_7, DataSize.suffix_byte)
-		}
-		'IMULQ' {
-			e.imul(DataSize.suffix_quad)
-		}
-		'IMULL' {
-			e.imul(DataSize.suffix_long)
-		}
-		'IMULW' {
-			e.imul(DataSize.suffix_word)
-		}
-		'MOVQ'{
-			e.mov(DataSize.suffix_quad)
-		}
-		'MOVL'{
-			e.mov(DataSize.suffix_long)
-		}
-		'MOVW'{
-			e.mov(DataSize.suffix_word)
-		}
-		'MOVB' {
-			e.mov(DataSize.suffix_byte)
+		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
+			e.mov(get_size_by_suffix(instr_name_upper))
 		}
 		'MOVZBW' {
 			e.mov_zero_or_sign_extend([u8(0x0F), 0xB6], DataSize.suffix_byte, DataSize.suffix_word)
@@ -837,28 +731,28 @@ fn (mut e Encoder) encode_instr() {
 			e.set(.setne, [u8(0x0F), 0x95])
 		}
 		'JMP' {
-			e.var_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
+			e.jmp_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
 		}
 		'JNE' {
-			e.var_instr(.jne, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jne, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
 		}
 		'JE' {
-			e.var_instr(.je, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
+			e.jmp_instr(.je, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
 		}
 		'JL' {
-			e.var_instr(.jl, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jl, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
 		}
 		'JG' {
-			e.var_instr(.jg, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jg, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
 		}
 		'JLE' {
-			e.var_instr(.jle, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jle, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
 		}
 		'JGE' {
-			e.var_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 		}
 		'JBE' {
-			e.var_instr(.jbe, [u8(0x76), 0], 1, [u8(0x0F), 0x86, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jbe, [u8(0x76), 0], 1, [u8(0x0F), 0x86, 0, 0, 0, 0], 2)
 		}
 		'RETQ', 'RET' {
 			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}

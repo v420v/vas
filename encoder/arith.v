@@ -31,6 +31,22 @@ fn (mut instr Instr) add_imm_rela(symbol string, imm_val int, size DataSize) {
 	rela_text_users << rela
 }
 
+fn encode_imm_value(imm_val int, size DataSize) []u8 {
+	if is_in_i8_range(imm_val) || size == DataSize.suffix_byte {
+		return [u8(imm_val)]
+	} else if size == DataSize.suffix_word {
+		mut hex := [u8(0), 0]
+		binary.little_endian_put_u16(mut &hex, u16(imm_val))
+		return hex
+	} else if is_in_i32_range(imm_val) {
+		mut hex := [u8(0), 0, 0, 0]
+		binary.little_endian_put_u32(mut &hex, u32(imm_val))
+		return hex
+	} else {
+		panic('unreachable')
+	}
+}
+
 pub fn rex(w u8, r u8, x u8, b u8) u8 {
 	return 64 | (w << 3) | (r << 2) | (x << 1) | b
 }
