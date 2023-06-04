@@ -1,31 +1,36 @@
 module encoder
 
+import token
 import error
 import encoding.binary
+
+fn (mut e Encoder) add_section(name string, flag string, pos token.Position) {
+	e.current_section = name
+
+	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: encoder.stt_section, flags: flag}
+	e.instrs[e.current_section] << &instr
+
+	if s := user_defined_symbols[name] {
+		if s.kind == .label {
+			error.print(pos, 'symbol `$name` is already defined')
+			exit(1)
+		}
+	} else {
+		user_defined_symbols[name] = &instr
+	}
+}
 
 fn (mut e Encoder) section() {
 	pos := e.tok.pos
 
 	section_name := e.tok.lit
-	e.current_section = section_name
 
 	e.next()
 	e.expect(.comma)
 	section_flags := e.tok.lit
 	e.expect(.string)
 
-	instr := Instr{kind: .section, pos: pos, section: section_name, symbol_type: encoder.stt_section, flags: section_flags}
-
-	if s := user_defined_symbols[section_name] {
-		if s.kind == .label {
-			error.print(pos, 'symbol `$section_name` is already defined')
-			exit(1)
-		}
-	} else {
-		user_defined_symbols[section_name] = &instr
-	}
-
-	e.instrs[e.current_section] << &instr
+	e.add_section(section_name, section_flags, pos)
 }
 
 fn (mut e Encoder) zero() {

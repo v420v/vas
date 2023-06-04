@@ -3,7 +3,7 @@
 
 .global _start
 
-.section .text, "ax"
+.text
 _start:
 	pushq %rbp
 	movq %rsp, %rbp
@@ -19,7 +19,7 @@ _start:
 	movq $0, %rdi
 	syscall
 
-.section .data, "wa"
+.data
 msg:
 	.string "Hello, world!\n"
 

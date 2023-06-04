@@ -3,11 +3,11 @@
 
 .global _start
 
-.section .data, "wa"
+.data
 msg:
     .string "Hello, world!\n"
 
-.section .text, "ax"
+.text
 print_hello:
     movq $1, %rax
     movq $1, %rdi

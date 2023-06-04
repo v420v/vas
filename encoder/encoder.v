@@ -585,6 +585,15 @@ fn (mut e Encoder) encode_instr() {
 		'.SECTION' {
 			e.section()
 		}
+		'.TEXT' {
+			e.add_section('.text', 'ax', pos)
+		}
+		'.DATA' {
+			e.add_section('.data', 'wa', pos)
+		}
+		'.BSS' {
+			e.add_section('.bss', 'wa', pos)
+		}
 		'.GLOBAL', '.GLOBL' {
 			instr := Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()

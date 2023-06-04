@@ -1,15 +1,15 @@
 # ../vas -o rule110.o rule110.s && gcc -o rule110.out rule110.o && ./rule110.out
 
 .global	board
-.section .bss, "aw"
+.bss
 board:
 	.zero 120
 
-.section .data, "aw"
+.data
 .LC0:
 	.string	" *"
 
-.section .text, "ax"
+.text
 .global	main
 main:
 .LFB0:

@@ -13,7 +13,7 @@
 # 89
 # 144
 
-.section .text, "ax"
+.text
 .global main
 fib:
     pushq   %rbp

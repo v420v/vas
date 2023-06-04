@@ -1,5 +1,5 @@
 
-.section .text, "ax"
+.text
 .global main
 dump:
     pushq   %rbp

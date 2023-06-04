@@ -3,7 +3,7 @@
 
 .global main
 
-.section .data, "wa"
+.data
 fizz:
 	.string "fizz\n"
 buzz:
@@ -13,7 +13,7 @@ fizzbuzz:
 fmt:
 	.string "%d\n"
 
-.section .text, "ax"
+.text
 main:
 	pushq %rbp
 	movq %rsp, %rbp

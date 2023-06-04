@@ -22,7 +22,7 @@
 
 .global main
 
-.section .data, "wa"
+.data
 msg1:
 	.string "message 1"
 msg2:
@@ -30,7 +30,7 @@ msg2:
 line:
 	.string "-------------------"
 
-.section .text, "ax"
+.text
 foo:
     retq
 
@@ -71,7 +71,7 @@ loop_end:
 
 .section .note.GNU-stack, ""
 
-.section .data, "wa"
+.data
 msg3:
     .string "message 3"
 
