@@ -585,7 +585,7 @@ fn (mut e Encoder) encode_instr() {
 		'.SECTION' {
 			e.section()
 		}
-		'.GLOBAL' {
+		'.GLOBAL', '.GLOBL' {
 			instr := Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 			e.instrs[e.current_section] << &instr
