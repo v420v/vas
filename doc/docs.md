@@ -146,6 +146,10 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `imulq`
 - [x] `imull`
 - [x] `imulw`
+- [x] `mulq`
+- [x] `mull`
+- [x] `mulw`
+- [x] `mulb`
 - [x] `shlq`
 - [x] `shll`
 - [x] `shlw`

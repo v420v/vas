@@ -31,17 +31,17 @@ fn (mut instr Instr) add_imm_rela(symbol string, imm_val int, size DataSize) {
 	rela_text_users << rela
 }
 
-fn encode_imm_value(imm_val int, size DataSize) []u8 {
+fn (mut instr Instr) add_imm_value(imm_val int, size DataSize) {
 	if is_in_i8_range(imm_val) || size == DataSize.suffix_byte {
-		return [u8(imm_val)]
+		instr.code << u8(imm_val)
 	} else if size == DataSize.suffix_word {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(imm_val))
-		return hex
+		instr.code << hex
 	} else if is_in_i32_range(imm_val) {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(imm_val))
-		return hex
+		instr.code << hex
 	} else {
 		panic('unreachable')
 	}
@@ -183,6 +183,37 @@ fn (mut e Encoder) mov(size DataSize) {
 	exit(1)
 }
 
+fn (mut e Encoder) mul(size DataSize) {
+	mut instr := Instr{kind: .mul, section: e.current_section, pos: e.tok.pos}
+	e.instrs[e.current_section] << &instr
+
+	source := e.parse_operand()
+
+	if e.tok.kind != .comma {
+		op_code := if size == DataSize.suffix_byte {
+			[u8(0xf6)]
+		} else {
+			[u8(0xf7)]
+		}
+		if source is Register {
+			source.check_regi_size(size)
+			instr.add_rex_prefix(none, none, source.lit, size)
+			instr.code << op_code
+			instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_4, source.regi_bits())
+			return
+		}
+		if source is Indirection {
+			instr.add_segment_override_prefix(source)
+			instr.add_rex_prefix(none, source.index.lit, source.base.lit, size)
+			instr.code << op_code
+			instr.add_modrm_sib_disp(source, encoder.slash_4)
+			return
+		}
+	}
+	error.print(source.pos, 'invalid operand for instruction')
+	exit(1)
+}
+
 fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, desti_size DataSize) {
 	mut instr := Instr{kind: .movzx, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
@@ -301,7 +332,7 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 		if imm_need_rela {
 			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
 		} else {
-			instr.code << encode_imm_value(imm_val, size)
+			instr.add_imm_value(imm_val, size)
 		}
 
 		return
@@ -390,7 +421,7 @@ fn (mut e Encoder) imul(size DataSize) {
 		if imm_need_rela {
 			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
 		} else {
-			instr.code << encode_imm_value(imm_val, size)
+			instr.add_imm_value(imm_val, size)
 		}
 
 		return
@@ -469,7 +500,7 @@ fn (mut e Encoder) set(kind InstrKind, op_code []u8) {
 	exit(1)
 }
 
-fn (mut e Encoder) shift(kind InstrKind, instr_name_upper string, slash u8, size DataSize) {
+fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 

@@ -26,6 +26,7 @@ pub enum InstrKind {
 	idiv
 	div
 	neg
+	mul
 	lea
 	mov
 	movzx
@@ -665,6 +666,9 @@ fn (mut e Encoder) encode_instr() {
 		'IMULQ', 'IMULL', 'IMULW' {
 			e.imul(get_size_by_suffix(instr_name_upper))
 		}
+		'MULQ', 'MULL', 'MULW', 'MULB' {
+			e.mul(get_size_by_suffix(instr_name_upper))
+		}
 		'MOVQ', 'MOVL', 'MOVW', 'MOVB' {
 			e.mov(get_size_by_suffix(instr_name_upper))
 		}
@@ -726,16 +730,16 @@ fn (mut e Encoder) encode_instr() {
 			e.arith_instr(.cmp, 0x38, encoder.slash_7, get_size_by_suffix(instr_name_upper))
 		}
 		'SHLQ', 'SHLL', 'SHLW', 'SHLB' {
-			e.shift(.shl, instr_name_upper, encoder.slash_4, get_size_by_suffix(instr_name_upper))
+			e.shift(.shl, encoder.slash_4, get_size_by_suffix(instr_name_upper))
 		}
 		'SHRQ', 'SHRL', 'SHRW', 'SHRB' {
-			e.shift(.shr, instr_name_upper, encoder.slash_5, get_size_by_suffix(instr_name_upper))
+			e.shift(.shr, encoder.slash_5, get_size_by_suffix(instr_name_upper))
 		}
 		'SARQ', 'SARL', 'SARW', 'SARB' {
-			e.shift(.sar, instr_name_upper, encoder.slash_7, get_size_by_suffix(instr_name_upper))
+			e.shift(.sar, encoder.slash_7, get_size_by_suffix(instr_name_upper))
 		}
 		'SALQ', 'SALL', 'SALW', 'SALB' {
-			e.shift(.sal, instr_name_upper, encoder.slash_4, get_size_by_suffix(instr_name_upper))
+			e.shift(.sal, encoder.slash_4, get_size_by_suffix(instr_name_upper))
 		}
 		'SETO' {
 			e.set(.seto, [u8(0x0F), 0x90])
