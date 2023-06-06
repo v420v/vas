@@ -33,6 +33,7 @@ pub enum InstrKind {
 	not
 	cqto
 	cltq
+	cltd
 	cmp
 	shl
 	shr
@@ -41,6 +42,14 @@ pub enum InstrKind {
 	pop
 	push
 	call
+	seto
+	setno
+	setb
+	setnb
+	setae
+	setbe
+	seta
+	setpo
 	setl
 	setg
 	setle
@@ -55,6 +64,13 @@ pub enum InstrKind {
 	jle
 	jge
 	jbe
+	jnb
+	jnbe
+	jp
+	ja
+	js
+	jb
+	jns
 	ret
 	syscall
 	nop
@@ -721,6 +737,36 @@ fn (mut e Encoder) encode_instr() {
 		'SALQ', 'SALL', 'SALW', 'SALB' {
 			e.shift(.sal, instr_name_upper, encoder.slash_4, get_size_by_suffix(instr_name_upper))
 		}
+		'SETO' {
+			e.set(.seto, [u8(0x0F), 0x90])
+		}
+		'SETNO' {
+			e.set(.setno, [u8(0x0F), 0x91])
+		}
+		'SETB' {
+			e.set(.setb, [u8(0x0F), 0x92])
+		}
+		'SETAE' {
+			e.set(.setae, [u8(0x0F), 0x93])
+		}
+		'SETE' {
+			e.set(.sete, [u8(0x0F), 0x94])
+		}
+		'SETNE' {
+			e.set(.setne, [u8(0x0F), 0x95])
+		}
+		'SETNB' {
+			e.set(.setnb, [u8(0x0F), 0x93])
+		}
+		'SETBE' {
+			e.set(.setbe, [u8(0x0F), 0x96])
+		}
+		'SETA' {
+			e.set(.seta, [u8(0x0F), 0x97])
+		}
+		'SETPO' {
+			e.set(.setpo, [u8(0x0F), 0x9B])
+		}
 		'SETL' {
 			e.set(.setl, [u8(0x0F), 0x9C])
 		}
@@ -732,12 +778,6 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'SETGE' {
 			e.set(.setge, [u8(0x0F), 0x9D])
-		}
-		'SETE' {
-			e.set(.sete, [u8(0x0F), 0x94])
-		}
-		'SETNE' {
-			e.set(.setne, [u8(0x0F), 0x95])
 		}
 		'JMP' {
 			e.jmp_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
@@ -760,8 +800,29 @@ fn (mut e Encoder) encode_instr() {
 		'JGE' {
 			e.jmp_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 		}
+		'JNB' {
+			e.jmp_instr(.jnb, [u8(0x73), 0], 1, [u8(0x0F), 0x83, 0, 0, 0, 0], 2)
+		}
 		'JBE' {
 			e.jmp_instr(.jbe, [u8(0x76), 0], 1, [u8(0x0F), 0x86, 0, 0, 0, 0], 2)
+		}
+		'JNBE' {
+			e.jmp_instr(.jnbe, [u8(0x77), 0], 1, [u8(0x0F), 0x87, 0, 0, 0, 0], 2)
+		}
+		'JP' {
+			e.jmp_instr(.jp, [u8(0x7A), 0], 1, [u8(0x0F), 0x8A, 0, 0, 0, 0], 2)
+		}
+		'JA' {
+			e.jmp_instr(.ja, [u8(0x77), 0], 1, [u8(0x0F), 0x87, 0, 0, 0, 0], 2)
+		}
+		'JB' {
+			e.jmp_instr(.jb, [u8(0x72), 0], 1, [u8(0x0F), 0x82, 0, 0, 0, 0], 2)
+		}
+		'JS' {
+			e.jmp_instr(.js, [u8(0x78), 0], 1, [u8(0x0F), 0x88, 0, 0, 0, 0], 2)
+		}
+		'JNS' {
+			e.jmp_instr(.jns, [u8(0x79), 0], 1, [u8(0x0F), 0x89, 0, 0, 0, 0], 2)
 		}
 		'RETQ', 'RET' {
 			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
@@ -780,6 +841,9 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'CLTQ' {
 			e.instrs[e.current_section] << &Instr{kind: .cltq, pos: pos, section: e.current_section, code: [u8(0x48), 0x98]}
+		}
+		'CLTD' {
+			e.instrs[e.current_section] << &Instr{kind: .cltd, pos: pos, section: e.current_section, code: [u8(0x99)]}
 		}
 		'CQTO' {
 			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
