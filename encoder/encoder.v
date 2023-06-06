@@ -29,6 +29,7 @@ pub enum InstrKind {
 	mul
 	lea
 	mov
+	test
 	movzx
 	movsx
 	not
@@ -704,6 +705,9 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'MOVSLQ' {
 			e.mov_zero_or_sign_extend([u8(0x63)], DataSize.suffix_long, DataSize.suffix_quad)
+		}
+		'TESTQ', 'TESTL', 'TESTW', 'TESTB' {
+			e.test(get_size_by_suffix(instr_name_upper))
 		}
 		'ADDQ', 'ADDL', 'ADDW', 'ADDB' {
 			e.arith_instr(.add, 0, encoder.slash_0, get_size_by_suffix(instr_name_upper))

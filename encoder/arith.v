@@ -246,6 +246,109 @@ fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, d
 	exit(1)
 }
 
+fn (mut e Encoder) test(size DataSize) {
+	mut instr := Instr{kind: .test, section: e.current_section, pos: e.tok.pos}
+	e.instrs[e.current_section] << &instr
+
+	source := e.parse_operand()
+	e.expect(.comma)
+	desti := e.parse_operand()
+
+	if source is Register {
+		op_code := if size == DataSize.suffix_byte {
+			[u8(0x84)]
+		} else {
+			[u8(0x84) + 1]
+		}
+		source.check_regi_size(size)
+		if desti is Register {
+			desti.check_regi_size(size)
+			instr.add_rex_prefix(source.lit, none, desti.lit, size)
+			instr.code << op_code
+			instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits(), desti.regi_bits())
+			return
+		}
+		if desti is Indirection {
+			instr.add_segment_override_prefix(desti)
+			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, size)
+			instr.code << op_code
+			instr.add_modrm_sib_disp(desti, source.regi_bits())
+			return
+		}
+	}
+	if source is Indirection && desti is Register {
+		op_code := if size == DataSize.suffix_byte {
+			[u8(0x84)]
+		} else {
+			[u8(0x84) + 1]
+		}
+		desti.check_regi_size(size)
+		instr.add_segment_override_prefix(source)
+		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, size)
+		instr.code << op_code
+		instr.add_modrm_sib_disp(source, desti.regi_bits())
+		return
+	}
+	if source is Immediate {
+		mut imm_used_symbols := []string{}
+		imm_val := eval_expr_get_symbol(source.expr, mut imm_used_symbols)
+		if imm_used_symbols.len >= 2 {
+			error.print(source.pos, 'invalid immediate operand')
+			exit(1)
+		}
+		imm_need_rela := imm_used_symbols.len == 1
+
+		op_code := if size == DataSize.suffix_byte {
+			u8(0xF6)
+		} else {
+			u8(0xF7)
+		}
+
+		if desti is Register {
+			desti.check_regi_size(size)
+			instr.add_rex_prefix(none, none, desti.lit, size)
+			if desti.lit == 'AL' || (desti.lit in ['EAX', 'RAX'] && !is_in_i8_range(imm_val)) {
+				instr.code << if size == DataSize.suffix_byte {
+					u8(0xA8)
+				} else {
+					u8(0xA9)
+				}
+			} else {
+				instr.code << op_code
+				instr.code << compose_mod_rm(mod_regi, encoder.slash_0, desti.regi_bits())
+			}
+		} else if desti is Indirection {
+			instr.add_segment_override_prefix(desti)
+			instr.add_rex_prefix(none, desti.index.lit, desti.base.lit, size)
+			instr.code << op_code
+			instr.add_modrm_sib_disp(desti, encoder.slash_0)
+		} else {
+			error.print(source.pos, 'invalid operand for instruction')
+			exit(1)
+		}
+
+		if imm_need_rela {
+			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+		} else {
+			if size == .suffix_byte {
+				instr.code << [u8(imm_val)]
+			} else if size == .suffix_word {
+				mut hex := [u8(0), 0]
+				binary.little_endian_put_u16(mut &hex, u16(imm_val))
+				instr.code << [hex[0], hex[1]]
+			} else {
+				mut hex := [u8(0), 0, 0, 0]
+				binary.little_endian_put_u32(mut &hex, u32(imm_val))
+				instr.code << [hex[0], hex[1], hex[2], hex[3]]
+			}
+		}
+
+		return
+	}
+	error.print(source.pos, 'invalid operand for instruction')
+	exit(1)
+}
+
 fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size DataSize) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
