@@ -162,7 +162,7 @@ fn (mut e Encoder) mov(size DataSize) {
 		imm_need_rela := imm_used_symbols.len == 1
 
 		if imm_need_rela {
-			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+			instr.add_imm_rela(imm_used_symbols[0], int(imm_val), size)
 		} else {
 			if size == .suffix_byte {
 				instr.code << [u8(imm_val)]
@@ -176,6 +176,71 @@ fn (mut e Encoder) mov(size DataSize) {
 				instr.code << [hex[0], hex[1], hex[2], hex[3]]
 			}
 		}
+		return
+	}
+
+	error.print(source.pos, 'invalid operand for instruction')
+	exit(1)
+}
+
+fn (mut e Encoder) rep() {
+	mut instr := Instr{kind: .rep, section: e.current_section, pos: e.tok.pos}
+	e.instrs[e.current_section] << &instr
+
+	source := e.parse_operand()
+
+	if source is Ident {
+		match source.lit {
+			'stosq' {
+				instr.code << [u8(0xF3), 0x48, 0xAB]
+			} else {
+				panic('unreachable')
+			}
+		}
+		return
+	}
+
+	error.print(source.pos, 'invalid operand for instruction')
+	exit(1)
+}
+
+fn (mut e Encoder) movabsq() {
+	mut instr := Instr{kind: .movabsq, section: e.current_section, pos: e.tok.pos}
+	e.instrs[e.current_section] << &instr
+
+	source := e.parse_operand()
+	e.expect(.comma)
+	desti := e.parse_operand()
+
+	if source is Immediate && desti is Register {		
+		desti.check_regi_size(DataSize.suffix_quad)
+		instr.add_rex_prefix(none, none, desti.lit, DataSize.suffix_quad)
+		instr.code << u8(0xB8) + desti.regi_bits()
+
+		mut imm_used_symbols := []string{}
+		imm_val := eval_expr_get_symbol_64(source.expr, mut imm_used_symbols)
+		if imm_used_symbols.len >= 2 {
+			error.print(source.pos, 'invalid immediate operand')
+			exit(1)
+		}
+		imm_need_rela := imm_used_symbols.len == 1
+
+		if imm_need_rela {
+			mut rela := Rela{
+				uses: imm_used_symbols[0],
+				instr: &instr,
+				adjust: int(imm_val),
+				offset: instr.code.len,
+			}
+			rela.rtype = encoder.r_x86_64_64
+			instr.code << [u8(0), 0, 0, 0, 0, 0, 0, 0]
+			rela_text_users << rela
+		} else {
+			mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
+			binary.little_endian_put_u64(mut &hex, u64(imm_val))
+			instr.code << hex
+		}
+
 		return
 	}
 
@@ -307,7 +372,7 @@ fn (mut e Encoder) test(size DataSize) {
 		if desti is Register {
 			desti.check_regi_size(size)
 			instr.add_rex_prefix(none, none, desti.lit, size)
-			if desti.lit == 'AL' || (desti.lit in ['EAX', 'RAX'] && !is_in_i8_range(imm_val)) {
+			if desti.lit == 'AL' || (desti.lit in ['EAX', 'RAX'] && !is_in_i8_range(int(imm_val))) {
 				instr.code << if size == DataSize.suffix_byte {
 					u8(0xA8)
 				} else {
@@ -328,7 +393,7 @@ fn (mut e Encoder) test(size DataSize) {
 		}
 
 		if imm_need_rela {
-			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+			instr.add_imm_rela(imm_used_symbols[0], int(imm_val), size)
 		} else {
 			if size == .suffix_byte {
 				instr.code << [u8(imm_val)]
@@ -403,7 +468,7 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 
 		op_code := if size == DataSize.suffix_byte {
 			u8(0x80)
-		} else if is_in_i8_range(imm_val) && !imm_need_rela {
+		} else if is_in_i8_range(int(imm_val)) && !imm_need_rela {
 			u8(0x83)
 		} else {
 			u8(0x81)

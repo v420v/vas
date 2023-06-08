@@ -29,6 +29,8 @@ pub enum InstrKind {
 	mul
 	lea
 	mov
+	movabsq
+	rep
 	test
 	movzx
 	movsx
@@ -425,6 +427,49 @@ fn (mut e Encoder) parse_operand() Expr {
 	exit(1)
 }
 
+// returns i64
+fn eval_expr_get_symbol_64(expr Expr, mut arr[]string) i64 {
+	return match expr {
+		Number {
+			strconv.parse_int(expr.lit, 0, 64) or {
+                error.print(expr.pos, 'invalid number `expr.lit`')
+                exit(1)
+            }
+		}
+		Binop{
+			match expr.op {
+				.plus {
+					eval_expr_get_symbol(expr.left_hs, mut arr) + eval_expr_get_symbol(expr.right_hs, mut arr)
+				}
+				.minus {
+					eval_expr_get_symbol(expr.left_hs, mut arr) - eval_expr_get_symbol(expr.right_hs, mut arr)
+				}
+				.mul {
+					eval_expr_get_symbol(expr.left_hs, mut arr) * eval_expr_get_symbol(expr.right_hs, mut arr)
+				}
+				.div {
+					eval_expr_get_symbol(expr.left_hs, mut arr) / eval_expr_get_symbol(expr.right_hs, mut arr)
+				} else {
+					panic('[internal error] somthing whent wrong...')
+				}
+			}
+		}
+		Ident {
+			arr << expr.lit
+			0
+		}
+		Neg {
+			eval_expr_get_symbol(expr.expr, mut arr) * -1
+		}
+		Immediate {
+			eval_expr_get_symbol(expr.expr, mut arr)
+		}
+		else {
+			0
+		}
+	}
+}
+
 fn eval_expr_get_symbol(expr Expr, mut arr[]string) int {
 	return match expr {
 		Number {
@@ -706,6 +751,9 @@ fn (mut e Encoder) encode_instr() {
 		'MOVSLQ' {
 			e.mov_zero_or_sign_extend([u8(0x63)], DataSize.suffix_long, DataSize.suffix_quad)
 		}
+		'MOVABSQ' {
+			e.movabsq()
+		} 
 		'TESTQ', 'TESTL', 'TESTW', 'TESTB' {
 			e.test(get_size_by_suffix(instr_name_upper))
 		}
@@ -831,6 +879,9 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'JNS' {
 			e.jmp_instr(.jns, [u8(0x79), 0], 1, [u8(0x0F), 0x89, 0, 0, 0, 0], 2)
+		}
+		'REP' {
+			e.rep()
 		}
 		'RETQ', 'RET' {
 			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
