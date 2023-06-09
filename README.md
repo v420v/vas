@@ -50,15 +50,17 @@ $ vas <filename>.s
 $ ld <filename>.o
 $ ./a.out
 
-> Hello world!
+> Hello world!!
+
 ```
 
-## Run examples
-```
-$ v . -prod -enable-globals
+## Examples
 
-$ sh example.sh
-```
+### Game of Life
+
+![GameOfLife](https://github.com/v420v/vas/assets/106643445/54bd3290-d76d-459d-9a96-f763d05d62da)
+
+[https://github.com/v420v/vas/blob/main/examples/gol.s](https://github.com/v420v/vas/blob/main/examples/gol.s)
 
 ## License
 MIT
