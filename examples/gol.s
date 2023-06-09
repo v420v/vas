@@ -1,3 +1,5 @@
+# ../vas -o gol.o gol.s && gcc -o gol.out gol.o
+
 	.text
 	.section .rodata, "a"
 .LC0:
