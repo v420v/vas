@@ -44,6 +44,14 @@ fn (mut l Lexer) advance() {
 	}
 }
 
+fn (mut l Lexer) peak(n int) u8 {
+	if l.text.len == l.idx+n {
+		return `\0`
+	} else {
+		return l.text[l.idx+n]
+	}
+}
+
 fn (mut l Lexer) current_pos() token.Position {
 	return token.Position{
 		line: l.line
@@ -149,6 +157,15 @@ pub fn (mut l Lexer) lex() token.Token {
 						}
 						`v` {
 							lit << `\v`
+						}
+						`0` {
+							if l.peak(1) == `3` && l.peak(2) == `3` {
+								l.advance()
+								l.advance()
+								lit << `\033`
+							} else {
+								lit << `\0`
+							}
 						} else {
 							lit << `\\`
 							lit << l.c
