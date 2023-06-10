@@ -38,6 +38,7 @@ pub enum InstrKind {
 	cqto
 	cltq
 	cltd
+	cwtl
 	cmp
 	shl
 	shr
@@ -906,6 +907,9 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'CQTO' {
 			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
+		}
+		'CWTL' {
+			e.instrs[e.current_section] << &Instr{kind: .cwtl, pos: pos, section: e.current_section, code: [u8(0x98)]}
 		}
 		else {
 			error.print(pos, 'unkwoun instruction `$instr_name`')
