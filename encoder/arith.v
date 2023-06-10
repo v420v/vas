@@ -673,8 +673,57 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 	e.instrs[e.current_section] << &instr
 
 	source := e.parse_operand()
+
+	// single operand
+	if e.tok.kind != .comma {
+		op_code := if size == DataSize.suffix_byte {
+			u8(0xD0)
+		} else {
+			u8(0xD1)
+		}
+
+		if source is Register {
+			source.check_regi_size(size)
+			instr.add_rex_prefix(none, none, source.lit, size)
+			instr.code << op_code
+			instr.code << compose_mod_rm(encoder.mod_regi, slash, source.regi_bits())
+			return
+		} else if source is Indirection {
+			instr.add_segment_override_prefix(source)
+			instr.add_rex_prefix(none, source.index.lit, source.base.lit, size)
+			instr.code << op_code
+			instr.add_modrm_sib_disp(source, slash)
+			return
+		}
+	}
+
 	e.expect(.comma)
 	desti := e.parse_operand()
+
+	if source is Register {
+		if source.lit != 'CL' {
+			error.print(source.pos, 'invalid operand for instruction')
+			exit(1)
+		}
+		op_code := if size == DataSize.suffix_byte {
+			u8(0xD2)
+		} else {
+			u8(0xD3)
+		}
+		if desti is Register {
+			desti.check_regi_size(size)
+			instr.add_rex_prefix(source.lit, none, desti.lit, size)
+			instr.code << op_code
+			instr.code << compose_mod_rm(encoder.mod_regi, slash, desti.regi_bits())
+			return
+		} else if desti is Indirection {
+			instr.add_segment_override_prefix(desti)
+			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, size)
+			instr.code << op_code
+			instr.add_modrm_sib_disp(desti, slash)
+			return
+		}
+	}
 
 	if source is Immediate {
 		mut used_symbols := []string{}
@@ -732,30 +781,6 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 			instr.code << u8(imm_val)
 		}
 		return
-	}
-	if source is Register {
-		if source.lit != 'CL' {
-			error.print(source.pos, 'invalid operand for instruction')
-			exit(1)
-		}
-		op_code := if size == DataSize.suffix_byte {
-			u8(0xD2)
-		} else {
-			u8(0xD3)
-		}
-		if desti is Register {
-			desti.check_regi_size(size)
-			instr.add_rex_prefix(source.lit, none, desti.lit, size)
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, slash, desti.regi_bits())
-			return
-		} else if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, size)
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, slash)
-			return
-		}
 	}
 	error.print(source.pos, 'invalid operand for instruction')
 	exit(1)
