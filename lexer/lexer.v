@@ -184,6 +184,16 @@ fn (mut l Lexer) read_string() token.Token {
 	}
 }
 
+fn (mut l Lexer) single_letter_token(c string, kind token.TokenKind) token.Token {
+	pos := l.current_pos()
+	l.advance()
+	return token.Token{
+		lit: c
+		kind: kind
+		pos: pos
+	}
+}
+
 pub fn (mut l Lexer) lex() token.Token {
 	for l.c != `\0` {
 		mut pos := l.current_pos()
@@ -205,84 +215,34 @@ pub fn (mut l Lexer) lex() token.Token {
 					l.advance()
 				}
 				`:` {
-					l.advance()
-					return token.Token{
-						lit: ':'
-						kind: .colon
-						pos: pos
-					}
+					return l.single_letter_token(':', .colon)
 				}
 				`(` {
-					l.advance()
-					return token.Token{
-						lit: '('
-						kind: .lpar
-						pos: pos
-					}
+					return l.single_letter_token('(', .lpar)
 				}
 				`)` {
-					l.advance()
-					return token.Token{
-						lit: ')'
-						kind: .rpar
-						pos: pos
-					}
+					return l.single_letter_token(')', .rpar)
 				}
 				`+` {
-					l.advance()
-					return token.Token{
-						lit: '+'
-						kind: .plus
-						pos: pos
-					}
+					return l.single_letter_token('+', .plus)
 				}
 				`-` {
-					l.advance()
-					return token.Token{
-						lit: '-'
-						kind: .minus
-						pos: pos
-					}
+					return l.single_letter_token('-', .minus)
 				}
 				`*` {
-					l.advance()
-					return token.Token{
-						lit: '*'
-						kind: .mul
-						pos: pos
-					}
+					return l.single_letter_token('*', .mul)
 				}
 				`/` {
-					l.advance()
-					return token.Token{
-						lit: '/'
-						kind: .mul
-						pos: pos
-					}
+					return l.single_letter_token('/', .div)
 				}
 				`$` {
-					l.advance()
-					return token.Token{
-						lit: '$'
-						kind: .dolor
-						pos: pos
-					}
+					return l.single_letter_token('$', .dolor)
 				}
 				`%` {
-					l.advance()
-					return token.Token{
-						lit: '%'
-						kind: .percent
-						pos: pos
-					}
+					return l.single_letter_token('%', .percent)
 				}
 				`,` {
-					l.advance()
-					return token.Token{
-						lit: ','
-						kind: .comma
-						pos: pos
-					}
+					return l.single_letter_token(',', .comma)
 				}
 				else {
 					c := [l.c].bytestr()
