@@ -106,7 +106,7 @@ fn (mut l Lexer) read_number() token.Token {
 }
 
 fn (mut l Lexer) read_ident() token.Token {
-	mut pos := l.current_pos()
+	pos := l.current_pos()
 	start := l.idx
 	for {
 		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || (l.c >= `0` && l.c <= `9`) || l.c in [`_`, `.`, `-`, `$`] {
@@ -123,6 +123,67 @@ fn (mut l Lexer) read_ident() token.Token {
 	}
 }
 
+fn (mut l Lexer) read_string() token.Token {
+	pos := l.current_pos()
+	l.advance()
+	mut lit := []u8{}
+	for l.c != `"` {
+		if l.c == `\\` {
+			l.advance()
+			match l.c {
+				`n` {
+					lit << `\n`
+				}
+				`t` {
+					lit << `\t`
+				}
+				`a` {
+					lit << `\a`
+				}
+				`b` {
+					lit << `\b`
+				}
+				`f` {
+					lit << `\f`
+				}
+				`v` {
+					lit << `\v`
+				}
+				`0` {
+					if l.peak(1) == `3` && l.peak(2) == `3` {
+						l.advance()
+						l.advance()
+						lit << `\033`
+					} else if l.peak(1) == `1` && l.peak(2) == `1` {
+						l.advance()
+						l.advance()
+						lit << `\011`
+					} else if l.peak(1) == `2` && l.peak(2) == `2` {
+						l.advance()
+						l.advance()
+						lit << `\022`
+					} else {
+						lit << `\0`
+					}
+				} else {
+					lit << `\\`
+					lit << l.c
+				}
+			}
+			l.advance()
+		} else {
+			lit << l.c
+			l.advance()
+		}
+	}
+	l.advance()
+	return token.Token{
+		lit: lit.bytestr()
+		kind: .string
+		pos: pos
+	}
+}
+
 pub fn (mut l Lexer) lex() token.Token {
 	for l.c != `\0` {
 		mut pos := l.current_pos()
@@ -134,55 +195,7 @@ pub fn (mut l Lexer) lex() token.Token {
 			|| l.c == `_` || l.c == `.` {
 			return l.read_ident()
 		} else if l.c == `"` {
-			l.advance()
-			mut lit := []u8{}
-			for l.c != `"` {
-				if l.c == `\\` {
-					l.advance()
-					match l.c {
-						`n` {
-							lit << `\n`
-						}
-						`t` {
-							lit << `\t`
-						}
-						`a` {
-							lit << `\a`
-						}
-						`b` {
-							lit << `\b`
-						}
-						`f` {
-							lit << `\f`
-						}
-						`v` {
-							lit << `\v`
-						}
-						`0` {
-							if l.peak(1) == `3` && l.peak(2) == `3` {
-								l.advance()
-								l.advance()
-								lit << `\033`
-							} else {
-								lit << `\0`
-							}
-						} else {
-							lit << `\\`
-							lit << l.c
-						}
-					}
-					l.advance()
-				} else {
-					lit << l.c
-					l.advance()
-				}
-			}
-			l.advance()
-			return token.Token{
-				lit: lit.bytestr()
-				kind: .string
-				pos: pos
-			}
+			return l.read_string()
 		} else {
 			match l.c {
 				`#` { // skip comment
