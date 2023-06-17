@@ -69,11 +69,11 @@ $ ./v3 --version
 ```
 ![image1](https://github.com/v420v/vas/assets/106643445/d95f1629-6f57-4ea2-a5d2-dce2cc82955a)
 
-## Screen shot
+## Screens
 
 ### Game of Life
 
-![GameOfLife](https://github.com/v420v/vas/assets/106643445/54bd3290-d76d-459d-9a96-f763d05d62da)
+![gameoflife](https://github.com/v420v/vas/assets/106643445/af3e0d89-b796-4fd8-8603-31e926c776ea)
 
 [https://github.com/v420v/vas/blob/main/examples/gol.s](https://github.com/v420v/vas/blob/main/examples/gol.s)
 
