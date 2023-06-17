@@ -232,6 +232,34 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `nop`
 - [x] `syscall`
 - [x] `ret`
+- [x] `cmovs`
+- [x] `cmovns`
+- [x] `cmovge`
+- [x] `cvttss2sil`
+- [x] `cvtsi2ssq`
+- [x] `cvtsi2sdq`
+- [x] `cvtsd2ss`
+- [x] `cvtss2sd`
+- [x] `movss`
+- [x] `movsd`
+- [x] `movd`
+- [x] `ucomiss`
+- [x] `ucomisd`
+- [x] `comisd`
+- [x] `comiss`
+- [x] `subss`
+- [x] `subsd`
+- [x] `addss`
+- [x] `addsd`
+- [x] `mulss`
+- [x] `mulsd`
+- [x] `divss`
+- [x] `divsd`
+- [x] `movaps`
+- [x] `movups`
+- [x] `xorpd`
+- [x] `xorps`
+- [x] `pxor`
 - [ ] ...
 
 ## Local symbols
