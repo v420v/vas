@@ -50,7 +50,7 @@ fn (mut e Encoder) push() {
 			instr.code << rex(0, 0, 0, 1)
 		}
 		source.check_regi_size(.suffix_quad)
-		instr.code = [0x50 + source.regi_bits()]
+		instr.code << [0x50 + source.regi_bits()]
 		return
 	}
 	if source is Indirection {
@@ -102,55 +102,59 @@ fn (mut e Encoder) push() {
 	exit(1)
 }
 
-fn (mut e Encoder) jmp_instr(kind InstrKind, rel8_code []u8, rel8_offset i64, rel32_code []u8, rel32_offset i64) {
+fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) {
+	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
+	e.instrs[e.current_section] << &instr
+
 	desti := e.parse_operand()
 
-	target_sym_name := match desti {
-		Ident {
-			desti.lit
-		} else {
-			error.print(desti.pos, 'invalid operand for instruction')
-			exit(1)
+	if desti is Ident {
+		instr.code << rel32_code
+		rela_text_users << &Rela{
+			uses: desti.lit,
+			instr: &instr,
+			offset: rel32_offset,
+			rtype: encoder.r_x86_64_32s,
+			adjust: 0,
 		}
 	}
-
-	instr := Instr{
-		kind: kind,
-		varcode: &VariableCode{
-			trgt_symbol: target_sym_name,
-			rel8_code:   rel8_code,
-			rel8_offset: rel8_offset,
-			rel32_code:   rel32_code,
-			rel32_offset: rel32_offset,
-		},
-		is_len_decided: false,
-		pos: desti.pos,
-		section: e.current_section,
+	if desti is Star {
+		desti.regi.check_regi_size(DataSize.suffix_quad)
+		if desti.regi.lit in r8_r15 {
+			instr.code << 0x41
+		}
+		instr.code << [u8(0xFF), 0xE0 + desti.regi.regi_bits()]
 	}
-
-	e.variable_instrs << &instr
-	e.instrs[e.current_section] << &instr
 }
 
 fn (mut e Encoder) call() {
-	instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section, code: [u8(0xe8), 0, 0, 0, 0]}
+	mut instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
 
 	desti := e.parse_operand()
 
-	mut used_symbols := []string{}
-	adjust := eval_expr_get_symbol(desti, mut used_symbols)
-	if used_symbols.len >= 2 {
-		error.print(desti.pos, 'invalid operand for instruction')
-		exit(1)
-	}
+	if desti is Star {
+		desti.regi.check_regi_size(DataSize.suffix_quad)
+		if desti.regi.lit in r8_r15 {
+			instr.code << 0x41
+		}
+		instr.code << [u8(0xFF), 0xD0 + desti.regi.regi_bits()]
+	} else {
+		instr.code << [u8(0xe8), 0, 0, 0, 0]
+		mut used_symbols := []string{}
+		adjust := eval_expr_get_symbol(desti, mut used_symbols)
+		if used_symbols.len >= 2 {
+			error.print(desti.pos, 'invalid operand for instruction')
+			exit(1)
+		}
 
-	rela_text_users << encoder.Rela{
-		instr:  &instr,
-		offset: 1,
-		uses:   used_symbols[0],
-		adjust: adjust,
-		rtype:   encoder.r_x86_64_plt32
+		rela_text_users << encoder.Rela{
+			instr:  &instr,
+			offset: 1,
+			uses:   used_symbols[0],
+			adjust: adjust,
+			rtype:   encoder.r_x86_64_plt32
+		}
 	}
-	e.instrs[e.current_section] << &instr
 }
 

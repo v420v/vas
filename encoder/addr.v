@@ -3,117 +3,6 @@ module encoder
 import encoding.binary
 import error
 
-pub fn (mut e Encoder) add_index_to_instrs() {
-	for name, _ in e.instrs {
-		for i := 0; i < e.instrs[name].len; i++ {
-			e.instrs[name][i].index = i
-		}
-	}
-}
-
-// function for variable length instructions
-fn calc_distance(user_instr &Instr, symdef &Instr, instrs []&Instr) (int, int, int, bool) {
-	unsafe {
-    	mut from, mut to := symdef, instrs[user_instr.index+1]
-    	forward := user_instr.index <= symdef.index
-
-    	if forward {
-    	    from, to = instrs[user_instr.index+1], symdef
-    	}
-
-    	mut has_variable_length := false
-    	mut diff, mut min, mut max := 0, 0, 0
-
-    	for instr := from; instr != to; instr = instrs[instr.index+1] {
-    	    if !instr.is_len_decided {
-    	        has_variable_length = true
-    	        len_short, len_large := instr.varcode.rel8_code.len, instr.varcode.rel32_code.len
-    	        min += len_short
-    	        max += len_large
-    	        diff += len_large
-    	    } else {
-    	        length := instr.code.len
-    	        diff += length
-    	        min += length
-    	        max += length
-    	    }
-    	}
-
-    	if !forward {
-    	    diff, min, max = -diff, -min, -max
-    	}
-	
-    	return diff, min, max, !has_variable_length
-	}
-}
-
-// TODO: catch infinite loop
-pub fn (mut e Encoder) resolve_variable_length_instrs(mut var_instrs []&Instr) {
-	mut todos := []&Instr{}
-	for index := 0; index < var_instrs.len; index++ {
-		name := var_instrs[index].varcode.trgt_symbol
-
-		// check if the symbol is defined
-		s := user_defined_symbols[name] or {
-			rela: {
-				rela_text_user := encoder.Rela{
-					instr:  var_instrs[index],
-					offset: var_instrs[index].varcode.rel32_offset,
-					uses:   name,
-					rtype:  encoder.r_x86_64_plt32
-				}
-				rela_text_users << rela_text_user
-				var_instrs[index].code = var_instrs[index].varcode.rel32_code
-				var_instrs[index].is_len_decided = true
-			}
-			continue
-		}
-
-		// Check if the symbol and instruction are declared in the same section
-		if var_instrs[index].section != s.section {
-			unsafe {
-				goto rela
-			}
-		}
-
-		diff, min, max, is_len_decided := calc_distance(var_instrs[index], s, e.instrs[var_instrs[index].section])
-		if is_len_decided {
-			if encoder.is_in_i8_range(diff) {
-				var_instrs[index].code = var_instrs[index].varcode.rel8_code
-				var_instrs[index].code[var_instrs[index].varcode.rel8_offset] = u8(diff)
-			} else {
-				diff_int32 := i32(diff)
-				mut hex := [u8(0), 0, 0, 0]
-				binary.little_endian_put_u32(mut &hex, u32(diff_int32))
-
-				mut code, offset := var_instrs[index].varcode.rel32_code.clone(), var_instrs[index].varcode.rel32_offset
-				code[offset] = hex[0]
-				code[offset+1] = hex[1]
-				code[offset+2] = hex[2]
-				code[offset+3] = hex[3]
-				var_instrs[index].code = code
-			}
-			var_instrs[index].is_len_decided = true
-		} else {
-			if encoder.is_in_i8_range(max) {
-				var_instrs[index].is_len_decided = true
-				var_instrs[index].varcode.rel32_code = []u8{}
-				var_instrs[index].code = var_instrs[index].varcode.rel8_code
-			} else if !encoder.is_in_i8_range(min) {
-				var_instrs[index].is_len_decided = true
-				var_instrs[index].varcode.rel8_code = []u8{}
-				var_instrs[index].code = var_instrs[index].varcode.rel32_code
-			}
-			todos << var_instrs[index]
-		}
-	}
-	e.variable_instrs = todos
-
-	if e.variable_instrs.len > 0 {
-		e.resolve_variable_length_instrs(mut e.variable_instrs)
-	}
-}
-
 /*
 	Functions for symbols and addresses
 */
@@ -205,7 +94,7 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.binding == encoder.stb_global {
 				continue
 			}
-			if rela.instr.kind != .call && rela.rtype != encoder.r_x86_64_pc32 {
+			if rela.instr.kind !in [.call, .jmp, .jne, .je, .jl, .jg, .jle, .jge, .jbe, .jnb, .jnbe, .jp, .ja, .js, .jb, .jns] && rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
 

@@ -59,10 +59,6 @@ fn main() {
 
 	mut en := encoder.new(mut l, file_name)
 	en.encode()
-	if en.variable_instrs.len != 0 {
-		en.add_index_to_instrs()
-		en.resolve_variable_length_instrs(mut en.variable_instrs)
-	}
 	en.assign_addresses()
 	en.fix_same_section_relocations()
 

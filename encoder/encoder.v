@@ -81,6 +81,34 @@ pub enum InstrKind {
 	nop
 	hlt
 	leave
+	cmovs
+	cmovns
+	cmovge
+	cvttss2sil
+	cvtsi2ssq
+	cvtsi2sdq
+	cvtsd2ss
+	cvtss2sd
+	movss
+	movsd
+	movd
+	ucomiss
+	ucomisd
+	comisd
+	comiss
+	subss
+	subsd
+	addss
+	addsd
+	mulss
+	mulsd
+	divss
+	divsd
+	movaps
+	movups
+	xorpd
+	xorps
+	pxor
 	label
 }
 
@@ -91,7 +119,6 @@ mut:
 pub mut:
 	current_section		string
 	instrs         		map[string][]&Instr 			// map with section name as keys and instruction list as value
-	variable_instrs		[]&Instr						// variable length instructions jmp, je, jn ...
 }
 
 pub struct Instr {
@@ -104,9 +131,6 @@ pub mut:
 	binding        		u8
 	symbol_type    		u8
 	section        		string [required]
-	index          		int
-	varcode        		&VariableCode = unsafe{nil}
-	is_len_decided 		bool = true
 	pos token.Position [required]
 }
 
@@ -120,20 +144,17 @@ pub mut:
 	is_already_resolved	bool
 }
 
-pub struct VariableCode {
-pub mut:
-	trgt_symbol  string
-	rel8_code    []u8
-	rel8_offset  i64
-	rel32_code   []u8
-	rel32_offset i64
-}
-
-pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop | Neg
+pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop | Neg | Xmm | Star
 
 pub struct Number {
 pub:
 	lit string
+	pos token.Position
+}
+
+pub struct Star {
+pub:
+	regi Register
 	pos token.Position
 }
 
@@ -155,6 +176,12 @@ pub struct Register {
 pub:
 	lit string
 	size DataSize
+	pos token.Position
+}
+
+pub struct Xmm {
+pub:
+	lit string
 	pos token.Position
 }
 
@@ -189,10 +216,12 @@ pub mut:
 }
 
 enum DataSize {
-	suffix_byte						= 8
-	suffix_word						= 16
-	suffix_long						= 32
-	suffix_quad						= 64
+	suffix_byte
+	suffix_word
+	suffix_long
+	suffix_quad
+	suffix_single
+	suffix_double
 }
 
 pub const (
@@ -269,6 +298,17 @@ pub const (
 		'R13', 'R13D', 'R13W', 'R13B',
 		'R14', 'R14D', 'R14W', 'R14B',
 		'R15', 'R15D', 'R15W', 'R15B',
+	]
+
+	xmm8_xmm15 = [
+		'XMM8',
+		'XMM9',
+		'XMM10',
+		'XMM11',
+		'XMM12',
+		'XMM13',
+		'XMM14',
+		'XMM15',
 	]
 )
 
@@ -385,8 +425,35 @@ fn (mut e Encoder) parse_operand() Expr {
             }
         }
         .percent {
-            return e.parse_register()
+            e.expect(.percent)
+			regi_name := e.tok.lit.to_upper()
+			e.next()
+
+			if regi_name.starts_with('XMM') {
+				return Xmm {
+					lit: regi_name,
+					pos: pos,
+				}
+			} else {
+				size := regi_size(regi_name) or {
+					error.print(e.tok.pos, 'invalid register name `$regi_name`')
+					exit(1)
+				}
+				return Register{
+					lit: regi_name,
+					size: size,
+					pos: pos,
+				}
+			}
         }
+		.mul {
+			e.expect(.mul)
+			regi := e.parse_register()
+			return Star {
+				regi: regi,
+				pos: pos,
+			}
+		}
 		else {
 			// parse indirect
 			expr := if e.tok.kind == .lpar {
@@ -428,7 +495,6 @@ fn (mut e Encoder) parse_operand() Expr {
 	exit(1)
 }
 
-// returns i64
 fn eval_expr_get_symbol_64(expr Expr, mut arr[]string) i64 {
 	return match expr {
 		Number {
@@ -440,16 +506,16 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr[]string) i64 {
 		Binop{
 			match expr.op {
 				.plus {
-					eval_expr_get_symbol(expr.left_hs, mut arr) + eval_expr_get_symbol(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) + eval_expr_get_symbol_64(expr.right_hs, mut arr)
 				}
 				.minus {
-					eval_expr_get_symbol(expr.left_hs, mut arr) - eval_expr_get_symbol(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) - eval_expr_get_symbol_64(expr.right_hs, mut arr)
 				}
 				.mul {
-					eval_expr_get_symbol(expr.left_hs, mut arr) * eval_expr_get_symbol(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) * eval_expr_get_symbol_64(expr.right_hs, mut arr)
 				}
 				.div {
-					eval_expr_get_symbol(expr.left_hs, mut arr) / eval_expr_get_symbol(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) / eval_expr_get_symbol_64(expr.right_hs, mut arr)
 				} else {
 					panic('[internal error] somthing whent wrong...')
 				}
@@ -460,10 +526,10 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr[]string) i64 {
 			0
 		}
 		Neg {
-			eval_expr_get_symbol(expr.expr, mut arr) * -1
+			eval_expr_get_symbol_64(expr.expr, mut arr) * -1
 		}
 		Immediate {
-			eval_expr_get_symbol(expr.expr, mut arr)
+			eval_expr_get_symbol_64(expr.expr, mut arr)
 		}
 		else {
 			0
@@ -622,6 +688,37 @@ fn is_in_i32_range(n int) bool {
 
 fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
+}
+
+fn (xmm Xmm) xmm_bits() u8 {
+	match xmm.lit {
+		'XMM0', 'XMM8' {
+			return 0
+		}
+		'XMM1', 'XMM9' {
+			return 1
+		}
+		'XMM2', 'XMM10' {
+			return 2
+		}
+		'XMM3', 'XMM11' {
+			return 3
+		}
+		'XMM4', 'XMM12' {
+			return 4
+		}
+		'XMM5', 'XMM13' {
+			return 5
+		}
+		'XMM6', 'XMM14' {
+			return 6
+		}
+		'XMM7', 'XMM15' {
+			return 7
+		} else {
+			panic('unreachable')
+		}
+	}
 }
 
 fn (mut e Encoder) encode_instr() {
@@ -837,52 +934,136 @@ fn (mut e Encoder) encode_instr() {
 			e.set(.setge, [u8(0x0F), 0x9D])
 		}
 		'JMP' {
-			e.jmp_instr(.jmp, [u8(0xEB), 0], 1, [u8(0xE9), 0, 0, 0, 0], 1)
+			e.jmp_instr(.jmp, [u8(0xE9), 0, 0, 0, 0], 1)
 		}
 		'JNE' {
-			e.jmp_instr(.jne, [u8(0x75), 0], 1, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jne, [u8(0x0F), 0x85, 0, 0, 0, 0], 2)
 		}
 		'JE' {
-			e.jmp_instr(.je, [u8(0x74), 0], 1, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
+			e.jmp_instr(.je, [u8(0x0F), 0x84, 0, 0, 0, 0], 2)
 		}
 		'JL' {
-			e.jmp_instr(.jl, [u8(0x7C), 0], 1, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jl, [u8(0x0f), 0x8C, 0, 0, 0, 0], 2)
 		}
 		'JG' {
-			e.jmp_instr(.jg, [u8(0x7F), 0], 1, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jg, [u8(0x0F), 0x8F, 0, 0, 0, 0], 2)
 		}
 		'JLE' {
-			e.jmp_instr(.jle, [u8(0x7E), 0], 1, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jle, [u8(0x0F), 0x8E, 0, 0, 0, 0], 2)
 		}
 		'JGE' {
-			e.jmp_instr(.jge, [u8(0x7D), 0], 1, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jge, [u8(0x0F), 0x8D, 0, 0, 0, 0], 2)
 		}
 		'JNB' {
-			e.jmp_instr(.jnb, [u8(0x73), 0], 1, [u8(0x0F), 0x83, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jnb, [u8(0x0F), 0x83, 0, 0, 0, 0], 2)
 		}
 		'JBE' {
-			e.jmp_instr(.jbe, [u8(0x76), 0], 1, [u8(0x0F), 0x86, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jbe, [u8(0x0F), 0x86, 0, 0, 0, 0], 2)
 		}
 		'JNBE' {
-			e.jmp_instr(.jnbe, [u8(0x77), 0], 1, [u8(0x0F), 0x87, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jnbe, [u8(0x0F), 0x87, 0, 0, 0, 0], 2)
 		}
 		'JP' {
-			e.jmp_instr(.jp, [u8(0x7A), 0], 1, [u8(0x0F), 0x8A, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jp, [u8(0x0F), 0x8A, 0, 0, 0, 0], 2)
 		}
 		'JA' {
-			e.jmp_instr(.ja, [u8(0x77), 0], 1, [u8(0x0F), 0x87, 0, 0, 0, 0], 2)
+			e.jmp_instr(.ja, [u8(0x0F), 0x87, 0, 0, 0, 0], 2)
 		}
 		'JB' {
-			e.jmp_instr(.jb, [u8(0x72), 0], 1, [u8(0x0F), 0x82, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jb, [u8(0x0F), 0x82, 0, 0, 0, 0], 2)
 		}
 		'JS' {
-			e.jmp_instr(.js, [u8(0x78), 0], 1, [u8(0x0F), 0x88, 0, 0, 0, 0], 2)
+			e.jmp_instr(.js, [u8(0x0F), 0x88, 0, 0, 0, 0], 2)
 		}
 		'JNS' {
-			e.jmp_instr(.jns, [u8(0x79), 0], 1, [u8(0x0F), 0x89, 0, 0, 0, 0], 2)
+			e.jmp_instr(.jns, [u8(0x0F), 0x89, 0, 0, 0, 0], 2)
 		}
 		'REP' {
 			e.rep()
+		}
+		'CVTTSS2SIL' {
+			e.cvttss2sil()
+		}
+		'CVTSI2SSQ' {
+			e.cvtsi2ssq()
+		}
+		'CVTSI2SDQ' {
+			e.cvtsi2sdq()
+		}
+		'CVTSD2SS' {
+			e.cvtsd2ss()
+		}
+		'CVTSS2SD' {
+			e.cvtss2sd()
+		}
+		'MOVSS' {
+			e.movss()
+		}
+		'MOVSD' {
+			e.movsd()
+		}
+		'MOVD' {
+			e.movd()
+		}
+		'UCOMISS' {
+			e.ucomiss()
+		}
+		'UCOMISD' {
+			e.ucomisd()
+		}
+		'COMISD' {
+			e.comisd()
+		}
+		'COMISS' {
+			e.comiss()
+		}
+		'SUBSS' {
+			e.subss()
+		}
+		'SUBSD' {
+			e.subsd()
+		}
+		'ADDSS' {
+			e.addss()
+		}
+		'ADDSD' {
+			e.addsd()
+		}
+		'MULSS' {
+			e.mulss()
+		}
+		'MULSD' {
+			e.mulsd()
+		}
+		'DIVSS' {
+			e.divss()
+		}
+		'DIVSD' {
+			e.divsd()
+		}
+		'MOVAPS' {
+			e.movaps()
+		}
+		'MOVUPS' {
+			e.movups()
+		}
+		'XORPD' {
+			e.xorpd()
+		}
+		'XORPS' {
+			e.xorps()
+		}
+		'PXOR' {
+			e.pxor()
+		}
+		'CMOVSQ', 'CMOVSL', 'CMOVSW' {
+			e.cmov(.cmovs, [u8(0x0F), 0x48], get_size_by_suffix(instr_name_upper))
+		}
+		'CMOVNSQ', 'CMOVNSL', 'CMOVNSW' {
+			e.cmov(.cmovns, [u8(0x0F), 0x49], get_size_by_suffix(instr_name_upper))
+		}
+		'CMOVGEQ', 'CMOVGEL', 'CMOVGEW' {
+			e.cmov(.cmovge, [u8(0x0F), 0x4D], get_size_by_suffix(instr_name_upper))
 		}
 		'RETQ', 'RET' {
 			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
