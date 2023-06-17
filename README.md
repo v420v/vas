@@ -67,6 +67,7 @@ $ cc -o v3 v3.o
 
 $ ./v3 --version
 ```
+![image1](https://github.com/v420v/vas/assets/106643445/d95f1629-6f57-4ea2-a5d2-dce2cc82955a)
 
 ## Screen shot
 
