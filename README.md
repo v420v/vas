@@ -4,8 +4,6 @@
 [Docs](https://github.com/v420v/vas/blob/main/doc/docs.md) | 
 [日本語](https://github.com/v420v/vas/blob/main/doc/ドキュメント.md)
 
-THIS SOFTWARE IS UNFINISHED!!!
-
 Supports Linux x86-64 AT&T syntax only.
 
 ## Hello world!
@@ -54,7 +52,23 @@ $ ./a.out
 
 ```
 
-## Examples
+## How to do self hosting
+
+```
+# build
+$ v . -prod -enable-globals
+
+$ cd selfhost
+$ ../vas -o v2.o vas.s
+$ cc -o v2 v2.o
+
+$ ./v2 -o v3.o vas.s
+$ cc -o v3 v3.o
+
+$ ./v3 --version
+```
+
+## Screen shot
 
 ### Game of Life
 
