@@ -131,6 +131,7 @@ pub mut:
 	binding        		u8
 	symbol_type    		u8
 	section        		string [required]
+	is_jmp_or_call      bool
 	pos token.Position [required]
 }
 
@@ -1048,10 +1049,10 @@ fn (mut e Encoder) encode_instr() {
 			e.movups()
 		}
 		'XORPD' {
-			e.xorpd()
+			e.xorp(.xorpd, [DataSize.suffix_word])
 		}
 		'XORPS' {
-			e.xorps()
+			e.xorp(.xorps, [])
 		}
 		'PXOR' {
 			e.pxor()

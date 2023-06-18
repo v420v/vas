@@ -94,7 +94,8 @@ pub fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.binding == encoder.stb_global {
 				continue
 			}
-			if rela.instr.kind !in [.call, .jmp, .jne, .je, .jl, .jg, .jle, .jge, .jbe, .jnb, .jnbe, .jp, .ja, .js, .jb, .jns] && rela.rtype != encoder.r_x86_64_pc32 {
+
+			if !rela.instr.is_jmp_or_call && rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
 

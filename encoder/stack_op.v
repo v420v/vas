@@ -103,7 +103,7 @@ fn (mut e Encoder) push() {
 }
 
 fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) {
-	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
+	mut instr := Instr{kind: kind, section: e.current_section, is_jmp_or_call: true, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
 	desti := e.parse_operand()
@@ -128,7 +128,7 @@ fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) 
 }
 
 fn (mut e Encoder) call() {
-	mut instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section}
+	mut instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section, is_jmp_or_call: true}
 	e.instrs[e.current_section] << &instr
 
 	desti := e.parse_operand()
