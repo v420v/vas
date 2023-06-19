@@ -17,17 +17,12 @@ jobs:
           check-latest: true
 
       - name: Checkout ${{ github.event.repository.name }}
-        uses: actions/checkout@v2
-
-      #- name: Check if code is formatted
-      #  run: |
-      #    v fmt -diff .
-      #    v fmt -verify .          
+        uses: actions/checkout@v2         
 
       - name: Build ${{ github.event.repository.name }}
         run: v . -enable-globals
 
       - name: Run Tests
-        run: ./vas main.s
+        run: sh ./test-selfhost.sh
         
 
