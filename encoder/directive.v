@@ -34,12 +34,12 @@ fn (mut e Encoder) section() {
 }
 
 fn (mut e Encoder) zero() {
+	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
+
 	operand := e.parse_operand()
 
 	n := eval_expr(operand)
-
-	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
 
 	for _ in 0..n {
 		instr.code << 0
@@ -47,22 +47,21 @@ fn (mut e Encoder) zero() {
 }
 
 fn (mut e Encoder) string() {
-	pos := e.tok.pos
-
-	mut instr := Instr{kind: .string, pos: pos, section: e.current_section}
+	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
 
 	value := e.tok.lit
 	e.expect(.string)
 
 	instr.code = value.bytes()
 	instr.code << 0x00
-	e.instrs[e.current_section] << &instr
 }
 
 fn (mut e Encoder) byte() {
-	desti := e.parse_operand()
+	mut instr := Instr{kind: .byte, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
 
-	mut instr := Instr{kind: .byte, pos: desti.pos, section: e.current_section}
+	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
 	adjust := eval_expr_get_symbol(desti, mut used_symbols)
@@ -72,24 +71,23 @@ fn (mut e Encoder) byte() {
 	}
 
 	if used_symbols.len == 1 {
-		rela := &Rela{
+		rela_text_users << &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_8
 		}
 		instr.code = [u8(0)]
-		rela_text_users << rela
 	} else {
 		instr.code << u8(adjust)
 	}
-	e.instrs[e.current_section] << &instr
 }
 
 fn (mut e Encoder) word() {
-	desti := e.parse_operand()
+	mut instr := Instr{kind: .word, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
 
-	mut instr := Instr{kind: .word, pos: desti.pos, section: e.current_section}
+	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
 	adjust := eval_expr_get_symbol(desti, mut used_symbols)
@@ -99,26 +97,25 @@ fn (mut e Encoder) word() {
 	}
 
 	if used_symbols.len == 1 {
-		rela := &Rela{
+		rela_text_users << &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_16
 		}
 		instr.code = [u8(0), 0]
-		rela_text_users << rela
 	} else {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(adjust))
 		instr.code = hex
 	}
-	e.instrs[e.current_section] << &instr
 }
 
 fn (mut e Encoder) long() {
-	desti := e.parse_operand()
+	mut instr := Instr{kind: .long, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
 
-	mut instr := Instr{kind: .long, pos: desti.pos, section: e.current_section}
+	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
 	adjust := eval_expr_get_symbol(desti, mut used_symbols)
@@ -128,26 +125,25 @@ fn (mut e Encoder) long() {
 	}
 
 	if used_symbols.len == 1 {
-		rela := &Rela{
+		rela_text_users << &Rela{
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
 			rtype: encoder.r_x86_64_32
 		}
 		instr.code = [u8(0), 0, 0, 0]
-		rela_text_users << rela
 	} else {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(adjust))
 		instr.code = hex
 	}
-	e.instrs[e.current_section] << &instr
 }
 
 fn (mut e Encoder) quad() {
-	desti := e.parse_operand()
+	mut instr := Instr{kind: .quad, pos: e.tok.pos, section: e.current_section}
+	e.instrs[e.current_section] << &instr
 
-	mut instr := Instr{kind: .quad, pos: desti.pos, section: e.current_section}
+	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
 	adjust := eval_expr_get_symbol(desti, mut used_symbols)
@@ -170,7 +166,6 @@ fn (mut e Encoder) quad() {
 		binary.little_endian_put_u64(mut &hex, u64(adjust))
 		instr.code = hex
 	}
-	e.instrs[e.current_section] << &instr
 }
 
 

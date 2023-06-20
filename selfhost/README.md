@@ -1,4 +1,0 @@
-
-# THIS IS FOR SELF-HOSTING
-
-

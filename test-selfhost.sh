@@ -17,5 +17,7 @@ gcc -o v4 v4.o
 diff -s v2.o v3.o
 diff -s v2.o v4.o
 
+cd ..
+
 echo OK
 

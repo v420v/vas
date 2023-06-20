@@ -414,6 +414,13 @@ fn (mut e Encoder) parse_expr() Expr {
 	return expr
 }
 
+fn (mut e Encoder) parse_two_operand() (Expr, Expr) {
+	source := e.parse_operand()
+	e.expect(.comma)
+	desti := e.parse_operand()
+	return source, desti
+}
+
 fn (mut e Encoder) parse_operand() Expr {
     pos := e.tok.pos
     
@@ -668,29 +675,6 @@ fn (regi Register) regi_bits() u8 {
 	}
 }
 
-fn (regi Register) check_regi_size(size DataSize) {
-	if regi.size != size {
-		error.print(regi.pos, 'invalid size of register for instruction.')
-		exit(0)
-	}
-}
-
-pub fn align_to(n int, align int) int {
-	return (n + align - 1) / align * align
-}
-
-fn is_in_i8_range(n int) bool {
-	return -128 <= n && n <= 127
-}
-
-fn is_in_i32_range(n int) bool {
-	return n < (1 << 31)
-}
-
-fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
-	return (mod << 6) + (reg_op << 3) + rm
-}
-
 fn (xmm Xmm) xmm_bits() u8 {
 	match xmm.lit {
 		'XMM0', 'XMM8' {
@@ -720,6 +704,66 @@ fn (xmm Xmm) xmm_bits() u8 {
 			panic('unreachable')
 		}
 	}
+}
+
+fn (regi Register) check_regi_size(size DataSize) {
+	if regi.size != size {
+		error.print(regi.pos, 'invalid size of register for instruction.')
+		exit(0)
+	}
+}
+
+fn rex(w u8, r u8, x u8, b u8) u8 {
+	return 64 | (w << 3) | (r << 2) | (x << 1) | b
+}
+
+fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
+	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
+
+	if regi_r in xmm8_xmm15 || regi_r in r8_r15 {
+		r = 1
+	}
+
+	if regi_i in xmm8_xmm15 || regi_i in r8_r15 {
+		x = 1
+	}
+
+	if regi_b in xmm8_xmm15 || regi_b in r8_r15 {
+		b = 1
+	}
+
+	if DataSize.suffix_word in sizes {
+		instr.code << operand_size_prefix16
+	}
+	if DataSize.suffix_single in sizes {
+		instr.code << 0xF3
+	}
+	if DataSize.suffix_double in sizes {
+		instr.code << 0xF2
+	}
+	if DataSize.suffix_quad in sizes {
+		w = 1
+	}
+
+	if w != 0 || r != 0 || b != 0 || x != 0 {
+		instr.code << rex(w, r, x, b)
+	}
+}
+
+pub fn align_to(n int, align int) int {
+	return (n + align - 1) / align * align
+}
+
+fn is_in_i8_range(n int) bool {
+	return -128 <= n && n <= 127
+}
+
+fn is_in_i32_range(n int) bool {
+	return n < (1 << 31)
+}
+
+fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
+	return (mod << 6) + (reg_op << 3) + rm
 }
 
 fn (mut e Encoder) encode_instr() {
@@ -991,62 +1035,8 @@ fn (mut e Encoder) encode_instr() {
 		'CVTSI2SDQ' {
 			e.cvtsi2sdq()
 		}
-		'CVTSD2SS' {
-			e.cvtsd2ss()
-		}
-		'CVTSS2SD' {
-			e.cvtss2sd()
-		}
-		'MOVSS' {
-			e.movss()
-		}
-		'MOVSD' {
-			e.movsd()
-		}
 		'MOVD' {
 			e.movd()
-		}
-		'UCOMISS' {
-			e.ucomiss()
-		}
-		'UCOMISD' {
-			e.ucomisd()
-		}
-		'COMISD' {
-			e.comisd()
-		}
-		'COMISS' {
-			e.comiss()
-		}
-		'SUBSS' {
-			e.subss()
-		}
-		'SUBSD' {
-			e.subsd()
-		}
-		'ADDSS' {
-			e.addss()
-		}
-		'ADDSD' {
-			e.addsd()
-		}
-		'MULSS' {
-			e.mulss()
-		}
-		'MULSD' {
-			e.mulsd()
-		}
-		'DIVSS' {
-			e.divss()
-		}
-		'DIVSD' {
-			e.divsd()
-		}
-		'MOVAPS' {
-			e.movaps()
-		}
-		'MOVUPS' {
-			e.movups()
 		}
 		'XORPD' {
 			e.xorp(.xorpd, [DataSize.suffix_word])
@@ -1054,8 +1044,62 @@ fn (mut e Encoder) encode_instr() {
 		'XORPS' {
 			e.xorp(.xorps, [])
 		}
+		'MOVSS' {
+			e.sse_data_transfer_instr(.movss, 0x10, [DataSize.suffix_single])
+		}
+		'MOVSD' {
+			e.sse_data_transfer_instr(.movss, 0x10, [DataSize.suffix_double])
+		}
+		'MOVAPS' {
+			e.sse_data_transfer_instr(.movaps, 0x28, [])
+		}
+		'MOVUPS' {
+			e.sse_data_transfer_instr(.movups, 0x10, [])
+		}
 		'PXOR' {
-			e.pxor()
+			e.sse_arith_instr(.pxor, [u8(0x0F), 0xEF], [DataSize.suffix_word])
+		}
+		'CVTSD2SS' {
+			e.sse_arith_instr(.cvtsd2ss, [u8(0x0F), 0x5A], [DataSize.suffix_double])
+		}
+		'CVTSS2SD' {
+			e.sse_arith_instr(.cvtss2sd, [u8(0x0F), 0x5A], [DataSize.suffix_single])
+		}
+		'UCOMISS' {
+			e.sse_arith_instr(.ucomiss, [u8(0x0F), 0x2E], [])
+		}
+		'UCOMISD' {
+			e.sse_arith_instr(.ucomisd, [u8(0x0F), 0x2E], [DataSize.suffix_word])
+		}
+		'COMISS' {
+			e.sse_arith_instr(.comiss, [u8(0x0F), 0x2F], [])
+		}
+		'COMISD' {
+			e.sse_arith_instr(.ucomisd, [u8(0x0F), 0x2F], [DataSize.suffix_word])
+		}
+		'SUBSS' {
+			e.sse_arith_instr(.subss, [u8(0x0F), 0x5C], [DataSize.suffix_single])
+		}
+		'SUBSD' {
+			e.sse_arith_instr(.subss, [u8(0x0F), 0x5C], [DataSize.suffix_double])
+		}
+		'ADDSS' {
+			e.sse_arith_instr(.addss, [u8(0x0F), 0x58], [DataSize.suffix_single])
+		}
+		'ADDSD' {
+			e.sse_arith_instr(.addsd, [u8(0x0F), 0x58], [DataSize.suffix_double])
+		}
+		'MULSS' {
+			e.sse_arith_instr(.mulss, [u8(0x0F), 0x59], [DataSize.suffix_single])
+		}
+		'MULSD' {
+			e.sse_arith_instr(.mulsd, [u8(0x0F), 0x59], [DataSize.suffix_double])
+		}
+		'DIVSS' {
+			e.sse_arith_instr(.divss, [u8(0x0F), 0x5E], [DataSize.suffix_single])
+		}
+		'DIVSD' {
+			e.sse_arith_instr(.divsd, [u8(0x0F), 0x5E], [DataSize.suffix_double])
 		}
 		'CMOVSQ', 'CMOVSL', 'CMOVSW' {
 			e.cmov(.cmovs, [u8(0x0F), 0x48], get_size_by_suffix(instr_name_upper))

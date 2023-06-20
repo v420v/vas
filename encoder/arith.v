@@ -4,12 +4,7 @@ import error
 import encoding.binary
 
 fn (mut instr Instr) add_imm_rela(symbol string, imm_val int, size DataSize) {
-	mut rela := Rela{
-		uses: symbol,
-		instr: unsafe{ instr },
-		adjust: imm_val,
-		offset: instr.code.len,
-	}
+	mut rela := Rela{ uses: symbol, instr: unsafe{ instr }, adjust: imm_val, offset: instr.code.len }
 	match size {
 		.suffix_byte {
 			rela.rtype = encoder.r_x86_64_8
@@ -47,56 +42,16 @@ fn (mut instr Instr) add_imm_value(imm_val int, size DataSize) {
 	}
 }
 
-pub fn rex(w u8, r u8, x u8, b u8) u8 {
-	return 64 | (w << 3) | (r << 2) | (x << 1) | b
-}
-
-fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
-	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
-
-	if regi_r in xmm8_xmm15 || regi_r in r8_r15 {
-		r = 1
-	}
-
-	if regi_i in xmm8_xmm15 || regi_i in r8_r15 {
-		x = 1
-	}
-
-	if regi_b in xmm8_xmm15 || regi_b in r8_r15 {
-		b = 1
-	}
-
-	if DataSize.suffix_word in sizes {
-		instr.code << operand_size_prefix16
-	}
-	if DataSize.suffix_single in sizes {
-		instr.code << 0xF3
-	}
-	if DataSize.suffix_double in sizes {
-		instr.code << 0xF2
-	}
-	if DataSize.suffix_quad in sizes {
-		w = 1
-	}
-
-	if w != 0 || r != 0 || b != 0 || x != 0 {
-		instr.code << rex(w, r, x, b)
-	}
-}
-
 fn (mut e Encoder) cmov(kind InstrKind, op_code []u8, size DataSize) {
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+	source, desti := e.parse_two_operand()
 
 	if source is Register && desti is Register {
 		instr.add_rex_prefix(desti.lit, '', source.lit, [size])
-		mod_rm := compose_mod_rm(encoder.mod_regi, desti.regi_bits(), source.regi_bits())
 		instr.code << op_code
-		instr.code << mod_rm
+		instr.code << compose_mod_rm(encoder.mod_regi, desti.regi_bits(), source.regi_bits())
 		return
 	}
 
@@ -108,9 +63,7 @@ fn (mut e Encoder) mov(size DataSize) {
 	mut instr := Instr{kind: .mov, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+	source, desti := e.parse_two_operand()
 
 	if source is Xmm && desti is Register {
 		desti.check_regi_size(DataSize.suffix_quad)
@@ -248,14 +201,13 @@ fn (mut e Encoder) rep() {
 		match source.lit {
 			'movsq' {
 				instr.code << [u8(0xF3), 0x48, 0xA5]
+				return
 			}
 			'stosq' {
 				instr.code << [u8(0xF3), 0x48, 0xAB]
-			} else {
-				panic('unreachable! got `$source.lit`')
-			}
+				return
+			} else {}
 		}
-		return
 	}
 
 	error.print(source.pos, 'invalid operand for instruction')
@@ -266,9 +218,7 @@ fn (mut e Encoder) movabsq() {
 	mut instr := Instr{kind: .movabsq, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+	source, desti := e.parse_two_operand()
 
 	if source is Immediate && desti is Register {		
 		desti.check_regi_size(DataSize.suffix_quad)
@@ -341,9 +291,7 @@ fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, d
 	mut instr := Instr{kind: .movzx, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+	source, desti := e.parse_two_operand()
 
 	if source is Register && desti is Register {
 		if desti_size == .suffix_quad && source.lit in ['AH','CH','DH','BH'] {
@@ -373,9 +321,7 @@ fn (mut e Encoder) test(size DataSize) {
 	mut instr := Instr{kind: .test, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+	source, desti := e.parse_two_operand()
 
 	if source is Register {
 		op_code := if size == DataSize.suffix_byte {
@@ -476,9 +422,7 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
 	e.instrs[e.current_section] << &instr
 
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+	source, desti := e.parse_two_operand()
 
 	if source is Register {
 		op_code := if size == DataSize.suffix_byte {
@@ -692,9 +636,8 @@ fn (mut e Encoder) lea(instr_name_upper string) {
 	e.instrs[e.current_section] << &instr
 
 	size := get_size_by_suffix(instr_name_upper)
-	source := e.parse_operand()
-	e.expect(.comma)
-	desti := e.parse_operand()
+
+	source, desti := e.parse_two_operand()
 
 	if source is Indirection && desti is Register {
 		desti.check_regi_size(size)

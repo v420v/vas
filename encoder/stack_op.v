@@ -11,24 +11,13 @@ fn (mut e Encoder) pop() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		if source.lit in r8_r15 {
-			instr.code << rex(0, 0, 0, 1)
-		}
+		instr.add_rex_prefix('', '', source.lit, [])
 		instr.code << [0x58 + source.regi_bits()]
 		return
 	}
 	if source is Indirection {
 		instr.add_segment_override_prefix(source)
-		mut x, mut b := u8(0), u8(0)
-		if source.index.lit in r8_r15 {
-			x = 1
-		}
-		if source.base.lit in r8_r15 {
-			b = 1
-		}
-		if x != 0 || b != 0 {
-			instr.code << rex(0, 0, x, b)
-		}
+		instr.add_rex_prefix('', source.index.lit, source.base.lit, [])
 		instr.code << 0x8f // op_code
 		instr.add_modrm_sib_disp(source, encoder.slash_0)
 		return
@@ -55,16 +44,7 @@ fn (mut e Encoder) push() {
 	}
 	if source is Indirection {
 		instr.add_segment_override_prefix(source)
-		mut x, mut b := u8(0), u8(0)
-		if source.index.lit in r8_r15 {
-			x = 1
-		}
-		if source.base.lit in r8_r15 {
-			b = 1
-		}
-		if x != 0 || b != 0 {
-			instr.code << rex(0, 0, x, b)
-		}
+		instr.add_rex_prefix('', source.index.lit, source.base.lit, [])
 		instr.code << 0xff // op_code
 		instr.add_modrm_sib_disp(source, encoder.slash_6)
 		return
@@ -117,6 +97,7 @@ fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) 
 			rtype: encoder.r_x86_64_32s,
 			adjust: 0,
 		}
+		return
 	}
 	if desti is Star {
 		desti.regi.check_regi_size(DataSize.suffix_quad)
@@ -124,7 +105,11 @@ fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) 
 			instr.code << 0x41
 		}
 		instr.code << [u8(0xFF), 0xE0 + desti.regi.regi_bits()]
+		return
 	}
+
+	error.print(desti.pos, 'invalid operand for instruction')
+	exit(1)
 }
 
 fn (mut e Encoder) call() {
