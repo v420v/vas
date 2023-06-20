@@ -95,13 +95,41 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 
 ```
 
-## Supported instructions
+## Supported instruction + Operation Suffixes
 
-- [X] `movq`
+- [x] `pop`
+- [x] `push`
+- [x] `call`
+- [x] `leaq`
+- [x] `leal`
+- [x] `leaw`
+- [x] `notq`
+- [x] `notl`
+- [x] `notw`
+- [x] `notb`
+- [x] `negq`
+- [x] `negl`
+- [x] `negw`
+- [x] `negb`
+- [x] `divq`
+- [x] `divl`
+- [x] `divw`
+- [x] `divb`
+- [x] `idivq`
+- [x] `idivl`
+- [x] `idivw`
+- [x] `idivb`
+- [x] `imulq`
+- [x] `imull`
+- [x] `imulw`
+- [x] `mulq`
+- [x] `mull`
+- [x] `mulw`
+- [x] `mulb`
+- [x] `movq`
 - [x] `movl`
 - [x] `movw`
 - [x] `movb`
-- [x] `movabsq`
 - [x] `movzbw`
 - [x] `movzbl`
 - [x] `movzbq`
@@ -113,17 +141,15 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `movswl`
 - [x] `movswq`
 - [x] `movslq`
-- [x] `leaq`
-- [x] `leal`
-- [x] `leaw`  
+- [x] `movabsq`
+- [x] `testq`
+- [x] `testl`
+- [x] `testw`
+- [x] `testb`
 - [x] `addq`
 - [x] `addl`
 - [x] `addw`
 - [x] `addb`
-- [x] `subq`
-- [x] `subl`
-- [x] `subw`
-- [x] `subb`
 - [x] `orq`
 - [x] `orl`
 - [x] `orw`
@@ -136,25 +162,22 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `sbbl`
 - [x] `sbbw`
 - [x] `sbbb`
-- [x] `idivq`
-- [x] `idivl`
-- [x] `idivw`
-- [x] `idivb`
-- [x] `divq`
-- [x] `divl`
-- [x] `divw`
-- [x] `divb`
-- [x] `imulq`
-- [x] `imull`
-- [x] `imulw`
-- [x] `mulq`
-- [x] `mull`
-- [x] `mulw`
-- [x] `mulb`
-- [x] `testq`
-- [x] `testl`
-- [x] `testw`
-- [x] `testb`
+- [x] `andq`
+- [x] `andl`
+- [x] `andw`
+- [x] `andb`
+- [x] `subq`
+- [x] `subl`
+- [x] `subw`
+- [x] `subb`
+- [x] `xorq`
+- [x] `xorl`
+- [x] `xorw`
+- [x] `xorb`
+- [x] `cmpq`
+- [x] `cmpl`
+- [x] `cmpw`
+- [x] `cmpb`
 - [x] `shlq`
 - [x] `shll`
 - [x] `shlw`
@@ -171,30 +194,13 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `sall`
 - [x] `salw`
 - [x] `salb`
-- [x] `negq`
-- [x] `negl`
-- [x] `negw`
-- [x] `negb`
-- [x] `xorq`
-- [x] `xorl`
-- [x] `xorw`
-- [x] `xorb`
-- [x] `andq`
-- [x] `andl`
-- [x] `andw`
-- [x] `andb`
-- [x] `notq`
-- [x] `notl`
-- [x] `notw`
-- [x] `notb`
-- [x] `cmpq`	
-- [x] `cmpl`	
-- [x] `cmpw`	
-- [x] `cmpb`	
 - [x] `seto`
 - [x] `setno`
 - [x] `setb`
 - [x] `setae`
+- [x] `sete`
+- [x] `setne`
+- [x] `setnb`
 - [x] `setbe`
 - [x] `seta`
 - [x] `setpo`
@@ -202,10 +208,6 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `setg`
 - [x] `setle`
 - [x] `setge`
-- [x] `sete`
-- [x] `setne`
-- [x] `setnb`
-- [x] `call`
 - [x] `jmp`
 - [x] `jne`
 - [x] `je`
@@ -213,40 +215,32 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `jg`
 - [x] `jle`
 - [x] `jge`
-- [x] `jbe`
 - [x] `jnb`
+- [x] `jbe`
 - [x] `jnbe`
 - [x] `jp`
 - [x] `ja`
-- [x] `js`
 - [x] `jb`
+- [x] `js`
 - [x] `jns`
-- [x] `push`
-- [x] `pop`
-- [x] `cqto`
-- [x] `cltd`
-- [x] `cltq`
 - [x] `rep`
-- [x] `leave`
-- [x] `hlt`
-- [x] `nop`
-- [x] `syscall`
-- [x] `ret`
-- [x] `cmovs`
-- [x] `cmovns`
-- [x] `cmovge`
 - [x] `cvttss2sil`
 - [x] `cvtsi2ssq`
 - [x] `cvtsi2sdq`
-- [x] `cvtsd2ss`
-- [x] `cvtss2sd`
+- [x] `movd`
+- [x] `xorpd`
+- [x] `xorps`
 - [x] `movss`
 - [x] `movsd`
-- [x] `movd`
+- [x] `movaps`
+- [x] `movups`
+- [x] `pxor`
+- [x] `cvtsd2ss`
+- [x] `cvtss2sd`
 - [x] `ucomiss`
 - [x] `ucomisd`
-- [x] `comisd`
 - [x] `comiss`
+- [x] `comisd`
 - [x] `subss`
 - [x] `subsd`
 - [x] `addss`
@@ -255,11 +249,24 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `mulsd`
 - [x] `divss`
 - [x] `divsd`
-- [x] `movaps`
-- [x] `movups`
-- [x] `xorpd`
-- [x] `xorps`
-- [x] `pxor`
+- [x] `cmovsq`
+- [x] `cmovsl`
+- [x] `cmovsw`
+- [x] `cmovnsq`
+- [x] `cmovnsl`
+- [x] `cmovnsw`
+- [x] `cmovgeq`
+- [x] `cmovgel`
+- [x] `cmovgew`
+- [x] `ret`
+- [x] `syscall`
+- [x] `nop`
+- [x] `hlt`
+- [x] `leave`
+- [x] `cltq`
+- [x] `cltd`
+- [x] `cqto`
+- [x] `cwtl`
 - [ ] ...
 
 ## Local symbols
@@ -349,5 +356,12 @@ section attributes
 `.local`
 ```asm
 .local symbol_name
+```
+
+`.zero`
+```asm
+# places 0 n times
+.zero 10
+.zero 10
 ```
 
