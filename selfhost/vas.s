@@ -57500,13 +57500,6 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%rdx, -520(%rbp)
 	movq	-424(%rbp), %rax
 	movq	%rax, -512(%rbp)
-	movb	$15, -529(%rbp)
-	movq	-56(%rbp), %rax
-	leaq	8(%rax), %rdx
-	leaq	-529(%rbp), %rax
-	movq	%rax, %rsi
-	movq	%rdx, %rdi
-	call	array_push
 	movl	-488(%rbp), %eax
 	cmpl	$170, %eax
 	jne	.L2818
@@ -57592,6 +57585,13 @@ encoder__Encoder_sse_data_transfer_instr:
 	movl	%eax, %edi
 	call	encoder__compose_mod_rm
 	movb	%al, -57(%rbp)
+	movb	$15, -529(%rbp)
+	movq	-56(%rbp), %rax
+	leaq	8(%rax), %rdx
+	leaq	-529(%rbp), %rax
+	movq	%rax, %rsi
+	movq	%rdx, %rdi
+	call	array_push
 	movzbl	-560(%rbp), %eax
 	movb	%al, -530(%rbp)
 	movq	-56(%rbp), %rax
@@ -57692,11 +57692,18 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%r9, %rdx
 	call	encoder__Instr_add_rex_prefix
 	addq	$48, %rsp
-	movzbl	-560(%rbp), %eax
-	movb	%al, -532(%rbp)
+	movb	$15, -532(%rbp)
 	movq	-56(%rbp), %rax
 	leaq	8(%rax), %rdx
 	leaq	-532(%rbp), %rax
+	movq	%rax, %rsi
+	movq	%rdx, %rdi
+	call	array_push
+	movzbl	-560(%rbp), %eax
+	movb	%al, -533(%rbp)
+	movq	-56(%rbp), %rax
+	leaq	8(%rax), %rdx
+	leaq	-533(%rbp), %rax
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
@@ -57851,12 +57858,19 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%r9, %rdx
 	call	encoder__Instr_add_rex_prefix
 	addq	$48, %rsp
-	movzbl	-560(%rbp), %eax
-	addl	$1, %eax
-	movb	%al, -533(%rbp)
+	movb	$15, -534(%rbp)
 	movq	-56(%rbp), %rax
 	leaq	8(%rax), %rdx
-	leaq	-533(%rbp), %rax
+	leaq	-534(%rbp), %rax
+	movq	%rax, %rsi
+	movq	%rdx, %rdi
+	call	array_push
+	movzbl	-560(%rbp), %eax
+	addl	$1, %eax
+	movb	%al, -535(%rbp)
+	movq	-56(%rbp), %rax
+	leaq	8(%rax), %rdx
+	leaq	-535(%rbp), %rax
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
@@ -66742,5 +66756,4 @@ main:
 	movl	$0, %eax
 	leave
 	ret
-
 	.section	.note.GNU-stack,""

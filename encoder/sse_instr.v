@@ -104,11 +104,10 @@ fn (mut e Encoder) sse_data_transfer_instr(kind InstrKind, op_code_base u8, size
 
 	source, desti := e.parse_two_operand()
 
-	instr.code << 0x0F
-
 	if source is Xmm && desti is Xmm {
 		instr.add_rex_prefix(desti.lit, '', source.lit, sizes)
 		mod_rm := compose_mod_rm(encoder.mod_regi, desti.xmm_bits(), source.xmm_bits())
+		instr.code << 0x0F
 		instr.code << op_code_base
 		instr.code << mod_rm
 		return
@@ -117,6 +116,7 @@ fn (mut e Encoder) sse_data_transfer_instr(kind InstrKind, op_code_base u8, size
 	if source is Indirection && desti is Xmm {
 		instr.add_segment_override_prefix(source)
 		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, sizes)
+		instr.code << 0x0F
 		instr.code << op_code_base
 		instr.add_modrm_sib_disp(source, desti.xmm_bits())
 		return
@@ -125,6 +125,7 @@ fn (mut e Encoder) sse_data_transfer_instr(kind InstrKind, op_code_base u8, size
 	if source is Xmm && desti is Indirection {
 		instr.add_segment_override_prefix(desti)
 		instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, sizes)
+		instr.code << 0x0F
 		instr.code << op_code_base + 1
 		instr.add_modrm_sib_disp(desti, source.xmm_bits())
 		return
