@@ -4,12 +4,16 @@ import error
 import token
 import lexer
 import strconv
+import elf
 
 pub enum InstrKind {
 	@none
 	section
 	global
 	local
+	hidden
+	internal
+	protected
 	string
 	byte
 	word
@@ -129,6 +133,7 @@ pub mut:
 	flags          		string
 	addr           		i64
 	binding        		u8
+	visibility			u8 // STV_DEFAULT, STV_INTERNAL, STV_HIDDEN, STV_PROTECTED
 	symbol_type    		u8
 	section        		string [required]
 	is_jmp_or_call      bool
@@ -241,55 +246,6 @@ pub const (
 	slash_6							= 6 // /6
 	slash_7							= 7 // /7
 
-	// section
-	elf_shf_write            		= 0x1
-	elf_shf_alloc            		= 0x2
-	elf_shf_execinstr        		= 0x4
-	elf_shf_merge            		= 0x10
-	elf_shf_strings          		= 0x20
-	elf_shf_info_link        		= 0x40
-	elf_shf_link_order       		= 0x80
-	elf_shf_os_nonconforming 		= 0x100
-	elf_shf_group            		= 0x200
-	elf_shf_tls              		= 0x400
-
-	//  rela rtype
-	r_x86_64_none	   				= u64(0)
-	r_x86_64_64		   				= u64(1)
-	r_x86_64_pc32	   				= u64(2)
-	r_x86_64_got32	   				= u64(3)
-	r_x86_64_plt32	   				= u64(4)
-	r_x86_64_copy	   				= u64(5)
-	r_x86_64_glob_dat  				= u64(6)
-	r_x86_64_jump_slot 				= u64(7)
-	r_x86_64_relative  				= u64(8)
-	r_x86_64_gotpcrel  				= u64(9)
-	r_x86_64_32		   				= u64(10)
-	r_x86_64_32s	   				= u64(11)
-	r_x86_64_16		   				= u64(12)
-	r_x86_64_pc16	   				= u64(13)
-	r_x86_64_8		   				= u64(14)
-	r_x86_64_pc8	   				= u64(15)
-	r_x86_64_pc64	   				= u64(24)
-
-	// symbol
-	stb_local            	        = 0
-	stb_global           	        = 1
-
-	stt_notype 			 			= 0
-	stt_object 			 			= 1
-	stt_func 			 			= 2
-	stt_section 		 			= 3
-	stt_file 			 			= 4
-	stt_common 			 			= 5
-	stt_tls 			 			= 6
-	stt_relc 			 			= 8
-	stt_srelc 			 			= 9
-	stt_loos 			 			= 10
-	stt_hios 			 			= 12
-	stt_loproc 			 			= 13
-	stt_hiproc 			 			= 14
-
 	r8_r15 = [
 		'R8', 'R8D', 'R8W', 'R8B',
 		'R9', 'R9D', 'R9W', 'R9B',
@@ -315,7 +271,7 @@ pub const (
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
-	default_text_section := Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: encoder.stt_section, flags: 'ax'}
+	default_text_section := Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: elf.stt_section, flags: 'ax'}
 	user_defined_symbols = {'.text': &default_text_section}
 	e := &Encoder {
 		tok: tok
@@ -807,6 +763,21 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'.LOCAL' {
 			instr := Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.next()
+			e.instrs[e.current_section] << &instr
+		}
+		'.HIDDEN' {
+			instr := Instr{kind: .hidden, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.next()
+			e.instrs[e.current_section] << &instr
+		}
+		'.INTERNAL' {
+			instr := Instr{kind: .internal, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.next()
+			e.instrs[e.current_section] << &instr
+		}
+		'.PROTECTED' {
+			instr := Instr{kind: .protected, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 			e.instrs[e.current_section] << &instr
 		}

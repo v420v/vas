@@ -1,7 +1,6 @@
 module elf
 
 import os
-import encoder
 
 pub struct Elf {
 	out_file             		string
@@ -81,7 +80,7 @@ struct Elf64_Phdr {
 pub const (
     stb_local            = 0
     stb_global           = 1
-
+	//-------------------------------
     stt_notype           = 0
     stt_object           = 1
     stt_func             = 2
@@ -95,13 +94,13 @@ pub const (
     stt_hios             = 12
     stt_loproc           = 13
     stt_hiproc           = 14
-
+	//-------------------------------
     sht_null             = 0
     sht_progbits         = 1
     sht_symtab           = 2
     sht_strtab           = 3
     sht_rela             = 4
-
+	//-------------------------------
     shf_write            = 0x1
     shf_alloc            = 0x2
     shf_execinstr        = 0x4
@@ -112,6 +111,29 @@ pub const (
     shf_os_nonconforming = 0x100
     shf_group            = 0x200
     shf_tls              = 0x400
+	//-------------------------------
+	r_x86_64_none	  	 = u64(0)
+	r_x86_64_64		  	 = u64(1)
+	r_x86_64_pc32	  	 = u64(2)
+	r_x86_64_got32	  	 = u64(3)
+	r_x86_64_plt32	  	 = u64(4)
+	r_x86_64_copy	  	 = u64(5)
+	r_x86_64_glob_dat 	 = u64(6)
+	r_x86_64_jump_slot	 = u64(7)
+	r_x86_64_relative 	 = u64(8)
+	r_x86_64_gotpcrel 	 = u64(9)
+	r_x86_64_32		  	 = u64(10)
+	r_x86_64_32s	  	 = u64(11)
+	r_x86_64_16		  	 = u64(12)
+	r_x86_64_pc16	  	 = u64(13)
+	r_x86_64_8		  	 = u64(14)
+	r_x86_64_pc8	  	 = u64(15)
+	r_x86_64_pc64	  	 = u64(24)
+	//-------------------------------
+	stv_default			 = 0
+	stv_internal		 = 1
+	stv_hidden			 = 2
+	stv_protected		 = 3
 )
 
 /*
@@ -201,8 +223,12 @@ pub fn new(out_file string, keep_locals bool) &Elf {
 	return e
 }
 
+pub fn align_to(n int, align int) int {
+	return (n + align - 1) / align * align
+}
+
 fn add_padding(mut code []u8) {
-	padding := (encoder.align_to(code.len, 16) - code.len)
+	padding := (align_to(code.len, 16) - code.len)
 	for _ in 0 .. padding {
 		code << 0
 	}
@@ -214,8 +240,8 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 			continue
 		}
 
-		if symbol.binding == encoder.stb_local {
-			if !e.keep_locals && symbol.binding == encoder.stb_local && name.to_upper().starts_with('.L') {
+		if symbol.binding == elf.stb_local {
+			if !e.keep_locals && symbol.binding == elf.stb_local && name.to_upper().starts_with('.L') {
 				continue
 			}
 			e.local_symbols_count++
@@ -236,6 +262,7 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		e.symtab << Elf64_Sym{
 			st_name: st_name
 			st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
+			st_other: symbol.visibility
 			st_shndx: st_shndx
 			st_value: symbol.addr
 		}
@@ -273,9 +300,9 @@ pub fn (mut e Elf) rela_text_users() {
 	for r in rela_text_users {
 		mut index := 0
 
-		mut r_addend := if r.rtype in [encoder.r_x86_64_32s, encoder.r_x86_64_32, encoder.r_x86_64_64, encoder.r_x86_64_32, encoder.r_x86_64_16, encoder.r_x86_64_8] {
+		mut r_addend := if r.rtype in [elf.r_x86_64_32s, elf.r_x86_64_32, elf.r_x86_64_64, elf.r_x86_64_32, elf.r_x86_64_16, elf.r_x86_64_8] {
 			i64(0)
-		} else if r.rtype in [encoder.r_x86_64_pc32] {
+		} else if r.rtype in [elf.r_x86_64_pc32] {
 			i64(r.offset - r.instr.code.len)
 		} else {
 			i64(0-4)
@@ -287,7 +314,7 @@ pub fn (mut e Elf) rela_text_users() {
 		}
 
 		if s := user_defined_symbols[r.uses] {
-			if s.binding == encoder.stb_global {
+			if s.binding == elf.stb_global {
 				index = e.symtab_symbol_indexs[r.uses]
 			} else {
 				r_addend += s.addr

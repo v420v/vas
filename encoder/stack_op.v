@@ -1,5 +1,6 @@
 module encoder
 
+import elf
 import error
 import encoding.binary
 
@@ -63,7 +64,7 @@ fn (mut e Encoder) push() {
 				uses: used_symbols[0],
 				instr: &instr,
 				offset: 0x1,
-				rtype: encoder.r_x86_64_32s,
+				rtype: elf.r_x86_64_32s,
 				adjust: imm_val,
 			}
 		} else {
@@ -94,7 +95,7 @@ fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) 
 			uses: desti.lit,
 			instr: &instr,
 			offset: rel32_offset,
-			rtype: encoder.r_x86_64_32s,
+			rtype: elf.r_x86_64_32s,
 			adjust: 0,
 		}
 		return
@@ -138,7 +139,7 @@ fn (mut e Encoder) call() {
 			offset: 1,
 			uses:   used_symbols[0],
 			adjust: adjust,
-			rtype:   encoder.r_x86_64_plt32
+			rtype:   elf.r_x86_64_plt32
 		}
 	}
 }

@@ -60,7 +60,6 @@ fn main() {
 	mut en := encoder.new(mut l, file_name)
 	en.encode()
 	en.assign_addresses()
-	en.fix_same_section_relocations()
 
 	mut e := elf.new(out_file, keep_locals)
 	e.collect_rela_symbols()

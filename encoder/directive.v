@@ -2,12 +2,13 @@ module encoder
 
 import token
 import error
+import elf
 import encoding.binary
 
 fn (mut e Encoder) add_section(name string, flag string, pos token.Position) {
 	e.current_section = name
 
-	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: encoder.stt_section, flags: flag}
+	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: elf.stt_section, flags: flag}
 	e.instrs[e.current_section] << &instr
 
 	if s := user_defined_symbols[name] {
@@ -75,7 +76,7 @@ fn (mut e Encoder) byte() {
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
-			rtype: encoder.r_x86_64_8
+			rtype: elf.r_x86_64_8
 		}
 		instr.code = [u8(0)]
 	} else {
@@ -101,7 +102,7 @@ fn (mut e Encoder) word() {
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
-			rtype: encoder.r_x86_64_16
+			rtype: elf.r_x86_64_16
 		}
 		instr.code = [u8(0), 0]
 	} else {
@@ -129,7 +130,7 @@ fn (mut e Encoder) long() {
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
-			rtype: encoder.r_x86_64_32
+			rtype: elf.r_x86_64_32
 		}
 		instr.code = [u8(0), 0, 0, 0]
 	} else {
@@ -157,7 +158,7 @@ fn (mut e Encoder) quad() {
 			uses: used_symbols[0],
 			instr: &instr,
 			adjust: adjust,
-			rtype: encoder.r_x86_64_64
+			rtype: elf.r_x86_64_64
 		}
 		instr.code = [u8(0), 0, 0, 0, 0, 0, 0, 0]
 		rela_text_users << rela

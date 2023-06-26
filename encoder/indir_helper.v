@@ -1,6 +1,7 @@
 module encoder
 
 import error
+import elf
 import encoding.binary
 
 fn (mut instr Instr) add_segment_override_prefix(indir Indirection) {
@@ -125,11 +126,11 @@ fn (mut instr Instr) add_modrm_sib_disp(indir Indirection, index u8) {
 	// disp
 	if disp_need_rela {
 		rtype := if base_is_ip {
-			encoder.r_x86_64_pc32
+			elf.r_x86_64_pc32
 		} else if indir.base.size == .suffix_quad {
-			encoder.r_x86_64_32s
+			elf.r_x86_64_32s
 		} else {
-			encoder.r_x86_64_32	
+			elf.r_x86_64_32	
 		}
 		rela := encoder.Rela{
 			instr:  unsafe{ instr }

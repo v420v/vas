@@ -1,25 +1,26 @@
 module encoder
 
 import error
+import elf
 import encoding.binary
 
 fn (mut instr Instr) add_imm_rela(symbol string, imm_val int, size DataSize) {
 	mut rela := Rela{ uses: symbol, instr: unsafe{ instr }, adjust: imm_val, offset: instr.code.len }
 	match size {
 		.suffix_byte {
-			rela.rtype = encoder.r_x86_64_8
+			rela.rtype = elf.r_x86_64_8
 			instr.code << u8(0)
 		}
 		.suffix_word {
-			rela.rtype = encoder.r_x86_64_16
+			rela.rtype = elf.r_x86_64_16
 			instr.code << [u8(0), 0]
 		}
 		.suffix_long {
-			rela.rtype = encoder.r_x86_64_32
+			rela.rtype = elf.r_x86_64_32
 			instr.code << [u8(0), 0, 0, 0]
 		}
 		.suffix_quad {
-			rela.rtype = encoder.r_x86_64_32s
+			rela.rtype = elf.r_x86_64_32s
 			instr.code << [u8(0), 0, 0, 0]
 		} else {}
 	}
@@ -240,7 +241,7 @@ fn (mut e Encoder) movabsq() {
 				adjust: int(imm_val),
 				offset: instr.code.len,
 			}
-			rela.rtype = encoder.r_x86_64_64
+			rela.rtype = elf.r_x86_64_64
 			instr.code << [u8(0), 0, 0, 0, 0, 0, 0, 0]
 			rela_text_users << rela
 		} else {
@@ -774,7 +775,7 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 				instr: &instr,
 				adjust: imm_val,
 				offset: instr.code.len,
-				rtype: encoder.r_x86_64_8,
+				rtype: elf.r_x86_64_8,
 			}
 			rela_text_users << rela
 			instr.code << 0
