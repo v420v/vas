@@ -304,7 +304,7 @@ fn regi_size(name string) ?DataSize {
 	if name in ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI', 'IP', 'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W'] {
 		return .suffix_word
 	}
-	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'CH', 'DH', 'BH', 'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B'] {
+	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'CH', 'DH', 'BH', 'SIL', 'DIL', 'SPL', 'BPL', 'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B'] {
 		return .suffix_byte
 	}
 
@@ -433,9 +433,7 @@ fn (mut e Encoder) parse_operand() Expr {
                 disp: expr,
                 pos: pos,
             }
-			if e.tok.kind == .comma {
-				indirection.has_base = false
-			} else {
+			if e.tok.kind != .comma {
 				indirection.has_base = true
 				indirection.base = e.parse_register()
 			}
@@ -614,16 +612,16 @@ fn (regi Register) regi_bits() u8 {
 		'RBX', 'EBX', 'BX', 'BL', 'R11', 'R11D', 'R11W', 'R11B' {
 			return 3
 		}
-		'RSP', 'ESP', 'SP', 'AH', 'R12', 'R12D', 'R12W', 'R12B' {
+		'RSP', 'ESP', 'SP', 'AH', 'SPL', 'R12', 'R12D', 'R12W', 'R12B' {
 			return 4
 		}
-		'RBP', 'EBP', 'BP', 'CH', 'R13', 'R13D', 'R13W', 'R13B' {
+		'RBP', 'EBP', 'BP', 'CH', 'BPL', 'R13', 'R13D', 'R13W', 'R13B' {
 			return 5
 		}
-		'RSI', 'ESI', 'SI', 'DH', 'R14', 'R14D', 'R14W', 'R14B' {
+		'RSI', 'ESI', 'SI', 'DH', 'SIL', 'R14', 'R14D', 'R14W', 'R14B' {
 			return 6
 		}
-		'RDI', 'EDI', 'DI', 'BH', 'R15', 'R15D', 'R15W', 'R15B' {
+		'RDI', 'EDI', 'DI', 'BH', 'DIL', 'R15', 'R15D', 'R15W', 'R15B' {
 			return 7
 		} else {
 			panic('unreachable')
@@ -673,17 +671,16 @@ fn rex(w u8, r u8, x u8, b u8) u8 {
 	return 64 | (w << 3) | (r << 2) | (x << 1) | b
 }
 
+// TODO: clean up later...
 fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
 	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
 
 	if regi_r in xmm8_xmm15 || regi_r in r8_r15 {
 		r = 1
 	}
-
 	if regi_i in xmm8_xmm15 || regi_i in r8_r15 {
 		x = 1
 	}
-
 	if regi_b in xmm8_xmm15 || regi_b in r8_r15 {
 		b = 1
 	}
@@ -701,7 +698,9 @@ fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string,
 		w = 1
 	}
 
-	if w != 0 || r != 0 || b != 0 || x != 0 {
+	rex_required := regi_b in ['SIL', 'DIL', 'BPL', 'SPL'] || regi_r in ['SIL', 'DIL', 'BPL', 'SPL']
+
+	if w != 0 || r != 0 || b != 0 || x != 0 || rex_required {
 		instr.code << rex(w, r, x, b)
 	}
 }
@@ -757,29 +756,24 @@ fn (mut e Encoder) encode_instr() {
 			e.add_section('.bss', 'wa', pos)
 		}
 		'.GLOBAL', '.GLOBL' {
-			instr := Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs[e.current_section] << &Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
-			e.instrs[e.current_section] << &instr
 		}
 		'.LOCAL' {
-			instr := Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs[e.current_section] << &Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
-			e.instrs[e.current_section] << &instr
 		}
 		'.HIDDEN' {
-			instr := Instr{kind: .hidden, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs[e.current_section] << &Instr{kind: .hidden, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
-			e.instrs[e.current_section] << &instr
 		}
 		'.INTERNAL' {
-			instr := Instr{kind: .internal, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs[e.current_section] << &Instr{kind: .internal, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
-			e.instrs[e.current_section] << &instr
 		}
 		'.PROTECTED' {
-			instr := Instr{kind: .protected, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs[e.current_section] << &Instr{kind: .protected, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
-			e.instrs[e.current_section] << &instr
 		}
 		'.STRING' {
 			e.string()
