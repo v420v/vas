@@ -117,9 +117,7 @@ fn (mut instr Instr) add_modrm_sib_disp(indir Indirection, index u8) {
 		} else {
 			instr.code << 0x5 + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
 		}
-	}
-
-	if base_is_sp && !indir.has_index_scale {
+	} else if base_is_sp {
 		instr.code << 0x24
 	}
 

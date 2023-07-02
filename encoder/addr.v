@@ -76,40 +76,37 @@ fn fix_same_section_relocations() {
 }
 
 pub fn (mut e Encoder) assign_addresses() {
-	for name, mut instrs in e.instrs {
-		if name !in user_defined_sections {
-			user_defined_sections[name] = &UserDefinedSection{}
+	for mut instr in e.instrs {
+		if instr.section !in user_defined_sections {
+			user_defined_sections[instr.section] = &UserDefinedSection{}
 		}
-		mut section := user_defined_sections[name] or {
+		mut section := user_defined_sections[instr.section] or {
 			panic('this should not happen')
 		}
-
-		for mut i in instrs {
-			match i.kind {
-				.section {
-					section.flags = section_flags(i.flags)
-				}
-				.global {
-					change_symbol_binding(*i, elf.stb_global)
-				}
-				.local {
-					change_symbol_binding(*i, elf.stb_local)
-				}
-				.hidden {
-					change_symbol_visibility(*i, elf.stv_hidden)
-				}
-				.internal {
-					change_symbol_visibility(*i, elf.stv_internal)
-				}
-				.protected {
-					change_symbol_visibility(*i, elf.stv_protected)
-				} else {}
+		match instr.kind {
+			.section {
+				section.flags = section_flags(instr.flags)
 			}
-
-			i.addr = section.addr
-			section.addr += i.code.len
-			section.code << i.code
+			.global {
+				change_symbol_binding(*instr, elf.stb_global)
+			}
+			.local {
+				change_symbol_binding(*instr, elf.stb_local)
+			}
+			.hidden {
+				change_symbol_visibility(*instr, elf.stv_hidden)
+			}
+			.internal {
+				change_symbol_visibility(*instr, elf.stv_internal)
+			}
+			.protected {
+				change_symbol_visibility(*instr, elf.stv_protected)
+			} else {}
 		}
+
+		instr.addr = section.addr
+		section.addr += instr.code.len
+		section.code << instr.code
 	}
 
 	fix_same_section_relocations()

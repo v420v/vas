@@ -9,7 +9,7 @@ fn (mut e Encoder) add_section(name string, flag string, pos token.Position) {
 	e.current_section = name
 
 	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: elf.stt_section, flags: flag}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	if s := user_defined_symbols[name] {
 		if s.kind == .label {
@@ -36,7 +36,7 @@ fn (mut e Encoder) section() {
 
 fn (mut e Encoder) zero() {
 	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	operand := e.parse_operand()
 
@@ -49,7 +49,7 @@ fn (mut e Encoder) zero() {
 
 fn (mut e Encoder) string() {
 	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	value := e.tok.lit
 	e.expect(.string)
@@ -60,7 +60,7 @@ fn (mut e Encoder) string() {
 
 fn (mut e Encoder) byte() {
 	mut instr := Instr{kind: .byte, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	desti := e.parse_operand()
 
@@ -86,7 +86,7 @@ fn (mut e Encoder) byte() {
 
 fn (mut e Encoder) word() {
 	mut instr := Instr{kind: .word, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	desti := e.parse_operand()
 
@@ -114,7 +114,7 @@ fn (mut e Encoder) word() {
 
 fn (mut e Encoder) long() {
 	mut instr := Instr{kind: .long, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	desti := e.parse_operand()
 
@@ -142,7 +142,7 @@ fn (mut e Encoder) long() {
 
 fn (mut e Encoder) quad() {
 	mut instr := Instr{kind: .quad, pos: e.tok.pos, section: e.current_section}
-	e.instrs[e.current_section] << &instr
+	e.instrs << &instr
 
 	desti := e.parse_operand()
 

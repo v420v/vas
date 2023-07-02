@@ -118,11 +118,11 @@ pub enum InstrKind {
 
 pub struct Encoder {
 mut:
-	tok					token.Token						// current token
-	l  					lexer.Lexer						// lexer
+	tok					token.Token	// current token
+	l  					lexer.Lexer	// lexer
 pub mut:
 	current_section		string
-	instrs         		map[string][]&Instr 			// map with section name as keys and instruction list as value
+	instrs         		[]&Instr
 }
 
 pub struct Instr {
@@ -246,7 +246,7 @@ pub const (
 	slash_6							= 6 // /6
 	slash_7							= 7 // /7
 
-	r8_r15 = [
+	regi_base_code_offset_over_8 = [
 		'R8', 'R8D', 'R8W', 'R8B',
 		'R9', 'R9D', 'R9W', 'R9B',
 		'R10', 'R10D', 'R10W', 'R10B',
@@ -255,30 +255,21 @@ pub const (
 		'R13', 'R13D', 'R13W', 'R13B',
 		'R14', 'R14D', 'R14W', 'R14B',
 		'R15', 'R15D', 'R15W', 'R15B',
-	]
-
-	xmm8_xmm15 = [
-		'XMM8',
-		'XMM9',
-		'XMM10',
-		'XMM11',
-		'XMM12',
-		'XMM13',
-		'XMM14',
-		'XMM15',
+		'XMM8', 'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15',
 	]
 )
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
-	default_text_section := Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: elf.stt_section, flags: 'ax'}
-	user_defined_symbols = {'.text': &default_text_section}
-	e := &Encoder {
+	default_text_section := &Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: elf.stt_section, flags: 'ax'}
+	user_defined_symbols = {'.text': default_text_section}
+	mut e := &Encoder {
 		tok: tok
 		l: l
 		current_section: '.text'
-		instrs: {'.text': [&default_text_section]}
+		instrs: []&Instr{cap: 1500000}
 	}
+	e.instrs << default_text_section
 	return e
 }
 
@@ -671,17 +662,16 @@ fn rex(w u8, r u8, x u8, b u8) u8 {
 	return 64 | (w << 3) | (r << 2) | (x << 1) | b
 }
 
-// TODO: clean up later...
 fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
 	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
 
-	if regi_r in xmm8_xmm15 || regi_r in r8_r15 {
+	if regi_r in regi_base_code_offset_over_8 {
 		r = 1
 	}
-	if regi_i in xmm8_xmm15 || regi_i in r8_r15 {
+	if regi_i in regi_base_code_offset_over_8 {
 		x = 1
 	}
-	if regi_b in xmm8_xmm15 || regi_b in r8_r15 {
+	if regi_b in regi_base_code_offset_over_8 {
 		b = 1
 	}
 
@@ -698,14 +688,12 @@ fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string,
 		w = 1
 	}
 
-	rex_required := regi_b in ['SIL', 'DIL', 'BPL', 'SPL'] || regi_r in ['SIL', 'DIL', 'BPL', 'SPL']
-
-	if w != 0 || r != 0 || b != 0 || x != 0 || rex_required {
+	if w != 0 || r != 0 || b != 0 || x != 0 || (regi_b in ['SIL', 'DIL', 'BPL', 'SPL'] || regi_r in ['SIL', 'DIL', 'BPL', 'SPL']) {
 		instr.code << rex(w, r, x, b)
 	}
 }
 
-pub fn align_to(n int, align int) int {
+fn align_to(n int, align int) int {
 	return (n + align - 1) / align * align
 }
 
@@ -738,7 +726,7 @@ fn (mut e Encoder) encode_instr() {
 		}
 
 		user_defined_symbols[instr_name] = &instr
-		e.instrs[e.current_section] << &instr
+		e.instrs << &instr
 		return
 	}
 
@@ -756,23 +744,23 @@ fn (mut e Encoder) encode_instr() {
 			e.add_section('.bss', 'wa', pos)
 		}
 		'.GLOBAL', '.GLOBL' {
-			e.instrs[e.current_section] << &Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 		}
 		'.LOCAL' {
-			e.instrs[e.current_section] << &Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 		}
 		'.HIDDEN' {
-			e.instrs[e.current_section] << &Instr{kind: .hidden, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{kind: .hidden, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 		}
 		'.INTERNAL' {
-			e.instrs[e.current_section] << &Instr{kind: .internal, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{kind: .internal, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 		}
 		'.PROTECTED' {
-			e.instrs[e.current_section] << &Instr{kind: .protected, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{kind: .protected, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
 			e.next()
 		}
 		'.STRING' {
@@ -1076,31 +1064,31 @@ fn (mut e Encoder) encode_instr() {
 			e.cmov(.cmovge, [u8(0x0F), 0x4D], get_size_by_suffix(instr_name_upper))
 		}
 		'RETQ', 'RET' {
-			e.instrs[e.current_section] << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+			e.instrs << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
 		}
 		'SYSCALL' {
-			e.instrs[e.current_section] << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
+			e.instrs << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
 		}
 		'NOPQ', 'NOP' {
-			e.instrs[e.current_section] << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
+			e.instrs << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
 		}
 		'HLT' {
-			e.instrs[e.current_section] << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
+			e.instrs << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
 		}
 		'LEAVE' {
-			e.instrs[e.current_section] << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+			e.instrs << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
 		}
 		'CLTQ' {
-			e.instrs[e.current_section] << &Instr{kind: .cltq, pos: pos, section: e.current_section, code: [u8(0x48), 0x98]}
+			e.instrs << &Instr{kind: .cltq, pos: pos, section: e.current_section, code: [u8(0x48), 0x98]}
 		}
 		'CLTD' {
-			e.instrs[e.current_section] << &Instr{kind: .cltd, pos: pos, section: e.current_section, code: [u8(0x99)]}
+			e.instrs << &Instr{kind: .cltd, pos: pos, section: e.current_section, code: [u8(0x99)]}
 		}
 		'CQTO' {
-			e.instrs[e.current_section] << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
+			e.instrs << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
 		}
 		'CWTL' {
-			e.instrs[e.current_section] << &Instr{kind: .cwtl, pos: pos, section: e.current_section, code: [u8(0x98)]}
+			e.instrs << &Instr{kind: .cwtl, pos: pos, section: e.current_section, code: [u8(0x98)]}
 		}
 		else {
 			error.print(pos, 'unkwoun instruction `$instr_name`')
