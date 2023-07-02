@@ -1,25 +1,24 @@
 module encoder
 
-import elf
+import elf.header
 import error
 
 fn (mut e Encoder) pop() {
-	mut instr := Instr{kind: .pop, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.pop)
 
 	source := e.parse_operand()
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		instr.add_rex_prefix('', '', source.lit, [])
-		instr.code << [0x58 + source.regi_bits()%8]
+		e.add_rex_prefix('', '', source.lit, [])
+		e.current_instr.code << [0x58 + source.regi_bits()%8]
 		return
 	}
 	if source is Indirection {
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix('', source.index.lit, source.base.lit, [])
-		instr.code << 0x8f // op_code
-		instr.add_modrm_sib_disp(source, encoder.slash_0)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix('', source.index.lit, source.base.lit, [])
+		e.current_instr.code << 0x8f // op_code
+		e.add_modrm_sib_disp(source, encoder.slash_0)
 		return
 	}
 
@@ -28,23 +27,22 @@ fn (mut e Encoder) pop() {
 }
 
 fn (mut e Encoder) push() {
-	mut instr := Instr{kind: .push, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.push)
 
 	source := e.parse_operand()
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		instr.add_rex_prefix('', '', source.lit, [])
+		e.add_rex_prefix('', '', source.lit, [])
 		source.check_regi_size(.suffix_quad)
-		instr.code << [0x50 + source.regi_bits()%8]
+		e.current_instr.code << [0x50 + source.regi_bits()%8]
 		return
 	}
 	if source is Indirection {
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix('', source.index.lit, source.base.lit, [])
-		instr.code << 0xff // op_code
-		instr.add_modrm_sib_disp(source, encoder.slash_6)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix('', source.index.lit, source.base.lit, [])
+		e.current_instr.code << 0xff // op_code
+		e.add_modrm_sib_disp(source, encoder.slash_6)
 		return
 	}
 	if source is Immediate {
@@ -55,7 +53,7 @@ fn (mut e Encoder) push() {
 			exit(1)
 		}
 
-		instr.code << if is_in_i8_range(imm_val) {
+		e.current_instr.code << if is_in_i8_range(imm_val) {
 			u8(0x6A)
 		} else {
 			u8(0x68)
@@ -64,9 +62,9 @@ fn (mut e Encoder) push() {
 		imm_need_rela := used_symbols.len == 1
 
 		if imm_need_rela {
-			instr.add_imm_rela(used_symbols[0], imm_val, DataSize.suffix_quad)
+			e.add_imm_rela(used_symbols[0], imm_val, DataSize.suffix_quad)
 		} else {
-			instr.add_imm_value(imm_val, DataSize.suffix_quad)
+			e.add_imm_value(imm_val, DataSize.suffix_quad)
 		}
 		return
 	}
@@ -76,26 +74,26 @@ fn (mut e Encoder) push() {
 }
 
 fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) {
-	mut instr := Instr{kind: kind, section: e.current_section, is_jmp_or_call: true, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(kind)
+	e.current_instr.is_jmp_or_call = true
 
 	desti := e.parse_operand()
 
 	if desti is Ident {
-		instr.code << rel32_code
-		rela_text_users << &Rela{
+		e.current_instr.code << rel32_code
+		e.rela_text_users << &Rela{
 			uses: desti.lit,
-			instr: &instr,
+			instr: e.current_instr,
 			offset: rel32_offset,
-			rtype: elf.r_x86_64_32s,
+			rtype: header.r_x86_64_32s,
 			adjust: 0,
 		}
 		return
 	}
 	if desti is Star {
 		desti.regi.check_regi_size(DataSize.suffix_quad)
-		instr.add_rex_prefix('', '', desti.regi.lit, [])
-		instr.code << [u8(0xFF), 0xE0 + desti.regi.regi_bits()%8]
+		e.add_rex_prefix('', '', desti.regi.lit, [])
+		e.current_instr.code << [u8(0xFF), 0xE0 + desti.regi.regi_bits()%8]
 		return
 	}
 
@@ -104,17 +102,17 @@ fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) 
 }
 
 fn (mut e Encoder) call() {
-	mut instr := Instr{kind: .call, pos: e.tok.pos, section: e.current_section, is_jmp_or_call: true}
-	e.instrs << &instr
+	e.set_current_instr(.call)
+	e.current_instr.is_jmp_or_call = true
 
 	desti := e.parse_operand()
 
 	if desti is Star {
 		desti.regi.check_regi_size(DataSize.suffix_quad)
-		instr.add_rex_prefix('', '', desti.regi.lit, [])
-		instr.code << [u8(0xFF), 0xD0 + desti.regi.regi_bits()%8]
+		e.add_rex_prefix('', '', desti.regi.lit, [])
+		e.current_instr.code << [u8(0xFF), 0xD0 + desti.regi.regi_bits()%8]
 	} else {
-		instr.code << [u8(0xe8), 0, 0, 0, 0]
+		e.current_instr.code << [u8(0xe8), 0, 0, 0, 0]
 		mut used_symbols := []string{}
 		adjust := eval_expr_get_symbol(desti, mut used_symbols)
 		if used_symbols.len >= 2 {
@@ -122,12 +120,12 @@ fn (mut e Encoder) call() {
 			exit(1)
 		}
 
-		rela_text_users << encoder.Rela{
-			instr:  &instr,
+		e.rela_text_users << encoder.Rela{
+			instr:  e.current_instr,
 			offset: 1,
 			uses:   used_symbols[0],
 			adjust: adjust,
-			rtype:   elf.r_x86_64_plt32
+			rtype:   header.r_x86_64_plt32
 		}
 	}
 }

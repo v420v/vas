@@ -2,22 +2,22 @@ module encoder
 
 import token
 import error
-import elf
+import elf.header
 import encoding.binary
 
 fn (mut e Encoder) add_section(name string, flag string, pos token.Position) {
 	e.current_section = name
 
-	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: elf.stt_section, flags: flag}
+	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: header.stt_section, flags: flag}
 	e.instrs << &instr
 
-	if s := user_defined_symbols[name] {
+	if s := e.user_defined_symbols[name] {
 		if s.kind == .label {
 			error.print(pos, 'symbol `$name` is already defined')
 			exit(1)
 		}
 	} else {
-		user_defined_symbols[name] = &instr
+		e.user_defined_symbols[name] = &instr
 	}
 }
 
@@ -35,32 +35,29 @@ fn (mut e Encoder) section() {
 }
 
 fn (mut e Encoder) zero() {
-	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
-	e.instrs << &instr
+	e.set_current_instr(.zero)
 
 	operand := e.parse_operand()
 
 	n := eval_expr(operand)
 
 	for _ in 0..n {
-		instr.code << 0
+		e.current_instr.code << 0
 	}
 }
 
 fn (mut e Encoder) string() {
-	mut instr := Instr{kind: .string, pos: e.tok.pos, section: e.current_section}
-	e.instrs << &instr
+	e.set_current_instr(.string)
 
 	value := e.tok.lit
 	e.expect(.string)
 
-	instr.code = value.bytes()
-	instr.code << 0x00
+	e.current_instr.code = value.bytes()
+	e.current_instr.code << 0x00
 }
 
 fn (mut e Encoder) byte() {
-	mut instr := Instr{kind: .byte, pos: e.tok.pos, section: e.current_section}
-	e.instrs << &instr
+	e.set_current_instr(.byte)
 
 	desti := e.parse_operand()
 
@@ -72,21 +69,20 @@ fn (mut e Encoder) byte() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users << &Rela{
+		e.rela_text_users << &Rela{
 			uses: used_symbols[0],
-			instr: &instr,
+			instr: e.current_instr,
 			adjust: adjust,
-			rtype: elf.r_x86_64_8
+			rtype: header.r_x86_64_8
 		}
-		instr.code = [u8(0)]
+		e.current_instr.code = [u8(0)]
 	} else {
-		instr.code << u8(adjust)
+		e.current_instr.code << u8(adjust)
 	}
 }
 
 fn (mut e Encoder) word() {
-	mut instr := Instr{kind: .word, pos: e.tok.pos, section: e.current_section}
-	e.instrs << &instr
+	e.set_current_instr(.word)
 
 	desti := e.parse_operand()
 
@@ -98,23 +94,22 @@ fn (mut e Encoder) word() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users << &Rela{
+		e.rela_text_users << &Rela{
 			uses: used_symbols[0],
-			instr: &instr,
+			instr: e.current_instr,
 			adjust: adjust,
-			rtype: elf.r_x86_64_16
+			rtype: header.r_x86_64_16
 		}
-		instr.code = [u8(0), 0]
+		e.current_instr.code = [u8(0), 0]
 	} else {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(adjust))
-		instr.code = hex
+		e.current_instr.code = hex
 	}
 }
 
 fn (mut e Encoder) long() {
-	mut instr := Instr{kind: .long, pos: e.tok.pos, section: e.current_section}
-	e.instrs << &instr
+	e.set_current_instr(.long)
 
 	desti := e.parse_operand()
 
@@ -126,23 +121,22 @@ fn (mut e Encoder) long() {
 	}
 
 	if used_symbols.len == 1 {
-		rela_text_users << &Rela{
+		e.rela_text_users << &Rela{
 			uses: used_symbols[0],
-			instr: &instr,
+			instr: e.current_instr,
 			adjust: adjust,
-			rtype: elf.r_x86_64_32
+			rtype: header.r_x86_64_32
 		}
-		instr.code = [u8(0), 0, 0, 0]
+		e.current_instr.code = [u8(0), 0, 0, 0]
 	} else {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(adjust))
-		instr.code = hex
+		e.current_instr.code = hex
 	}
 }
 
 fn (mut e Encoder) quad() {
-	mut instr := Instr{kind: .quad, pos: e.tok.pos, section: e.current_section}
-	e.instrs << &instr
+	e.set_current_instr(.quad)
 
 	desti := e.parse_operand()
 
@@ -156,16 +150,16 @@ fn (mut e Encoder) quad() {
 	if used_symbols.len == 1 {
 		rela := &Rela{
 			uses: used_symbols[0],
-			instr: &instr,
+			instr: e.current_instr,
 			adjust: adjust,
-			rtype: elf.r_x86_64_64
+			rtype: header.r_x86_64_64
 		}
-		instr.code = [u8(0), 0, 0, 0, 0, 0, 0, 0]
-		rela_text_users << rela
+		e.current_instr.code = [u8(0), 0, 0, 0, 0, 0, 0, 0]
+		e.rela_text_users << rela
 	} else {
 		mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
 		binary.little_endian_put_u64(mut &hex, u64(adjust))
-		instr.code = hex
+		e.current_instr.code = hex
 	}
 }
 

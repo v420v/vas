@@ -1,12 +1,12 @@
 module encoder
 
 import error
-import elf
+import elf.header
 import encoding.binary
 
-fn (mut instr Instr) add_segment_override_prefix(indir Indirection) {
+fn (mut e Encoder) add_segment_override_prefix(indir Indirection) {
 	if indir.base.size == .suffix_long || indir.index.size == .suffix_long {
-		instr.code << 0x67
+		e.current_instr.code << 0x67
 	}
 }
 
@@ -49,7 +49,7 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 	}
 }
 
-fn (mut instr Instr) add_modrm_sib_disp(indir Indirection, index u8) {
+fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 	if !indir.has_base && !indir.has_index_scale {
 		error.print(indir.pos, 'syntax not supported yet. `disp(,,)`')
 		exit(1)
@@ -77,29 +77,29 @@ fn (mut instr Instr) add_modrm_sib_disp(indir Indirection, index u8) {
 		}
 
 		if !indir.has_base {
-			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
 		} else if disp_need_rela {
-			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
 		} else if disp == 0 && !base_is_bp {
-			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
 		} else if is_in_i8_range(disp) {
-			instr.code << compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
 		} else if is_in_i32_range(disp) {
-			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
 		} else {
 			panic('disp out range!')
 		}
 	} else {
 		if base_is_ip {
-			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
 		} else if disp_need_rela {
-			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.regi_bits())
 		} else if disp == 0 && !base_is_bp {
-			instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, indir.base.regi_bits())
 		} else if is_in_i8_range(disp) {
-			instr.code << compose_mod_rm(mod_indirection_with_disp8, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, indir.base.regi_bits())
 		} else if is_in_i32_range(disp) {
-			instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.regi_bits())
 		} else {
 			panic('disp out range!')
 		}
@@ -113,48 +113,48 @@ fn (mut instr Instr) add_modrm_sib_disp(indir Indirection, index u8) {
 			exit(0)
 		}
 		if indir.has_base {
-			instr.code << indir.base.regi_bits() + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
+			e.current_instr.code << indir.base.regi_bits() + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
 		} else {
-			instr.code << 0x5 + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
+			e.current_instr.code << 0x5 + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
 		}
 	} else if base_is_sp {
-		instr.code << 0x24
+		e.current_instr.code << 0x24
 	}
 
 	// disp
 	if disp_need_rela {
 		rtype := if base_is_ip {
-			elf.r_x86_64_pc32
+			header.r_x86_64_pc32
 		} else if indir.base.size == .suffix_quad {
-			elf.r_x86_64_32s
+			header.r_x86_64_32s
 		} else {
-			elf.r_x86_64_32	
+			header.r_x86_64_32	
 		}
 		rela := encoder.Rela{
-			instr:  unsafe{ instr }
+			instr: e.current_instr
 			uses:   used_symbols[0]
-			offset: instr.code.len
+			offset: e.current_instr.code.len
 			rtype:  u64(rtype)
 			adjust: eval_expr(indir.disp)
 		}
-		rela_text_users << rela
-		instr.code << [u8(0), 0, 0, 0]
+		e.rela_text_users << rela
+		e.current_instr.code << [u8(0), 0, 0, 0]
 	} else {
 		if !indir.has_base {
 			mut hex := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut &hex, u32(disp))
-			instr.code << hex
+			e.current_instr.code << hex
 		} else if disp != 0 || base_is_ip || base_is_bp {
 			if base_is_ip {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(disp))
-				instr.code << hex
+				e.current_instr.code << hex
 			} else if is_in_i8_range(disp) {
-				instr.code << u8(disp)
+				e.current_instr.code << u8(disp)
 			} else if is_in_i32_range(disp) {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(disp))
-				instr.code << hex
+				e.current_instr.code << hex
 			}
 		}
 	}

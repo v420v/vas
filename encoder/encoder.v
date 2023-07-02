@@ -4,7 +4,7 @@ import error
 import token
 import lexer
 import strconv
-import elf
+import elf.header
 
 pub enum InstrKind {
 	@none
@@ -19,6 +19,7 @@ pub enum InstrKind {
 	word
 	long
 	quad
+	zero
 	add
 	sub
 	instr_or
@@ -118,11 +119,15 @@ pub enum InstrKind {
 
 pub struct Encoder {
 mut:
-	tok					token.Token	// current token
-	l  					lexer.Lexer	// lexer
+	tok	token.Token	// current token
+	l  	lexer.Lexer	// lexer
 pub mut:
-	current_section		string
-	instrs         		[]&Instr
+	current_section		   	string
+	current_instr          	&Instr
+	instrs         		   	[]&Instr
+	rela_text_users			[]Rela
+	user_defined_symbols	map[string]&Instr
+	user_defined_sections	map[string]&UserDefinedSection
 }
 
 pub struct Instr {
@@ -236,15 +241,15 @@ pub const (
 	mod_indirection_with_disp32 	= u8(2)
 	mod_regi						= u8(3)
 	rex_w   						= u8(0x48)
-	operand_size_prefix16           = u8(0x66)
-	slash_0							= 0 // /0
-	slash_1							= 1 // /1
-	slash_2							= 2 // /2
-	slash_3							= 3 // /3
-	slash_4							= 4 // /4
-	slash_5							= 5 // /5
-	slash_6							= 6 // /6
-	slash_7							= 7 // /7
+	operand_size_prefix16          	= u8(0x66)
+	slash_0						= 0 // /0
+	slash_1						= 1 // /1
+	slash_2						= 2 // /2
+	slash_3						= 3 // /3
+	slash_4						= 4 // /4
+	slash_5						= 5 // /5
+	slash_6						= 6 // /6
+	slash_7						= 7 // /7
 
 	regi_base_code_offset_over_8 = [
 		'R8', 'R8D', 'R8W', 'R8B',
@@ -261,16 +266,27 @@ pub const (
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
-	default_text_section := &Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: elf.stt_section, flags: 'ax'}
-	user_defined_symbols = {'.text': default_text_section}
+	default_text_section := &Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: header.stt_section, flags: 'ax'}
 	mut e := &Encoder {
 		tok: tok
 		l: l
 		current_section: '.text'
 		instrs: []&Instr{cap: 1500000}
+		current_instr: unsafe{ nil }
+		user_defined_symbols: {'.text': default_text_section}
 	}
 	e.instrs << default_text_section
 	return e
+}
+
+fn (mut e Encoder) set_current_instr(kind InstrKind) {
+	instr := &Instr{
+		pos: e.tok.pos
+		kind: kind
+		section: e.current_section
+	}
+	e.current_instr = instr
+	e.instrs << instr
 }
 
 fn (mut e Encoder) next() {
@@ -662,7 +678,7 @@ fn rex(w u8, r u8, x u8, b u8) u8 {
 	return 64 | (w << 3) | (r << 2) | (x << 1) | b
 }
 
-fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
+fn (mut e Encoder) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
 	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
 
 	if regi_r in regi_base_code_offset_over_8 {
@@ -676,20 +692,20 @@ fn (mut instr Instr) add_rex_prefix(regi_r string, regi_i string, regi_b string,
 	}
 
 	if DataSize.suffix_word in sizes {
-		instr.code << operand_size_prefix16
+		e.current_instr.code << operand_size_prefix16
 	}
 	if DataSize.suffix_single in sizes {
-		instr.code << 0xF3
+		e.current_instr.code << 0xF3
 	}
 	if DataSize.suffix_double in sizes {
-		instr.code << 0xF2
+		e.current_instr.code << 0xF2
 	}
 	if DataSize.suffix_quad in sizes {
 		w = 1
 	}
 
 	if w != 0 || r != 0 || b != 0 || x != 0 || (regi_b in ['SIL', 'DIL', 'BPL', 'SPL'] || regi_r in ['SIL', 'DIL', 'BPL', 'SPL']) {
-		instr.code << rex(w, r, x, b)
+		e.current_instr.code << rex(w, r, x, b)
 	}
 }
 
@@ -720,12 +736,12 @@ fn (mut e Encoder) encode_instr() {
 		instr := Instr{kind: .label, pos: pos, section: e.current_section, symbol_name: instr_name}
 		e.expect(.colon)
 
-		if instr_name in user_defined_symbols || instr_name == '.text' {
+		if instr_name in e.user_defined_symbols {
 			error.print(pos, 'symbol `$instr_name` is already defined')
 			exit(1)
 		}
 
-		user_defined_symbols[instr_name] = &instr
+		e.user_defined_symbols[instr_name] = &instr
 		e.instrs << &instr
 		return
 	}

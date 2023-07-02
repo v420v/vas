@@ -1,7 +1,7 @@
 
 set -x -e
 
-v . -enable-globals
+v .
 
 cd selfhost
 

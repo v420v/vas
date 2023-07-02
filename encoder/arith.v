@@ -1,72 +1,71 @@
 module encoder
 
 import error
-import elf
+import elf.header
 import encoding.binary
 
-fn (mut instr Instr) add_imm_rela(symbol string, imm_val int, size DataSize) {
-	mut rela := Rela{ uses: symbol, instr: unsafe{ instr }, adjust: imm_val, offset: instr.code.len }
+fn (mut e Encoder) add_imm_rela(symbol string, imm_val int, size DataSize) {
+	mut rela := Rela{ uses: symbol, instr: e.current_instr, adjust: imm_val, offset: e.current_instr.code.len }
 	match size {
 		.suffix_byte {
-			rela.rtype = elf.r_x86_64_8
-			instr.code << u8(0)
+			rela.rtype = header.r_x86_64_8
+			e.current_instr.code << u8(0)
 		}
 		.suffix_word {
-			rela.rtype = elf.r_x86_64_16
-			instr.code << [u8(0), 0]
+			rela.rtype = header.r_x86_64_16
+			e.current_instr.code << [u8(0), 0]
 		}
 		.suffix_long {
-			rela.rtype = elf.r_x86_64_32
-			instr.code << [u8(0), 0, 0, 0]
+			rela.rtype = header.r_x86_64_32
+			e.current_instr.code << [u8(0), 0, 0, 0]
 		}
 		.suffix_quad {
-			rela.rtype = elf.r_x86_64_32s
-			instr.code << [u8(0), 0, 0, 0]
+			rela.rtype = header.r_x86_64_32s
+			e.current_instr.code << [u8(0), 0, 0, 0]
 		} else {}
 	}
-	rela_text_users << rela
+	e.rela_text_users << rela
 }
 
-fn (mut instr Instr) add_imm_value(imm_val int, size DataSize) {
+fn (mut e Encoder) add_imm_value(imm_val int, size DataSize) {
 	if is_in_i8_range(imm_val) || size == DataSize.suffix_byte {
-		instr.code << u8(imm_val)
+		e.current_instr.code << u8(imm_val)
 	} else if size == DataSize.suffix_word {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(imm_val))
-		instr.code << hex
+		e.current_instr.code << hex
 	} else if is_in_i32_range(imm_val) {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(imm_val))
-		instr.code << hex
+		e.current_instr.code << hex
 	} else {
 		panic('unreachable')
 	}
 }
 
-fn (mut instr Instr) add_imm_value2(imm_val int, size DataSize) {
+fn (mut e Encoder) add_imm_value2(imm_val int, size DataSize) {
 	if size == DataSize.suffix_byte {
-		instr.code << [u8(imm_val)]
+		e.current_instr.code << [u8(imm_val)]
 	} else if size == DataSize.suffix_word {
 		mut hex := [u8(0), 0]
 		binary.little_endian_put_u16(mut &hex, u16(imm_val))
-		instr.code << [hex[0], hex[1]]
+		e.current_instr.code << [hex[0], hex[1]]
 	} else {
 		mut hex := [u8(0), 0, 0, 0]
 		binary.little_endian_put_u32(mut &hex, u32(imm_val))
-		instr.code << [hex[0], hex[1], hex[2], hex[3]]
+		e.current_instr.code << [hex[0], hex[1], hex[2], hex[3]]
 	}
 }
 
 fn (mut e Encoder) cmov(kind InstrKind, op_code []u8, size DataSize) {
-	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(kind)
 
 	source, desti := e.parse_two_operand()
 
 	if source is Register && desti is Register {
-		instr.add_rex_prefix(desti.lit, '', source.lit, [size])
-		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, desti.regi_bits()%8, source.regi_bits()%8)
+		e.add_rex_prefix(desti.lit, '', source.lit, [size])
+		e.current_instr.code << op_code
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, desti.regi_bits()%8, source.regi_bits()%8)
 		return
 	}
 
@@ -75,37 +74,36 @@ fn (mut e Encoder) cmov(kind InstrKind, op_code []u8, size DataSize) {
 }
 
 fn (mut e Encoder) mov(size DataSize) {
-	mut instr := Instr{kind: .mov, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.mov)
 
 	source, desti := e.parse_two_operand()
 
 	if source is Xmm && desti is Register {
 		desti.check_regi_size(DataSize.suffix_quad)
-		instr.add_rex_prefix(source.lit, '', desti.lit, [DataSize.suffix_word, DataSize.suffix_quad])
-		instr.code << [u8(0x0F), 0x7E]
-		instr.code << compose_mod_rm(encoder.mod_regi, source.xmm_bits()%8, desti.regi_bits()%8)
+		e.add_rex_prefix(source.lit, '', desti.lit, [DataSize.suffix_word, DataSize.suffix_quad])
+		e.current_instr.code << [u8(0x0F), 0x7E]
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, source.xmm_bits()%8, desti.regi_bits()%8)
 		return
 	}
 	if source is Register && desti is Xmm {
 		source.check_regi_size(DataSize.suffix_quad)
-		instr.add_rex_prefix(desti.lit, '', source.lit, [DataSize.suffix_word, DataSize.suffix_quad])
-		instr.code << [u8(0x0F), 0x6E]
-		instr.code << compose_mod_rm(encoder.mod_regi, desti.xmm_bits()%8, source.regi_bits()%8)
+		e.add_rex_prefix(desti.lit, '', source.lit, [DataSize.suffix_word, DataSize.suffix_quad])
+		e.current_instr.code << [u8(0x0F), 0x6E]
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, desti.xmm_bits()%8, source.regi_bits()%8)
 		return
 	}
 	if source is Indirection && desti is Xmm {
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [DataSize.suffix_single])
-		instr.code << [u8(0x0F), 0x7E]
-		instr.add_modrm_sib_disp(source, desti.xmm_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [DataSize.suffix_single])
+		e.current_instr.code << [u8(0x0F), 0x7E]
+		e.add_modrm_sib_disp(source, desti.xmm_bits()%8)
 		return
 	}
 	if source is Xmm && desti is Indirection {
-		instr.add_segment_override_prefix(desti)
-		instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [DataSize.suffix_word])
-		instr.code << [u8(0x0F), 0xD6]
-		instr.add_modrm_sib_disp(desti, source.xmm_bits()%8)
+		e.add_segment_override_prefix(desti)
+		e.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [DataSize.suffix_word])
+		e.current_instr.code << [u8(0x0F), 0xD6]
+		e.add_modrm_sib_disp(desti, source.xmm_bits()%8)
 		return
 	}
 
@@ -119,16 +117,16 @@ fn (mut e Encoder) mov(size DataSize) {
 
 		if desti is Register {
 			desti.check_regi_size(size)
-			instr.add_rex_prefix(source.lit, '', desti.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits()%8, desti.regi_bits()%8)
+			e.add_rex_prefix(source.lit, '', desti.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits()%8, desti.regi_bits()%8)
 			return
 		}
 		if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, source.regi_bits()%8)
+			e.add_segment_override_prefix(desti)
+			e.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(desti, source.regi_bits()%8)
 			return
 		}
 	}
@@ -140,10 +138,10 @@ fn (mut e Encoder) mov(size DataSize) {
 			[u8(0x8b)]
 		}
 		desti.check_regi_size(size)
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
-		instr.code << op_code
-		instr.add_modrm_sib_disp(source, desti.regi_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
+		e.current_instr.code << op_code
+		e.add_modrm_sib_disp(source, desti.regi_bits()%8)
 		return
 	}
 
@@ -151,9 +149,9 @@ fn (mut e Encoder) mov(size DataSize) {
 		match desti {
 			Register {
 				desti.check_regi_size(size)
-				instr.add_rex_prefix('', '', desti.lit, [size])
-				instr.code << if size == .suffix_quad {
-					instr.code << 0xc7
+				e.add_rex_prefix('', '', desti.lit, [size])
+				e.current_instr.code << if size == .suffix_quad {
+					e.current_instr.code << 0xc7
 					0xc0 + desti.regi_bits()%8
 				} else if size == .suffix_byte {
 					0xB0 + desti.regi_bits()%8
@@ -162,14 +160,14 @@ fn (mut e Encoder) mov(size DataSize) {
 				}
 			}
 			Indirection {
-				instr.add_segment_override_prefix(desti)
-				instr.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
-				instr.code <<  if size == .suffix_byte {
+				e.add_segment_override_prefix(desti)
+				e.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
+				e.current_instr.code <<  if size == .suffix_byte {
 					u8(0xc6)
 				} else {
 					u8(0xc7)
 				}
-				instr.add_modrm_sib_disp(desti, encoder.slash_0)
+				e.add_modrm_sib_disp(desti, encoder.slash_0)
 			} else {
 				error.print(desti.pos, 'invalid operand for instruction')
 				exit(1)
@@ -185,9 +183,9 @@ fn (mut e Encoder) mov(size DataSize) {
 		imm_need_rela := imm_used_symbols.len == 1
 
 		if imm_need_rela {
-			instr.add_imm_rela(imm_used_symbols[0], int(imm_val), size)
+			e.add_imm_rela(imm_used_symbols[0], int(imm_val), size)
 		} else {
-			instr.add_imm_value2(imm_val, size)
+			e.add_imm_value2(imm_val, size)
 		}
 		return
 	}
@@ -197,19 +195,18 @@ fn (mut e Encoder) mov(size DataSize) {
 }
 
 fn (mut e Encoder) rep() {
-	mut instr := Instr{kind: .rep, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.rep)
 
 	source := e.parse_operand()
 
 	if source is Ident {
 		match source.lit {
 			'movsq' {
-				instr.code << [u8(0xF3), 0x48, 0xA5]
+				e.current_instr.code << [u8(0xF3), 0x48, 0xA5]
 				return
 			}
 			'stosq' {
-				instr.code << [u8(0xF3), 0x48, 0xAB]
+				e.current_instr.code << [u8(0xF3), 0x48, 0xAB]
 				return
 			} else {}
 		}
@@ -220,15 +217,14 @@ fn (mut e Encoder) rep() {
 }
 
 fn (mut e Encoder) movabsq() {
-	mut instr := Instr{kind: .movabsq, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.movabsq)
 
 	source, desti := e.parse_two_operand()
 
 	if source is Immediate && desti is Register {		
 		desti.check_regi_size(DataSize.suffix_quad)
-		instr.add_rex_prefix('', '', desti.lit, [DataSize.suffix_quad])
-		instr.code << u8(0xB8) + desti.regi_bits()%8
+		e.add_rex_prefix('', '', desti.lit, [DataSize.suffix_quad])
+		e.current_instr.code << u8(0xB8) + desti.regi_bits()%8
 
 		mut imm_used_symbols := []string{}
 		imm_val := eval_expr_get_symbol_64(source.expr, mut imm_used_symbols)
@@ -241,17 +237,17 @@ fn (mut e Encoder) movabsq() {
 		if imm_need_rela {
 			mut rela := Rela{
 				uses: imm_used_symbols[0],
-				instr: &instr,
+				instr: e.current_instr,
 				adjust: int(imm_val),
-				offset: instr.code.len,
+				offset: e.current_instr.code.len,
 			}
-			rela.rtype = elf.r_x86_64_64
-			instr.code << [u8(0), 0, 0, 0, 0, 0, 0, 0]
-			rela_text_users << rela
+			rela.rtype = header.r_x86_64_64
+			e.current_instr.code << [u8(0), 0, 0, 0, 0, 0, 0, 0]
+			e.rela_text_users << rela
 		} else {
 			mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
 			binary.little_endian_put_u64(mut &hex, u64(imm_val))
-			instr.code << hex
+			e.current_instr.code << hex
 		}
 
 		return
@@ -262,8 +258,7 @@ fn (mut e Encoder) movabsq() {
 }
 
 fn (mut e Encoder) mul(size DataSize) {
-	mut instr := Instr{kind: .mul, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.mul)
 
 	source := e.parse_operand()
 
@@ -275,16 +270,16 @@ fn (mut e Encoder) mul(size DataSize) {
 		}
 		if source is Register {
 			source.check_regi_size(size)
-			instr.add_rex_prefix('', '', source.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_4, source.regi_bits()%8)
+			e.add_rex_prefix('', '', source.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_4, source.regi_bits()%8)
 			return
 		}
 		if source is Indirection {
-			instr.add_segment_override_prefix(source)
-			instr.add_rex_prefix('', source.index.lit, source.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(source, encoder.slash_4)
+			e.add_segment_override_prefix(source)
+			e.add_rex_prefix('', source.index.lit, source.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(source, encoder.slash_4)
 			return
 		}
 	}
@@ -293,8 +288,7 @@ fn (mut e Encoder) mul(size DataSize) {
 }
 
 fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, desti_size DataSize) {
-	mut instr := Instr{kind: .movzx, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.movzx)
 
 	source, desti := e.parse_two_operand()
 
@@ -307,17 +301,17 @@ fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, d
 
 		source.check_regi_size(source_size)
 		desti.check_regi_size(desti_size)
-		instr.add_rex_prefix(desti.lit, '', source.lit, [desti_size])
-		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, desti.regi_bits()%8, source.regi_bits()%8)
+		e.add_rex_prefix(desti.lit, '', source.lit, [desti_size])
+		e.current_instr.code << op_code
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, desti.regi_bits()%8, source.regi_bits()%8)
 		return
 	}
 	if source is Indirection && desti is Register {
 		desti.check_regi_size(desti_size)
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [desti_size])
-		instr.code << op_code
-		instr.add_modrm_sib_disp(source, desti.regi_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [desti_size])
+		e.current_instr.code << op_code
+		e.add_modrm_sib_disp(source, desti.regi_bits()%8)
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')
@@ -325,8 +319,7 @@ fn (mut e Encoder) mov_zero_or_sign_extend(op_code []u8, source_size DataSize, d
 }
 
 fn (mut e Encoder) test(size DataSize) {
-	mut instr := Instr{kind: .test, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.test)
 
 	source, desti := e.parse_two_operand()
 
@@ -339,16 +332,16 @@ fn (mut e Encoder) test(size DataSize) {
 		source.check_regi_size(size)
 		if desti is Register {
 			desti.check_regi_size(size)
-			instr.add_rex_prefix(source.lit, '', desti.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits()%8, desti.regi_bits()%8)
+			e.add_rex_prefix(source.lit, '', desti.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits()%8, desti.regi_bits()%8)
 			return
 		}
 		if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, source.regi_bits()%8)
+			e.add_segment_override_prefix(desti)
+			e.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(desti, source.regi_bits()%8)
 			return
 		}
 	}
@@ -359,10 +352,10 @@ fn (mut e Encoder) test(size DataSize) {
 			[u8(0x84) + 1]
 		}
 		desti.check_regi_size(size)
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
-		instr.code << op_code
-		instr.add_modrm_sib_disp(source, desti.regi_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
+		e.current_instr.code << op_code
+		e.add_modrm_sib_disp(source, desti.regi_bits()%8)
 		return
 	}
 	if source is Immediate {
@@ -382,23 +375,23 @@ fn (mut e Encoder) test(size DataSize) {
 
 		if desti is Register {
 			desti.check_regi_size(size)
-			instr.add_rex_prefix('', '', desti.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(mod_regi, encoder.slash_0, desti.regi_bits()%8)
+			e.add_rex_prefix('', '', desti.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(mod_regi, encoder.slash_0, desti.regi_bits()%8)
 		} else if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, encoder.slash_0)
+			e.add_segment_override_prefix(desti)
+			e.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(desti, encoder.slash_0)
 		} else {
 			error.print(source.pos, 'invalid operand for instruction')
 			exit(1)
 		}
 
 		if imm_need_rela {
-			instr.add_imm_rela(imm_used_symbols[0], int(imm_val), size)
+			e.add_imm_rela(imm_used_symbols[0], int(imm_val), size)
 		} else {
-			instr.add_imm_value2(imm_val, size)
+			e.add_imm_value2(imm_val, size)
 		}
 
 		return
@@ -408,8 +401,7 @@ fn (mut e Encoder) test(size DataSize) {
 }
 
 fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size DataSize) {
-	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(kind)
 
 	source, desti := e.parse_two_operand()
 
@@ -422,16 +414,16 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 		source.check_regi_size(size)
 		if desti is Register {
 			desti.check_regi_size(size)
-			instr.add_rex_prefix(source.lit, '', desti.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits()%8, desti.regi_bits()%8)
+			e.add_rex_prefix(source.lit, '', desti.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, source.regi_bits()%8, desti.regi_bits()%8)
 			return
 		}
 		if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, source.regi_bits()%8)
+			e.add_segment_override_prefix(desti)
+			e.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(desti, source.regi_bits()%8)
 			return
 		}
 	}
@@ -442,10 +434,10 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 			op_code_base + 3
 		}
 		desti.check_regi_size(size)
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
-		instr.code << op_code
-		instr.add_modrm_sib_disp(source, desti.regi_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
+		e.current_instr.code << op_code
+		e.add_modrm_sib_disp(source, desti.regi_bits()%8)
 		return
 	}
 	if source is Immediate {
@@ -467,23 +459,23 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 
 		if desti is Register {
 			desti.check_regi_size(size)
-			instr.add_rex_prefix('', '', desti.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(mod_regi, slash, desti.regi_bits()%8)
+			e.add_rex_prefix('', '', desti.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(mod_regi, slash, desti.regi_bits()%8)
 		} else if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, slash)
+			e.add_segment_override_prefix(desti)
+			e.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(desti, slash)
 		} else {
 			error.print(source.pos, 'invalid operand for instruction')
 			exit(1)
 		}
 
 		if imm_need_rela {
-			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+			e.add_imm_rela(imm_used_symbols[0], imm_val, size)
 		} else {
-			instr.add_imm_value(imm_val, size)
+			e.add_imm_value(imm_val, size)
 		}
 
 		return
@@ -493,8 +485,7 @@ fn (mut e Encoder) arith_instr(kind InstrKind, op_code_base u8, slash u8, size D
 }
 
 fn (mut e Encoder) imul(size DataSize) {
-	mut instr := Instr{kind: .imul, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.imul)
 
 	source := e.parse_operand()
 
@@ -506,16 +497,16 @@ fn (mut e Encoder) imul(size DataSize) {
 		}
 		if source is Register {
 			source.check_regi_size(size)
-			instr.add_rex_prefix('', '', source.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_5, source.regi_bits()%8)
+			e.add_rex_prefix('', '', source.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_5, source.regi_bits()%8)
 			return
 		}
 		if source is Indirection {
-			instr.add_segment_override_prefix(source)
-			instr.add_rex_prefix('', source.index.lit, source.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(source, encoder.slash_5)
+			e.add_segment_override_prefix(source)
+			e.add_rex_prefix('', source.index.lit, source.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(source, encoder.slash_5)
 			return
 		}
 	}
@@ -525,19 +516,19 @@ fn (mut e Encoder) imul(size DataSize) {
 
 	if source is Indirection && desti_operand_1 is Register {
 		desti_operand_1.check_regi_size(size)
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti_operand_1.lit, source.index.lit, source.base.lit, [size])
-		instr.code << [u8(0x0f), 0xaf]
-		instr.add_modrm_sib_disp(source, desti_operand_1.regi_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti_operand_1.lit, source.index.lit, source.base.lit, [size])
+		e.current_instr.code << [u8(0x0f), 0xaf]
+		e.add_modrm_sib_disp(source, desti_operand_1.regi_bits()%8)
 		return
 	}
 
 	if source is Register && desti_operand_1 is Register {
 		source.check_regi_size(size)
 		desti_operand_1.check_regi_size(size)
-		instr.add_rex_prefix(desti_operand_1.lit, '', source.lit, [size])
-		instr.code << [u8(0x0f), 0xaf]
-		instr.code << compose_mod_rm(encoder.mod_regi, desti_operand_1.regi_bits()%8, source.regi_bits()%8)
+		e.add_rex_prefix(desti_operand_1.lit, '', source.lit, [size])
+		e.current_instr.code << [u8(0x0f), 0xaf]
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, desti_operand_1.regi_bits()%8, source.regi_bits()%8)
 		return
 	}
 
@@ -565,14 +556,14 @@ fn (mut e Encoder) imul(size DataSize) {
 
 		desti_operand_1.check_regi_size(size)
 		desti_operand_2.check_regi_size(size)
-		instr.add_rex_prefix(desti_operand_2.lit, '', desti_operand_1.lit, [size])
-		instr.code << op_code
-		instr.code << compose_mod_rm(mod_regi, desti_operand_2.regi_bits()%8, desti_operand_1.regi_bits()%8)
+		e.add_rex_prefix(desti_operand_2.lit, '', desti_operand_1.lit, [size])
+		e.current_instr.code << op_code
+		e.current_instr.code << compose_mod_rm(mod_regi, desti_operand_2.regi_bits()%8, desti_operand_1.regi_bits()%8)
 
 		if imm_need_rela {
-			instr.add_imm_rela(imm_used_symbols[0], imm_val, size)
+			e.add_imm_rela(imm_used_symbols[0], imm_val, size)
 		} else {
-			instr.add_imm_value(imm_val, size)
+			e.add_imm_value(imm_val, size)
 		}
 
 		return
@@ -582,8 +573,7 @@ fn (mut e Encoder) imul(size DataSize) {
 }
 
 fn (mut e Encoder) one_operand_arith(kind InstrKind, slash u8, size DataSize) {
-	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(kind)
 
 	source := e.parse_operand()
 
@@ -595,16 +585,16 @@ fn (mut e Encoder) one_operand_arith(kind InstrKind, slash u8, size DataSize) {
 
 	if source is Register {
 		source.check_regi_size(size)
-		instr.add_rex_prefix('', '', source.lit, [size])
-		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, slash, source.regi_bits()%8)
+		e.add_rex_prefix('', '', source.lit, [size])
+		e.current_instr.code << op_code
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, slash, source.regi_bits()%8)
 		return
 	}
 	if source is Indirection {
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix('', source.index.lit, source.base.lit, [size])
-		instr.code << op_code
-		instr.add_modrm_sib_disp(source, slash)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix('', source.index.lit, source.base.lit, [size])
+		e.current_instr.code << op_code
+		e.add_modrm_sib_disp(source, slash)
 		return
 	}
 
@@ -613,8 +603,7 @@ fn (mut e Encoder) one_operand_arith(kind InstrKind, slash u8, size DataSize) {
 }
 
 fn (mut e Encoder) lea(instr_name_upper string) {
-	mut instr := Instr{kind: .lea, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(.lea)
 
 	size := get_size_by_suffix(instr_name_upper)
 
@@ -622,10 +611,10 @@ fn (mut e Encoder) lea(instr_name_upper string) {
 
 	if source is Indirection && desti is Register {
 		desti.check_regi_size(size)
-		instr.add_segment_override_prefix(source)
-		instr.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
-		instr.code << u8(0x8D)
-		instr.add_modrm_sib_disp(source, desti.regi_bits()%8)
+		e.add_segment_override_prefix(source)
+		e.add_rex_prefix(desti.lit, source.index.lit, source.base.lit, [size])
+		e.current_instr.code << u8(0x8D)
+		e.add_modrm_sib_disp(source, desti.regi_bits()%8)
 		return
 	}
 	error.print(source.pos, 'invalid operand for instruction')
@@ -633,16 +622,15 @@ fn (mut e Encoder) lea(instr_name_upper string) {
 }
 
 fn (mut e Encoder) set(kind InstrKind, op_code []u8) {
-	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(kind)
 
 	regi := e.parse_operand()
 
 	if regi is Register {
 		regi.check_regi_size(DataSize.suffix_byte)
-		instr.add_rex_prefix('', '', regi.lit, [DataSize.suffix_byte])
-		instr.code << op_code
-		instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_0, regi.regi_bits()%8)
+		e.add_rex_prefix('', '', regi.lit, [DataSize.suffix_byte])
+		e.current_instr.code << op_code
+		e.current_instr.code << compose_mod_rm(encoder.mod_regi, encoder.slash_0, regi.regi_bits()%8)
 		return
 	}
 
@@ -651,8 +639,7 @@ fn (mut e Encoder) set(kind InstrKind, op_code []u8) {
 }
 
 fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
-	mut instr := Instr{kind: kind, section: e.current_section, pos: e.tok.pos}
-	e.instrs << &instr
+	e.set_current_instr(kind)
 
 	source := e.parse_operand()
 
@@ -666,15 +653,15 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 
 		if source is Register {
 			source.check_regi_size(size)
-			instr.add_rex_prefix('', '', source.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, slash, source.regi_bits()%8)
+			e.add_rex_prefix('', '', source.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, slash, source.regi_bits()%8)
 			return
 		} else if source is Indirection {
-			instr.add_segment_override_prefix(source)
-			instr.add_rex_prefix('', source.index.lit, source.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(source, slash)
+			e.add_segment_override_prefix(source)
+			e.add_rex_prefix('', source.index.lit, source.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(source, slash)
 			return
 		}
 	}
@@ -694,15 +681,15 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 		}
 		if desti is Register {
 			desti.check_regi_size(size)
-			instr.add_rex_prefix(source.lit, '', desti.lit, [size])
-			instr.code << op_code
-			instr.code << compose_mod_rm(encoder.mod_regi, slash, desti.regi_bits()%8)
+			e.add_rex_prefix(source.lit, '', desti.lit, [size])
+			e.current_instr.code << op_code
+			e.current_instr.code << compose_mod_rm(encoder.mod_regi, slash, desti.regi_bits()%8)
 			return
 		} else if desti is Indirection {
-			instr.add_segment_override_prefix(desti)
-			instr.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
-			instr.code << op_code
-			instr.add_modrm_sib_disp(desti, slash)
+			e.add_segment_override_prefix(desti)
+			e.add_rex_prefix(source.lit, desti.index.lit, desti.base.lit, [size])
+			e.current_instr.code << op_code
+			e.add_modrm_sib_disp(desti, slash)
 			return
 		}
 	}
@@ -734,15 +721,15 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 		match desti {
 			Register {
 				desti.check_regi_size(size)
-				instr.add_rex_prefix('', '', desti.lit, [size])
-				instr.code << op_code
-				instr.code << compose_mod_rm(encoder.mod_regi, slash, desti.regi_bits()%8)
+				e.add_rex_prefix('', '', desti.lit, [size])
+				e.current_instr.code << op_code
+				e.current_instr.code << compose_mod_rm(encoder.mod_regi, slash, desti.regi_bits()%8)
 			}
 			Indirection {
-				instr.add_segment_override_prefix(desti)
-				instr.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
-				instr.code << op_code
-				instr.add_modrm_sib_disp(desti, slash)
+				e.add_segment_override_prefix(desti)
+				e.add_rex_prefix('', desti.index.lit, desti.base.lit, [size])
+				e.current_instr.code << op_code
+				e.add_modrm_sib_disp(desti, slash)
 			} else {
 				error.print(desti.pos, 'invalid operand for instruction')
 				exit(1)
@@ -750,9 +737,9 @@ fn (mut e Encoder) shift(kind InstrKind, slash u8, size DataSize) {
 		}
 
 		if imm_need_rela {
-			instr.add_imm_rela(used_symbols[0], 0, DataSize.suffix_byte)
+			e.add_imm_rela(used_symbols[0], 0, DataSize.suffix_byte)
 		} else if imm_val != 1 {
-			instr.add_imm_value(u8(imm_val), DataSize.suffix_byte)
+			e.add_imm_value(u8(imm_val), DataSize.suffix_byte)
 		}
 		return
 	}

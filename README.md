@@ -41,7 +41,7 @@ _start:
 ## Build
 
 ```sh
-$ v . -prod -enable-globals
+$ v . -prod
 ```
 
 ## Run
@@ -58,7 +58,7 @@ $ ./a.out
 
 ```
 # build
-$ v . -prod -enable-globals
+$ v . -prod
 
 $ cd selfhost
 $ ../vas -o v2.o vas.s
