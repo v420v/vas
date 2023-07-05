@@ -1,7 +1,6 @@
 module encoder
 
 import error
-import elf.header
 import encoding.binary
 
 fn (mut e Encoder) add_segment_override_prefix(indir Indirection) {
@@ -58,7 +57,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 
 	mut used_symbols := []string{}
-	disp := eval_expr_get_symbol(indir.disp, mut used_symbols)
+	disp := int(eval_expr_get_symbol_64(indir.disp, mut used_symbols))
 	if used_symbols.len >= 2 {
 		error.print(indir.disp.pos, 'invalid operand')
 		exit(1)
@@ -93,13 +92,13 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 		if base_is_ip {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b101) // rip relative
 		} else if disp_need_rela {
-			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.base_offset%8)
 		} else if disp == 0 && !base_is_bp {
-			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, indir.base.base_offset%8)
 		} else if is_in_i8_range(disp) {
-			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, indir.base.base_offset%8)
 		} else if is_in_i32_range(disp) {
-			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.regi_bits())
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.base_offset%8)
 		} else {
 			panic('disp out range!')
 		}
@@ -113,9 +112,9 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 			exit(0)
 		}
 		if indir.has_base {
-			e.current_instr.code << indir.base.regi_bits() + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
+			e.current_instr.code << indir.base.base_offset%8 + (indir.index.base_offset%8 << 3) + (scale(scale_num) << 6)
 		} else {
-			e.current_instr.code << 0x5 + (indir.index.regi_bits() << 3) + (scale(scale_num) << 6)
+			e.current_instr.code << 0x5 + (indir.index.base_offset%8 << 3) + (scale(scale_num) << 6)
 		}
 	} else if base_is_sp {
 		e.current_instr.code << 0x24
@@ -124,11 +123,11 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 	// disp
 	if disp_need_rela {
 		rtype := if base_is_ip {
-			header.r_x86_64_pc32
+			encoder.r_x86_64_pc32
 		} else if indir.base.size == .suffix_quad {
-			header.r_x86_64_32s
+			encoder.r_x86_64_32s
 		} else {
-			header.r_x86_64_32	
+			encoder.r_x86_64_32	
 		}
 		rela := encoder.Rela{
 			instr: e.current_instr

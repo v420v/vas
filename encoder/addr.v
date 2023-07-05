@@ -2,20 +2,19 @@ module encoder
 
 import encoding.binary
 import error
-import elf.header
 
 fn section_flags(flags string) int {
 	mut val := 0
 	for c in flags {
 		match c {
 			`a` {
-				val |= header.shf_alloc
+				val |= encoder.shf_alloc
 			}
 			`x` {
-				val |= header.shf_execinstr
+				val |= encoder.shf_execinstr
 			}
 			`w` {
-				val |= header.shf_write
+				val |= encoder.shf_write
 			} else {
 				panic('unkown attribute $c')
 			}
@@ -30,7 +29,7 @@ fn (mut e Encoder) change_symbol_binding(instr Instr, binding u8) {
 		exit(1)
 	}
 
-	if binding == header.stb_global && s.kind == .section {
+	if binding == encoder.stb_global && s.kind == .section {
 		error.print(instr.pos, 'sections cannot be global')
 		exit(1)
 	}
@@ -53,11 +52,11 @@ fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.section != rela.instr.section {
 				continue
 			}
-			if symbol.binding == header.stb_global {
+			if symbol.binding == encoder.stb_global {
 				continue
 			}
 
-			if !rela.instr.is_jmp_or_call && rela.rtype != header.r_x86_64_pc32 {
+			if !rela.instr.is_jmp_or_call && rela.rtype != encoder.r_x86_64_pc32 {
 				continue
 			}
 
@@ -88,19 +87,19 @@ pub fn (mut e Encoder) assign_addresses() {
 				section.flags = section_flags(instr.flags)
 			}
 			.global {
-				e.change_symbol_binding(*instr, header.stb_global)
+				e.change_symbol_binding(*instr, encoder.stb_global)
 			}
 			.local {
-				e.change_symbol_binding(*instr, header.stb_local)
+				e.change_symbol_binding(*instr, encoder.stb_local)
 			}
 			.hidden {
-				e.change_symbol_visibility(*instr, header.stv_hidden)
+				e.change_symbol_visibility(*instr, encoder.stv_hidden)
 			}
 			.internal {
-				e.change_symbol_visibility(*instr, header.stv_internal)
+				e.change_symbol_visibility(*instr, encoder.stv_internal)
 			}
 			.protected {
-				e.change_symbol_visibility(*instr, header.stv_protected)
+				e.change_symbol_visibility(*instr, encoder.stv_protected)
 			} else {}
 		}
 

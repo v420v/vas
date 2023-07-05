@@ -1,6 +1,5 @@
 module encoder
 
-import elf.header
 import error
 
 fn (mut e Encoder) pop() {
@@ -10,13 +9,13 @@ fn (mut e Encoder) pop() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		e.add_rex_prefix('', '', source.lit, [])
-		e.current_instr.code << [0x58 + source.regi_bits()%8]
+		e.add_prefix(Empty{}, Empty{}, source, [])
+		e.current_instr.code << [0x58 + source.base_offset%8]
 		return
 	}
 	if source is Indirection {
 		e.add_segment_override_prefix(source)
-		e.add_rex_prefix('', source.index.lit, source.base.lit, [])
+		e.add_prefix(Empty{}, source.index, source.base, [])
 		e.current_instr.code << 0x8f // op_code
 		e.add_modrm_sib_disp(source, encoder.slash_0)
 		return
@@ -33,21 +32,21 @@ fn (mut e Encoder) push() {
 
 	if source is Register {
 		source.check_regi_size(.suffix_quad)
-		e.add_rex_prefix('', '', source.lit, [])
+		e.add_prefix(Empty{}, Empty{}, source, [])
 		source.check_regi_size(.suffix_quad)
-		e.current_instr.code << [0x50 + source.regi_bits()%8]
+		e.current_instr.code << [0x50 + source.base_offset%8]
 		return
 	}
 	if source is Indirection {
 		e.add_segment_override_prefix(source)
-		e.add_rex_prefix('', source.index.lit, source.base.lit, [])
+		e.add_prefix(Empty{}, source.index, source.base, [])
 		e.current_instr.code << 0xff // op_code
 		e.add_modrm_sib_disp(source, encoder.slash_6)
 		return
 	}
 	if source is Immediate {
 		mut used_symbols := []string{}
-		imm_val := eval_expr_get_symbol(source, mut used_symbols)
+		imm_val := int(eval_expr_get_symbol_64(source, mut used_symbols))
 		if used_symbols.len >= 2 {
 			error.print(source.pos, 'invalid immediate operand')
 			exit(1)
@@ -85,15 +84,15 @@ fn (mut e Encoder) jmp_instr(kind InstrKind, rel32_code []u8, rel32_offset i64) 
 			uses: desti.lit,
 			instr: e.current_instr,
 			offset: rel32_offset,
-			rtype: header.r_x86_64_32s,
+			rtype: encoder.r_x86_64_32s,
 			adjust: 0,
 		}
 		return
 	}
 	if desti is Star {
 		desti.regi.check_regi_size(DataSize.suffix_quad)
-		e.add_rex_prefix('', '', desti.regi.lit, [])
-		e.current_instr.code << [u8(0xFF), 0xE0 + desti.regi.regi_bits()%8]
+		e.add_prefix(Empty{}, Empty{}, desti.regi, [])
+		e.current_instr.code << [u8(0xFF), 0xE0 + desti.regi.base_offset%8]
 		return
 	}
 
@@ -109,12 +108,12 @@ fn (mut e Encoder) call() {
 
 	if desti is Star {
 		desti.regi.check_regi_size(DataSize.suffix_quad)
-		e.add_rex_prefix('', '', desti.regi.lit, [])
-		e.current_instr.code << [u8(0xFF), 0xD0 + desti.regi.regi_bits()%8]
+		e.add_prefix(Empty{}, Empty{}, desti.regi, [])
+		e.current_instr.code << [u8(0xFF), 0xD0 + desti.regi.base_offset%8]
 	} else {
 		e.current_instr.code << [u8(0xe8), 0, 0, 0, 0]
 		mut used_symbols := []string{}
-		adjust := eval_expr_get_symbol(desti, mut used_symbols)
+		adjust := int(eval_expr_get_symbol_64(desti, mut used_symbols))
 		if used_symbols.len >= 2 {
 			error.print(desti.pos, 'invalid operand for instruction')
 			exit(1)
@@ -125,7 +124,7 @@ fn (mut e Encoder) call() {
 			offset: 1,
 			uses:   used_symbols[0],
 			adjust: adjust,
-			rtype:   header.r_x86_64_plt32
+			rtype:   encoder.r_x86_64_plt32
 		}
 	}
 }

@@ -2,13 +2,12 @@ module encoder
 
 import token
 import error
-import elf.header
 import encoding.binary
 
 fn (mut e Encoder) add_section(name string, flag string, pos token.Position) {
 	e.current_section = name
 
-	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: header.stt_section, flags: flag}
+	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: encoder.stt_section, flags: flag}
 	e.instrs << &instr
 
 	if s := e.user_defined_symbols[name] {
@@ -62,7 +61,7 @@ fn (mut e Encoder) byte() {
 	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
-	adjust := eval_expr_get_symbol(desti, mut used_symbols)
+	adjust := int(eval_expr_get_symbol_64(desti, mut used_symbols))
 	if used_symbols.len >= 2 {
 		error.print(desti.pos, 'invalid operand')
 		exit(1)
@@ -73,7 +72,7 @@ fn (mut e Encoder) byte() {
 			uses: used_symbols[0],
 			instr: e.current_instr,
 			adjust: adjust,
-			rtype: header.r_x86_64_8
+			rtype: encoder.r_x86_64_8
 		}
 		e.current_instr.code = [u8(0)]
 	} else {
@@ -87,7 +86,7 @@ fn (mut e Encoder) word() {
 	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
-	adjust := eval_expr_get_symbol(desti, mut used_symbols)
+	adjust := int(eval_expr_get_symbol_64(desti, mut used_symbols))
 	if used_symbols.len >= 2 {
 		error.print(desti.pos, 'invalid operand')
 		exit(1)
@@ -98,7 +97,7 @@ fn (mut e Encoder) word() {
 			uses: used_symbols[0],
 			instr: e.current_instr,
 			adjust: adjust,
-			rtype: header.r_x86_64_16
+			rtype: encoder.r_x86_64_16
 		}
 		e.current_instr.code = [u8(0), 0]
 	} else {
@@ -114,7 +113,7 @@ fn (mut e Encoder) long() {
 	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
-	adjust := eval_expr_get_symbol(desti, mut used_symbols)
+	adjust := int(eval_expr_get_symbol_64(desti, mut used_symbols))
 	if used_symbols.len >= 2 {
 		error.print(desti.pos, 'invalid operand')
 		exit(1)
@@ -125,7 +124,7 @@ fn (mut e Encoder) long() {
 			uses: used_symbols[0],
 			instr: e.current_instr,
 			adjust: adjust,
-			rtype: header.r_x86_64_32
+			rtype: encoder.r_x86_64_32
 		}
 		e.current_instr.code = [u8(0), 0, 0, 0]
 	} else {
@@ -141,7 +140,7 @@ fn (mut e Encoder) quad() {
 	desti := e.parse_operand()
 
 	mut used_symbols := []string{}
-	adjust := eval_expr_get_symbol(desti, mut used_symbols)
+	adjust := int(eval_expr_get_symbol_64(desti, mut used_symbols))
 	if used_symbols.len >= 2 {
 		error.print(desti.pos, 'invalid operand')
 		exit(1)
@@ -152,7 +151,7 @@ fn (mut e Encoder) quad() {
 			uses: used_symbols[0],
 			instr: e.current_instr,
 			adjust: adjust,
-			rtype: header.r_x86_64_64
+			rtype: encoder.r_x86_64_64
 		}
 		e.current_instr.code = [u8(0), 0, 0, 0, 0, 0, 0, 0]
 		e.rela_text_users << rela

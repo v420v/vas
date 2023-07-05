@@ -4,7 +4,19 @@ import error
 import token
 import lexer
 import strconv
-import elf.header
+
+pub struct Encoder {
+mut:
+	tok token.Token // current token
+	l   lexer.Lexer // lexer
+pub mut:
+	current_section       string
+	current_instr         &Instr
+	instrs                []&Instr
+	rela_text_users       []Rela
+	user_defined_symbols  map[string]&Instr
+	user_defined_sections map[string]&UserDefinedSection
+}
 
 pub enum InstrKind {
 	@none
@@ -117,45 +129,91 @@ pub enum InstrKind {
 	label
 }
 
-pub struct Encoder {
-mut:
-	tok	token.Token	// current token
-	l  	lexer.Lexer	// lexer
-pub mut:
-	current_section		   	string
-	current_instr          	&Instr
-	instrs         		   	[]&Instr
-	rela_text_users			[]Rela
-	user_defined_symbols	map[string]&Instr
-	user_defined_sections	map[string]&UserDefinedSection
-}
+const (
+	stb_local            = 0
+	stb_global           = 1
+	//-------------------------------
+	stt_notype           = 0
+	stt_object           = 1
+	stt_func             = 2
+	stt_section          = 3
+	stt_file             = 4
+	stt_common           = 5
+	stt_tls              = 6
+	stt_relc             = 8
+	stt_srelc            = 9
+	stt_loos             = 10
+	stt_hios             = 12
+	stt_loproc           = 13
+	stt_hiproc           = 14
+	//-------------------------------
+	sht_null             = 0
+	sht_progbits         = 1
+	sht_symtab           = 2
+	sht_strtab           = 3
+	sht_rela             = 4
+	//-------------------------------
+	shf_write            = 0x1
+	shf_alloc            = 0x2
+	shf_execinstr        = 0x4
+	shf_merge            = 0x10
+	shf_strings          = 0x20
+	shf_info_link        = 0x40
+	shf_link_order       = 0x80
+	shf_os_nonconforming = 0x100
+	shf_group            = 0x200
+	shf_tls              = 0x400
+	//-------------------------------
+	r_x86_64_none        = u64(0)
+	r_x86_64_64          = u64(1)
+	r_x86_64_pc32        = u64(2)
+	r_x86_64_got32       = u64(3)
+	r_x86_64_plt32       = u64(4)
+	r_x86_64_copy        = u64(5)
+	r_x86_64_glob_dat    = u64(6)
+	r_x86_64_jump_slot   = u64(7)
+	r_x86_64_relative    = u64(8)
+	r_x86_64_gotpcrel    = u64(9)
+	r_x86_64_32          = u64(10)
+	r_x86_64_32s         = u64(11)
+	r_x86_64_16          = u64(12)
+	r_x86_64_pc16        = u64(13)
+	r_x86_64_8           = u64(14)
+	r_x86_64_pc8         = u64(15)
+	r_x86_64_pc64        = u64(24)
+	//-------------------------------
+	stv_default          = 0
+	stv_internal         = 1
+	stv_hidden           = 2
+	stv_protected        = 3
+)
 
 pub struct Instr {
 pub mut:
-	kind           		InstrKind [required]
-	code           		[]u8 = []u8{cap: 16}
-	symbol_name    		string
-	flags          		string
-	addr           		i64
-	binding        		u8
-	visibility			u8 // STV_DEFAULT, STV_INTERNAL, STV_HIDDEN, STV_PROTECTED
-	symbol_type    		u8
-	section        		string [required]
-	is_jmp_or_call      bool
-	pos token.Position [required]
+	kind           InstrKind      [required]
+	code           []u8 = []u8{cap: 16}
+	symbol_name    string
+	flags          string
+	addr           i64
+	binding        u8
+	visibility     u8 // STV_DEFAULT, STV_INTERNAL, STV_HIDDEN, STV_PROTECTED
+	symbol_type    u8
+	section        string         [required]
+	is_jmp_or_call bool
+	pos            token.Position [required]
 }
 
 pub struct Rela {
 pub mut:
-	uses  				string
-	instr 				&Instr
-	offset				i64
-	rtype 				u64
-	adjust				int
-	is_already_resolved	bool
+	uses                string
+	instr               &Instr
+	offset              i64
+	rtype               u64
+	adjust              int
+	is_already_resolved bool
 }
 
-pub type Expr = Ident | Immediate | Register | Indirection | Number | Binop | Neg | Xmm | Star
+pub type Expr = Binop | Ident | Immediate | Indirection | Neg | Number | Register | Star | Xmm
 
 pub struct Number {
 pub:
@@ -166,49 +224,64 @@ pub:
 pub struct Star {
 pub:
 	regi Register
-	pos token.Position
+	pos  token.Position
 }
 
 pub struct Binop {
 pub:
-	left_hs Expr
+	left_hs  Expr
 	right_hs Expr
-	op token.TokenKind
-	pos token.Position
+	op       token.TokenKind
+	pos      token.Position
 }
 
 pub struct Neg {
 pub:
 	expr Expr
-	pos token.Position
+	pos  token.Position
 }
 
+type RegiAll = Register | Xmm | Empty
+
 pub struct Register {
-pub:
-	lit string
+pub mut:
+	lit  string
 	size DataSize
-	pos token.Position
+	base_offset u8
+	rex_required bool
+	pos  token.Position
 }
 
 pub struct Xmm {
-pub:
+pub mut:
 	lit string
+	size DataSize
+	base_offset u8
+	rex_required bool
 	pos token.Position
+}
+
+struct Empty {
+pub mut:
+	lit string
+	size DataSize
+	rex_required bool
+	base_offset u8
 }
 
 pub struct Immediate {
 pub:
-	expr 	Expr
-	pos		token.Position
+	expr Expr
+	pos  token.Position
 }
 
 pub struct Indirection {
 pub mut:
-	disp 			Expr
-	base 			Register
-	index 			Register
-	scale 			Expr
-	pos 			token.Position
+	disp            Expr
+	base            Register
+	index           Register
+	scale           Expr
+	pos             token.Position
 	has_base        bool
 	has_index_scale bool
 }
@@ -233,49 +306,38 @@ enum DataSize {
 	suffix_quad
 	suffix_single
 	suffix_double
+	suffix_unkown
 }
 
 pub const (
-	mod_indirection_with_no_disp	= u8(0)
-	mod_indirection_with_disp8  	= u8(1)
-	mod_indirection_with_disp32 	= u8(2)
-	mod_regi						= u8(3)
-	rex_w   						= u8(0x48)
-	operand_size_prefix16          	= u8(0x66)
-	slash_0						= 0 // /0
-	slash_1						= 1 // /1
-	slash_2						= 2 // /2
-	slash_3						= 3 // /3
-	slash_4						= 4 // /4
-	slash_5						= 5 // /5
-	slash_6						= 6 // /6
-	slash_7						= 7 // /7
-
-	regi_base_code_offset_over_8 = [
-		'R8', 'R8D', 'R8W', 'R8B',
-		'R9', 'R9D', 'R9W', 'R9B',
-		'R10', 'R10D', 'R10W', 'R10B',
-		'R11', 'R11D', 'R11W', 'R11B',
-		'R12', 'R12D', 'R12W', 'R12B',
-		'R13', 'R13D', 'R13W', 'R13B',
-		'R14', 'R14D', 'R14W', 'R14B',
-		'R15', 'R15D', 'R15W', 'R15B',
-		'XMM8', 'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15',
-	]
+	mod_indirection_with_no_disp = u8(0)
+	mod_indirection_with_disp8   = u8(1)
+	mod_indirection_with_disp32  = u8(2)
+	mod_regi                     = u8(3)
+	rex_w                        = u8(0x48)
+	operand_size_prefix16        = u8(0x66)
+	slash_0                      = 0 // /0
+	slash_1                      = 1 // /1
+	slash_2                      = 2 // /2
+	slash_3                      = 3 // /3
+	slash_4                      = 4 // /4
+	slash_5                      = 5 // /5
+	slash_6                      = 6 // /6
+	slash_7                      = 7 // /7
 )
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
-	default_text_section := &Instr{kind: .section, pos: tok.pos, section: '.text', symbol_type: header.stt_section, flags: 'ax'}
-	mut e := &Encoder {
+	mut e := &Encoder{
 		tok: tok
 		l: l
 		current_section: '.text'
 		instrs: []&Instr{cap: 1500000}
-		current_instr: unsafe{ nil }
-		user_defined_symbols: {'.text': default_text_section}
+		current_instr: unsafe { nil }
 	}
-	e.instrs << default_text_section
+	e.add_section('.bss', 'aw', tok.pos)
+	e.add_section('.data', 'aw', tok.pos)
+	e.add_section('.text', 'ax', tok.pos)
 	return e
 }
 
@@ -301,39 +363,25 @@ fn (mut e Encoder) expect(exp token.TokenKind) {
 	e.next()
 }
 
-fn regi_size(name string) ?DataSize {
-	if name in ['RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI', 'RIP', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15'] {
-		return .suffix_quad
-	}
-	if name in ['EAX', 'ECX', 'EDX', 'EBX', 'ESP', 'EBP', 'ESI', 'EDI', 'EIP', 'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D'] {
-		return .suffix_long
-	}
-	if name in ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI', 'IP', 'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W'] {
-		return .suffix_word
-	}
-	if name in ['AL', 'CL', 'DL', 'BL', 'AH', 'CH', 'DH', 'BH', 'SIL', 'DIL', 'SPL', 'BPL', 'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B'] {
-		return .suffix_byte
-	}
-
-	return none
-}
-
-fn (mut e Encoder) parse_register() Register {
+fn (mut e Encoder) parse_register() Expr {
 	e.expect(.percent)
-	pos := e.tok.pos
-	regi_name := e.tok.lit.to_upper()
 
-	size := regi_size(regi_name) or {
-		error.print(e.tok.pos, 'invalid register name `$regi_name`')
-		exit(1)
+	register_name := e.tok.lit.to_upper()
+
+	if mut xmm_register := xmm_registers[register_name] {
+		xmm_register.pos = e.tok.pos
+		e.next()
+		return xmm_register
 	}
 
-	e.next()
-	return Register{
-		lit: regi_name
-		size: size
-		pos: pos
+	if mut general_register := general_registers[register_name] {
+		general_register.pos = e.tok.pos
+		e.next()
+		return general_register
 	}
+
+	error.print(e.tok.pos, 'unkown register `${e.tok.lit}`')
+	exit(1)
 }
 
 fn (mut e Encoder) parse_factor() Expr {
@@ -341,21 +389,30 @@ fn (mut e Encoder) parse_factor() Expr {
 		.number {
 			lit := e.tok.lit
 			e.next()
-			return Number{pos: e.tok.pos, lit: lit}
+			return Number{
+				pos: e.tok.pos
+				lit: lit
+			}
 		}
 		.ident {
 			lit := e.tok.lit
 			e.next()
-			return Ident{pos: e.tok.pos, lit: lit}
+			return Ident{
+				pos: e.tok.pos
+				lit: lit
+			}
 		}
 		.minus {
 			e.next()
 			expr := e.parse_factor()
-			return Neg{pos: e.tok.pos, expr: expr}
+			return Neg{
+				pos: e.tok.pos
+				expr: expr
+			}
 		}
 		else {
 			error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
-    		exit(1)
+			exit(1)
 		}
 	}
 }
@@ -368,9 +425,9 @@ fn (mut e Encoder) parse_expr() Expr {
 		e.next()
 		right_hs := e.parse_expr()
 		return Binop{
-			left_hs: expr,
-			right_hs: right_hs,
-			op: op,
+			left_hs: expr
+			right_hs: right_hs
+			op: op
 			pos: pos
 		}
 	}
@@ -385,108 +442,100 @@ fn (mut e Encoder) parse_two_operand() (Expr, Expr) {
 }
 
 fn (mut e Encoder) parse_operand() Expr {
-    pos := e.tok.pos
-    
-    match e.tok.kind {
-        .dolor {
-            e.next()
-            return Immediate{
-                expr: e.parse_expr(),
-                pos: pos,
-            }
-        }
-        .percent {
-            e.expect(.percent)
-			regi_name := e.tok.lit.to_upper()
-			e.next()
+	pos := e.tok.pos
 
-			if regi_name.starts_with('XMM') {
-				return Xmm {
-					lit: regi_name,
-					pos: pos,
-				}
-			} else {
-				size := regi_size(regi_name) or {
-					error.print(e.tok.pos, 'invalid register name `$regi_name`')
-					exit(1)
-				}
-				return Register{
-					lit: regi_name,
-					size: size,
-					pos: pos,
-				}
+	match e.tok.kind {
+		.dolor {
+			e.next()
+			return Immediate{
+				expr: e.parse_expr()
+				pos: pos
 			}
-        }
+		}
+		.percent {
+			return e.parse_register()
+		}
 		.mul {
 			e.expect(.mul)
-			regi := e.parse_register()
-			return Star {
-				regi: regi,
-				pos: pos,
+			regi := e.parse_register() as Register
+			return Star{
+				regi: regi
+				pos: pos
 			}
 		}
 		else {
 			// parse indirect
 			expr := if e.tok.kind == .lpar {
-				Expr(Number{lit: '0', pos: pos})
+				Expr(Number{
+					lit: '0'
+					pos: pos
+				})
 			} else {
 				e.parse_expr()
 			}
 			if e.tok.kind != .lpar {
-        	    return expr
-        	}
+				return expr
+			}
 			e.next()
 			mut indirection := Indirection{
-                disp: expr,
-                pos: pos,
-            }
+				disp: expr
+				pos: pos
+			}
 			if e.tok.kind != .comma {
 				indirection.has_base = true
-				indirection.base = e.parse_register()
+				indirection.base = e.parse_register() as Register
 			}
 			// has index and scale
 			if e.tok.kind == .comma {
 				indirection.has_index_scale = true
 				e.next()
-				indirection.index = e.parse_register()
+				indirection.index = e.parse_register() as Register
 				indirection.scale = if e.tok.kind == .comma {
 					e.expect(.comma)
 					e.parse_expr()
 				} else {
-					Expr(Number{lit: '1', pos: pos})
+					Expr(Number{
+						lit: '1'
+						pos: pos
+					})
 				}
 			}
-            e.expect(.rpar)
+			e.expect(.rpar)
 			return indirection
-        }
-    }
+		}
+	}
 	error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 	exit(1)
 }
 
-fn eval_expr_get_symbol_64(expr Expr, mut arr[]string) i64 {
+fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 	return match expr {
 		Number {
 			strconv.parse_int(expr.lit, 0, 64) or {
-                error.print(expr.pos, 'invalid number `expr.lit`')
-                exit(1)
-            }
+				error.print(expr.pos, 'invalid number `expr.lit`')
+				exit(1)
+			}
 		}
-		Binop{
+		Binop {
 			match expr.op {
 				.plus {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) + eval_expr_get_symbol_64(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) +
+						eval_expr_get_symbol_64(expr.right_hs, mut arr)
 				}
 				.minus {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) - eval_expr_get_symbol_64(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) - eval_expr_get_symbol_64(expr.right_hs, mut
+						arr)
 				}
 				.mul {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) * eval_expr_get_symbol_64(expr.right_hs, mut arr)
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) * eval_expr_get_symbol_64(expr.right_hs, mut
+						arr)
 				}
 				.div {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) / eval_expr_get_symbol_64(expr.right_hs, mut arr)
-				} else {
-					panic('[internal error] somthing whent wrong...')
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) / eval_expr_get_symbol_64(expr.right_hs, mut
+						arr)
+				}
+				else {
+					panic('not implemented yet')
 				}
 			}
 		}
@@ -501,93 +550,18 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr[]string) i64 {
 			eval_expr_get_symbol_64(expr.expr, mut arr)
 		}
 		else {
-			0
-		}
-	}
-}
-
-fn eval_expr_get_symbol(expr Expr, mut arr[]string) int {
-	return match expr {
-		Number {
-			int(strconv.parse_int(expr.lit, 0, 64) or {
-                error.print(expr.pos, 'invalid number `expr.lit`')
-                exit(1)
-            })
-		}
-		Binop{
-			match expr.op {
-				.plus {
-					eval_expr_get_symbol(expr.left_hs, mut arr) + eval_expr_get_symbol(expr.right_hs, mut arr)
-				}
-				.minus {
-					eval_expr_get_symbol(expr.left_hs, mut arr) - eval_expr_get_symbol(expr.right_hs, mut arr)
-				}
-				.mul {
-					eval_expr_get_symbol(expr.left_hs, mut arr) * eval_expr_get_symbol(expr.right_hs, mut arr)
-				}
-				.div {
-					eval_expr_get_symbol(expr.left_hs, mut arr) / eval_expr_get_symbol(expr.right_hs, mut arr)
-				} else {
-					panic('[internal error] somthing whent wrong...')
-				}
-			}
-		}
-		Ident {
-			arr << expr.lit
-			0
-		}
-		Neg {
-			eval_expr_get_symbol(expr.expr, mut arr) * -1
-		}
-		Immediate {
-			eval_expr_get_symbol(expr.expr, mut arr)
-		}
-		else {
-			0
+			panic('not implmented yet')
 		}
 	}
 }
 
 fn eval_expr(expr Expr) int {
-	return match expr {
-		Number {
-			int(strconv.parse_int(expr.lit, 0, 64) or {
-                error.print(expr.pos, 'invalid number `expr.lit`')
-                exit(1)
-            })
-		}
-		Binop {
-			match expr.op {
-				.plus {
-					eval_expr(expr.left_hs) + eval_expr(expr.right_hs)
-				}
-				.minus {
-					eval_expr(expr.left_hs) - eval_expr(expr.right_hs)
-				}
-				.mul {
-					eval_expr(expr.left_hs) * eval_expr(expr.right_hs)
-				}
-				.div {
-					eval_expr(expr.left_hs) / eval_expr(expr.right_hs)
-				} else {
-					panic('[internal error] somthing whent wrong...')
-				}
-			}
-		}
-		Neg {
-			eval_expr(expr.expr) * -1
-		}
-		Immediate {
-			eval_expr(expr.expr)
-		}
-		else {
-			0
-		}
-	}
+	mut empty := []string{}
+	return int(eval_expr_get_symbol_64(expr, mut empty))
 }
 
 fn get_size_by_suffix(name string) DataSize {
-	return match name.to_upper()[name.len-1] {
+	return match name.to_upper()[name.len - 1] {
 		`Q` {
 			DataSize.suffix_quad
 		}
@@ -599,70 +573,9 @@ fn get_size_by_suffix(name string) DataSize {
 		}
 		`B` {
 			DataSize.suffix_byte
-		} else {
+		}
+		else {
 			panic('unkown DataSize')
-		}
-	}
-}
-
-fn (regi Register) regi_bits() u8 {
-	match regi.lit {
-		'RAX', 'EAX', 'AX', 'AL', 'R8', 'R8D', 'R8W', 'R8B' {
-			return 0
-		}
-		'RCX', 'ECX', 'CX', 'CL', 'R9', 'R9D', 'R9W', 'R9B' {
-			return 1
-		}
-		'RDX', 'EDX', 'DX', 'DL', 'R10', 'R10D', 'R10W', 'R10B' {
-			return 2
-		}
-		'RBX', 'EBX', 'BX', 'BL', 'R11', 'R11D', 'R11W', 'R11B' {
-			return 3
-		}
-		'RSP', 'ESP', 'SP', 'AH', 'SPL', 'R12', 'R12D', 'R12W', 'R12B' {
-			return 4
-		}
-		'RBP', 'EBP', 'BP', 'CH', 'BPL', 'R13', 'R13D', 'R13W', 'R13B' {
-			return 5
-		}
-		'RSI', 'ESI', 'SI', 'DH', 'SIL', 'R14', 'R14D', 'R14W', 'R14B' {
-			return 6
-		}
-		'RDI', 'EDI', 'DI', 'BH', 'DIL', 'R15', 'R15D', 'R15W', 'R15B' {
-			return 7
-		} else {
-			panic('unreachable')
-		}
-	}
-}
-
-fn (xmm Xmm) xmm_bits() u8 {
-	match xmm.lit {
-		'XMM0', 'XMM8' {
-			return 0
-		}
-		'XMM1', 'XMM9' {
-			return 1
-		}
-		'XMM2', 'XMM10' {
-			return 2
-		}
-		'XMM3', 'XMM11' {
-			return 3
-		}
-		'XMM4', 'XMM12' {
-			return 4
-		}
-		'XMM5', 'XMM13' {
-			return 5
-		}
-		'XMM6', 'XMM14' {
-			return 6
-		}
-		'XMM7', 'XMM15' {
-			return 7
-		} else {
-			panic('unreachable')
 		}
 	}
 }
@@ -678,21 +591,23 @@ fn rex(w u8, r u8, x u8, b u8) u8 {
 	return 64 | (w << 3) | (r << 2) | (x << 1) | b
 }
 
-fn (mut e Encoder) add_rex_prefix(regi_r string, regi_i string, regi_b string, sizes []DataSize) {
+fn (mut e Encoder) add_prefix(regi_r RegiAll, regi_i RegiAll, regi_b RegiAll, sizes []DataSize) {
 	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
 
-	if regi_r in regi_base_code_offset_over_8 {
+	if regi_r.base_offset >= 8 {
 		r = 1
 	}
-	if regi_i in regi_base_code_offset_over_8 {
+
+	if regi_i.base_offset >= 8 {
 		x = 1
 	}
-	if regi_b in regi_base_code_offset_over_8 {
+
+	if regi_b.base_offset >= 8 {
 		b = 1
 	}
 
 	if DataSize.suffix_word in sizes {
-		e.current_instr.code << operand_size_prefix16
+		e.current_instr.code << encoder.operand_size_prefix16
 	}
 	if DataSize.suffix_single in sizes {
 		e.current_instr.code << 0xF3
@@ -704,7 +619,7 @@ fn (mut e Encoder) add_rex_prefix(regi_r string, regi_i string, regi_b string, s
 		w = 1
 	}
 
-	if w != 0 || r != 0 || b != 0 || x != 0 || (regi_b in ['SIL', 'DIL', 'BPL', 'SPL'] || regi_r in ['SIL', 'DIL', 'BPL', 'SPL']) {
+	if w != 0 || r != 0 || b != 0 || x != 0 || regi_r.rex_required || regi_b.rex_required {
 		e.current_instr.code << rex(w, r, x, b)
 	}
 }
@@ -733,11 +648,16 @@ fn (mut e Encoder) encode_instr() {
 	e.next()
 
 	if e.tok.kind == .colon {
-		instr := Instr{kind: .label, pos: pos, section: e.current_section, symbol_name: instr_name}
+		instr := Instr{
+			kind: .label
+			pos: pos
+			section: e.current_section
+			symbol_name: instr_name
+		}
 		e.expect(.colon)
 
 		if instr_name in e.user_defined_symbols {
-			error.print(pos, 'symbol `$instr_name` is already defined')
+			error.print(pos, 'symbol `${instr_name}` is already defined')
 			exit(1)
 		}
 
@@ -760,23 +680,48 @@ fn (mut e Encoder) encode_instr() {
 			e.add_section('.bss', 'wa', pos)
 		}
 		'.GLOBAL', '.GLOBL' {
-			e.instrs << &Instr{kind: .global, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{
+				kind: .global
+				pos: pos
+				section: e.current_section
+				symbol_name: e.tok.lit
+			}
 			e.next()
 		}
 		'.LOCAL' {
-			e.instrs << &Instr{kind: .local, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{
+				kind: .local
+				pos: pos
+				section: e.current_section
+				symbol_name: e.tok.lit
+			}
 			e.next()
 		}
 		'.HIDDEN' {
-			e.instrs << &Instr{kind: .hidden, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{
+				kind: .hidden
+				pos: pos
+				section: e.current_section
+				symbol_name: e.tok.lit
+			}
 			e.next()
 		}
 		'.INTERNAL' {
-			e.instrs << &Instr{kind: .internal, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{
+				kind: .internal
+				pos: pos
+				section: e.current_section
+				symbol_name: e.tok.lit
+			}
 			e.next()
 		}
 		'.PROTECTED' {
-			e.instrs << &Instr{kind: .protected, pos: pos, section: e.current_section, symbol_name: e.tok.lit}
+			e.instrs << &Instr{
+				kind: .protected
+				pos: pos
+				section: e.current_section
+				symbol_name: e.tok.lit
+			}
 			e.next()
 		}
 		'.STRING' {
@@ -865,7 +810,7 @@ fn (mut e Encoder) encode_instr() {
 		}
 		'MOVABSQ' {
 			e.movabsq()
-		} 
+		}
 		'TESTQ', 'TESTL', 'TESTW', 'TESTB' {
 			e.test(get_size_by_suffix(instr_name_upper))
 		}
@@ -1080,34 +1025,79 @@ fn (mut e Encoder) encode_instr() {
 			e.cmov(.cmovge, [u8(0x0F), 0x4D], get_size_by_suffix(instr_name_upper))
 		}
 		'RETQ', 'RET' {
-			e.instrs << &Instr{kind: .ret, pos: pos, section: e.current_section, code: [u8(0xc3)]}
+			e.instrs << &Instr{
+				kind: .ret
+				pos: pos
+				section: e.current_section
+				code: [u8(0xc3)]
+			}
 		}
 		'SYSCALL' {
-			e.instrs << &Instr{kind: .syscall, pos: pos, section: e.current_section, code: [u8(0x0f), 0x05]}
+			e.instrs << &Instr{
+				kind: .syscall
+				pos: pos
+				section: e.current_section
+				code: [u8(0x0f), 0x05]
+			}
 		}
 		'NOPQ', 'NOP' {
-			e.instrs << &Instr{kind: .nop, pos: pos, section: e.current_section, code: [u8(0x90)]}
+			e.instrs << &Instr{
+				kind: .nop
+				pos: pos
+				section: e.current_section
+				code: [u8(0x90)]
+			}
 		}
 		'HLT' {
-			e.instrs << &Instr{kind: .hlt, pos: pos, section: e.current_section, code: [u8(0xf4)]}
+			e.instrs << &Instr{
+				kind: .hlt
+				pos: pos
+				section: e.current_section
+				code: [u8(0xf4)]
+			}
 		}
 		'LEAVE' {
-			e.instrs << &Instr{kind: .leave, pos: pos, section: e.current_section, code: [u8(0xc9)]}
+			e.instrs << &Instr{
+				kind: .leave
+				pos: pos
+				section: e.current_section
+				code: [u8(0xc9)]
+			}
 		}
 		'CLTQ' {
-			e.instrs << &Instr{kind: .cltq, pos: pos, section: e.current_section, code: [u8(0x48), 0x98]}
+			e.instrs << &Instr{
+				kind: .cltq
+				pos: pos
+				section: e.current_section
+				code: [u8(0x48), 0x98]
+			}
 		}
 		'CLTD' {
-			e.instrs << &Instr{kind: .cltd, pos: pos, section: e.current_section, code: [u8(0x99)]}
+			e.instrs << &Instr{
+				kind: .cltd
+				pos: pos
+				section: e.current_section
+				code: [u8(0x99)]
+			}
 		}
 		'CQTO' {
-			e.instrs << &Instr{kind: .cqto, pos: pos, section: e.current_section, code: [u8(0x48), 0x99]}
+			e.instrs << &Instr{
+				kind: .cqto
+				pos: pos
+				section: e.current_section
+				code: [u8(0x48), 0x99]
+			}
 		}
 		'CWTL' {
-			e.instrs << &Instr{kind: .cwtl, pos: pos, section: e.current_section, code: [u8(0x98)]}
+			e.instrs << &Instr{
+				kind: .cwtl
+				pos: pos
+				section: e.current_section
+				code: [u8(0x98)]
+			}
 		}
 		else {
-			error.print(pos, 'unkwoun instruction `$instr_name`')
+			error.print(pos, 'unkwoun instruction `${instr_name}`')
 			exit(1)
 		}
 	}
@@ -1121,4 +1111,3 @@ pub fn (mut e Encoder) encode() {
 		e.encode_instr()
 	}
 }
-
