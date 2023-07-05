@@ -1178,7 +1178,7 @@ encoder__DataSize_str:
 	movq	-8(%rbp), %rbx
 	leave
 	ret
-encoder__Register_to_sumtype_encoder__RegiSum:
+encoder__Register_to_sumtype_encoder__RegiAll:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$80, %rsp
@@ -1212,7 +1212,7 @@ encoder__Register_to_sumtype_encoder__RegiSum:
 	movq	-72(%rbp), %rax
 	leave
 	ret
-encoder__Empty_to_sumtype_encoder__RegiSum:
+encoder__Empty_to_sumtype_encoder__RegiAll:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$80, %rsp
@@ -1246,7 +1246,7 @@ encoder__Empty_to_sumtype_encoder__RegiSum:
 	movq	-72(%rbp), %rax
 	leave
 	ret
-encoder__Xmm_to_sumtype_encoder__RegiSum:
+encoder__Xmm_to_sumtype_encoder__RegiAll:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$80, %rsp
@@ -1898,20 +1898,20 @@ v_typeof_sumtype_idx_encoder__Expr:
 	ret
 	.section	.rodata, "a"
 .LC31:
-	.string	"encoder.RegiSum"
+	.string	"encoder.RegiAll"
 .LC32:
 	.string	"encoder.Empty"
 .LC33:
-	.string	"unknown encoder.RegiSum"
+	.string	"unknown encoder.RegiAll"
 	.text
-	.globl	v_typeof_sumtype_encoder__RegiSum
-v_typeof_sumtype_encoder__RegiSum:
+	.globl	v_typeof_sumtype_encoder__RegiAll
+v_typeof_sumtype_encoder__RegiAll:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	movl	%edi, -4(%rbp)
-	cmpl	$181, -4(%rbp)
+	cmpl	$180, -4(%rbp)
 	je	.L195
-	cmpl	$181, -4(%rbp)
+	cmpl	$180, -4(%rbp)
 	jg	.L196
 	cmpl	$167, -4(%rbp)
 	je	.L197
@@ -1939,14 +1939,14 @@ v_typeof_sumtype_encoder__RegiSum:
 .L200:
 	popq	%rbp
 	ret
-	.globl	v_typeof_sumtype_idx_encoder__RegiSum
-v_typeof_sumtype_idx_encoder__RegiSum:
+	.globl	v_typeof_sumtype_idx_encoder__RegiAll
+v_typeof_sumtype_idx_encoder__RegiAll:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	movl	%edi, -4(%rbp)
-	cmpl	$181, -4(%rbp)
+	cmpl	$180, -4(%rbp)
 	je	.L202
-	cmpl	$181, -4(%rbp)
+	cmpl	$180, -4(%rbp)
 	jg	.L203
 	cmpl	$167, -4(%rbp)
 	je	.L204
@@ -1958,7 +1958,7 @@ v_typeof_sumtype_idx_encoder__RegiSum:
 	je	.L206
 	jmp	.L203
 .L202:
-	movl	$181, %eax
+	movl	$180, %eax
 	jmp	.L207
 .L205:
 	movl	$165, %eax
@@ -1970,7 +1970,7 @@ v_typeof_sumtype_idx_encoder__RegiSum:
 	movl	$166, %eax
 	jmp	.L207
 .L203:
-	movl	$181, %eax
+	movl	$180, %eax
 .L207:
 	popq	%rbp
 	ret
@@ -30195,7 +30195,7 @@ encoder__Encoder_cmov:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -384(%rbp)
 	movq	%xmm0, -368(%rbp)
@@ -30206,12 +30206,12 @@ encoder__Encoder_cmov:
 	leaq	-384(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-320(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-440(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -30424,7 +30424,7 @@ encoder__Encoder_mov:
 	leaq	-1616(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1824(%rbp)
 	movq	%xmm0, -1808(%rbp)
@@ -30435,12 +30435,12 @@ encoder__Encoder_mov:
 	leaq	-1824(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1728(%rbp), %rdx
 	leaq	-1520(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -30578,7 +30578,7 @@ encoder__Encoder_mov:
 	leaq	-1440(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1904(%rbp)
 	movq	%xmm0, -1888(%rbp)
@@ -30589,12 +30589,12 @@ encoder__Encoder_mov:
 	leaq	-1904(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1760(%rbp), %rdx
 	leaq	-1344(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -30765,18 +30765,18 @@ encoder__Encoder_mov:
 	leaq	-1264(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1728(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-1216(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1760(%rbp), %rdx
 	leaq	-1168(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -30979,18 +30979,18 @@ encoder__Encoder_mov:
 	leaq	-1088(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1760(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-1040(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1728(%rbp), %rdx
 	leaq	-992(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -31203,7 +31203,7 @@ encoder__Encoder_mov:
 	leaq	-912(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -2000(%rbp)
 	movq	%xmm0, -1984(%rbp)
@@ -31214,12 +31214,12 @@ encoder__Encoder_mov:
 	leaq	-2000(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1728(%rbp), %rdx
 	leaq	-816(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -31386,18 +31386,18 @@ encoder__Encoder_mov:
 	leaq	-736(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1760(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-688(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1728(%rbp), %rdx
 	leaq	-640(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -31641,18 +31641,18 @@ encoder__Encoder_mov:
 	leaq	-560(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1728(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-512(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1760(%rbp), %rdx
 	leaq	-464(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -31821,7 +31821,7 @@ encoder__Encoder_mov:
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -2144(%rbp)
 	movq	%xmm0, -2128(%rbp)
@@ -31832,7 +31832,7 @@ encoder__Encoder_mov:
 	leaq	-2144(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -2080(%rbp)
 	movq	%xmm0, -2064(%rbp)
@@ -31843,7 +31843,7 @@ encoder__Encoder_mov:
 	leaq	-2080(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -32012,13 +32012,13 @@ encoder__Encoder_mov:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1760(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-160(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -2208(%rbp)
 	movq	%xmm0, -2192(%rbp)
@@ -32029,7 +32029,7 @@ encoder__Encoder_mov:
 	leaq	-2208(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-2296(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -32547,7 +32547,7 @@ encoder__Encoder_movabsq:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -480(%rbp)
 	movq	%xmm0, -464(%rbp)
@@ -32558,7 +32558,7 @@ encoder__Encoder_movabsq:
 	leaq	-480(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -416(%rbp)
 	movq	%xmm0, -400(%rbp)
@@ -32569,7 +32569,7 @@ encoder__Encoder_movabsq:
 	leaq	-416(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-648(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -32925,7 +32925,7 @@ encoder__Encoder_mul:
 	leaq	-352(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -544(%rbp)
 	movq	%xmm0, -528(%rbp)
@@ -32936,7 +32936,7 @@ encoder__Encoder_mul:
 	leaq	-544(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -480(%rbp)
 	movq	%xmm0, -464(%rbp)
@@ -32947,7 +32947,7 @@ encoder__Encoder_mul:
 	leaq	-480(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-696(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -33109,13 +33109,13 @@ encoder__Encoder_mul:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-416(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-128(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -608(%rbp)
 	movq	%xmm0, -592(%rbp)
@@ -33126,7 +33126,7 @@ encoder__Encoder_mul:
 	leaq	-608(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-696(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -33532,7 +33532,7 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	leaq	-368(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -576(%rbp)
 	movq	%xmm0, -560(%rbp)
@@ -33543,12 +33543,12 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	leaq	-576(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-512(%rbp), %rdx
 	leaq	-272(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-680(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -33737,18 +33737,18 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	leaq	-192(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-480(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-144(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-512(%rbp), %rdx
 	leaq	-96(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-680(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -34034,7 +34034,7 @@ encoder__Encoder_test:
 	leaq	-912(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1120(%rbp)
 	movq	%xmm0, -1104(%rbp)
@@ -34045,12 +34045,12 @@ encoder__Encoder_test:
 	leaq	-1120(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1024(%rbp), %rdx
 	leaq	-816(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1416(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -34217,18 +34217,18 @@ encoder__Encoder_test:
 	leaq	-736(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1056(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-688(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1024(%rbp), %rdx
 	leaq	-640(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1416(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -34472,18 +34472,18 @@ encoder__Encoder_test:
 	leaq	-560(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1024(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-512(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1056(%rbp), %rdx
 	leaq	-464(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1416(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -34722,7 +34722,7 @@ encoder__Encoder_test:
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1264(%rbp)
 	movq	%xmm0, -1248(%rbp)
@@ -34733,7 +34733,7 @@ encoder__Encoder_test:
 	leaq	-1264(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1200(%rbp)
 	movq	%xmm0, -1184(%rbp)
@@ -34744,7 +34744,7 @@ encoder__Encoder_test:
 	leaq	-1200(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1416(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -34899,13 +34899,13 @@ encoder__Encoder_test:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1056(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-160(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1328(%rbp)
 	movq	%xmm0, -1312(%rbp)
@@ -34916,7 +34916,7 @@ encoder__Encoder_test:
 	leaq	-1328(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1416(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -35248,7 +35248,7 @@ encoder__Encoder_arith_instr:
 	leaq	-912(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1120(%rbp)
 	movq	%xmm0, -1104(%rbp)
@@ -35259,12 +35259,12 @@ encoder__Encoder_arith_instr:
 	leaq	-1120(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1024(%rbp), %rdx
 	leaq	-816(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1384(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -35424,18 +35424,18 @@ encoder__Encoder_arith_instr:
 	leaq	-736(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1056(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-688(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1024(%rbp), %rdx
 	leaq	-640(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1384(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -35659,18 +35659,18 @@ encoder__Encoder_arith_instr:
 	leaq	-560(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1024(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-512(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1056(%rbp), %rdx
 	leaq	-464(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1384(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -35912,7 +35912,7 @@ encoder__Encoder_arith_instr:
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1264(%rbp)
 	movq	%xmm0, -1248(%rbp)
@@ -35923,7 +35923,7 @@ encoder__Encoder_arith_instr:
 	leaq	-1264(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1200(%rbp)
 	movq	%xmm0, -1184(%rbp)
@@ -35934,7 +35934,7 @@ encoder__Encoder_arith_instr:
 	leaq	-1200(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1384(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -36090,13 +36090,13 @@ encoder__Encoder_arith_instr:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1056(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-160(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1328(%rbp)
 	movq	%xmm0, -1312(%rbp)
@@ -36107,7 +36107,7 @@ encoder__Encoder_arith_instr:
 	leaq	-1328(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1384(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -36418,7 +36418,7 @@ encoder__Encoder_imul:
 	leaq	-912(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1200(%rbp)
 	movq	%xmm0, -1184(%rbp)
@@ -36429,7 +36429,7 @@ encoder__Encoder_imul:
 	leaq	-1200(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1136(%rbp)
 	movq	%xmm0, -1120(%rbp)
@@ -36440,7 +36440,7 @@ encoder__Encoder_imul:
 	leaq	-1136(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1496(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -36602,13 +36602,13 @@ encoder__Encoder_imul:
 	leaq	-736(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-976(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-688(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1264(%rbp)
 	movq	%xmm0, -1248(%rbp)
@@ -36619,7 +36619,7 @@ encoder__Encoder_imul:
 	leaq	-1264(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1496(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -36845,18 +36845,18 @@ encoder__Encoder_imul:
 	leaq	-560(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-976(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-512(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1008(%rbp), %rdx
 	leaq	-464(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1496(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -37046,7 +37046,7 @@ encoder__Encoder_imul:
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1344(%rbp)
 	movq	%xmm0, -1328(%rbp)
@@ -37057,12 +37057,12 @@ encoder__Encoder_imul:
 	leaq	-1344(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1008(%rbp), %rdx
 	leaq	-288(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1496(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -37325,7 +37325,7 @@ encoder__Encoder_imul:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1408(%rbp)
 	movq	%xmm0, -1392(%rbp)
@@ -37336,12 +37336,12 @@ encoder__Encoder_imul:
 	leaq	-1408(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1072(%rbp), %rdx
 	leaq	-112(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1496(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -37587,7 +37587,7 @@ encoder__Encoder_one_operand_arith:
 	leaq	-352(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -576(%rbp)
 	movq	%xmm0, -560(%rbp)
@@ -37598,7 +37598,7 @@ encoder__Encoder_one_operand_arith:
 	leaq	-576(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -512(%rbp)
 	movq	%xmm0, -496(%rbp)
@@ -37609,7 +37609,7 @@ encoder__Encoder_one_operand_arith:
 	leaq	-512(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-696(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -37772,13 +37772,13 @@ encoder__Encoder_one_operand_arith:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-416(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-128(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -640(%rbp)
 	movq	%xmm0, -624(%rbp)
@@ -37789,7 +37789,7 @@ encoder__Encoder_one_operand_arith:
 	leaq	-640(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-696(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -38088,18 +38088,18 @@ encoder__Encoder_lea:
 	leaq	-192(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-304(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-144(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-336(%rbp), %rdx
 	leaq	-96(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-360(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -38315,7 +38315,7 @@ encoder__Encoder_set:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -368(%rbp)
 	movq	%xmm0, -352(%rbp)
@@ -38326,7 +38326,7 @@ encoder__Encoder_set:
 	leaq	-368(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -304(%rbp)
 	movq	%xmm0, -288(%rbp)
@@ -38337,7 +38337,7 @@ encoder__Encoder_set:
 	leaq	-304(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-424(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -38547,7 +38547,7 @@ encoder__Encoder_shift:
 	leaq	-1088(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1312(%rbp)
 	movq	%xmm0, -1296(%rbp)
@@ -38558,7 +38558,7 @@ encoder__Encoder_shift:
 	leaq	-1312(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1248(%rbp)
 	movq	%xmm0, -1232(%rbp)
@@ -38569,7 +38569,7 @@ encoder__Encoder_shift:
 	leaq	-1248(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1704(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -38725,13 +38725,13 @@ encoder__Encoder_shift:
 	leaq	-912(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1152(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-864(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1376(%rbp)
 	movq	%xmm0, -1360(%rbp)
@@ -38742,7 +38742,7 @@ encoder__Encoder_shift:
 	leaq	-1376(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1704(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -38973,7 +38973,7 @@ encoder__Encoder_shift:
 	leaq	-736(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1440(%rbp)
 	movq	%xmm0, -1424(%rbp)
@@ -38984,12 +38984,12 @@ encoder__Encoder_shift:
 	leaq	-1440(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1152(%rbp), %rdx
 	leaq	-640(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1704(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -39145,18 +39145,18 @@ encoder__Encoder_shift:
 	leaq	-560(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1184(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-512(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1152(%rbp), %rdx
 	leaq	-464(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1704(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -39397,7 +39397,7 @@ encoder__Encoder_shift:
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1584(%rbp)
 	movq	%xmm0, -1568(%rbp)
@@ -39408,7 +39408,7 @@ encoder__Encoder_shift:
 	leaq	-1584(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1520(%rbp)
 	movq	%xmm0, -1504(%rbp)
@@ -39419,7 +39419,7 @@ encoder__Encoder_shift:
 	leaq	-1520(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1704(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -39575,13 +39575,13 @@ encoder__Encoder_shift:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-1184(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-160(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -1648(%rbp)
 	movq	%xmm0, -1632(%rbp)
@@ -39592,7 +39592,7 @@ encoder__Encoder_shift:
 	leaq	-1648(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-1704(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -52269,7 +52269,7 @@ encoder__Encoder_cvttss2sil:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -384(%rbp)
 	movq	%xmm0, -368(%rbp)
@@ -52280,12 +52280,12 @@ encoder__Encoder_cvttss2sil:
 	leaq	-384(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-320(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-440(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -52493,7 +52493,7 @@ encoder__Encoder_cvtsi2ssq:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -384(%rbp)
 	movq	%xmm0, -368(%rbp)
@@ -52504,12 +52504,12 @@ encoder__Encoder_cvtsi2ssq:
 	leaq	-384(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-320(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-440(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -52717,7 +52717,7 @@ encoder__Encoder_cvtsi2sdq:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -384(%rbp)
 	movq	%xmm0, -368(%rbp)
@@ -52728,12 +52728,12 @@ encoder__Encoder_cvtsi2sdq:
 	leaq	-384(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-320(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-440(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -52915,7 +52915,7 @@ encoder__Encoder_xorp:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -352(%rbp)
 	movq	%xmm0, -336(%rbp)
@@ -52926,12 +52926,12 @@ encoder__Encoder_xorp:
 	leaq	-352(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-288(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-408(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -53113,7 +53113,7 @@ encoder__Encoder_sse_arith_instr:
 	leaq	-320(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -496(%rbp)
 	movq	%xmm0, -480(%rbp)
@@ -53124,12 +53124,12 @@ encoder__Encoder_sse_arith_instr:
 	leaq	-496(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-432(%rbp), %rdx
 	leaq	-224(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-552(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -53289,18 +53289,18 @@ encoder__Encoder_sse_arith_instr:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-400(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-128(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-432(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-552(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -53514,7 +53514,7 @@ encoder__Encoder_sse_data_transfer_instr:
 	leaq	-480(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -656(%rbp)
 	movq	%xmm0, -640(%rbp)
@@ -53525,12 +53525,12 @@ encoder__Encoder_sse_data_transfer_instr:
 	leaq	-656(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-592(%rbp), %rdx
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-680(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -53693,18 +53693,18 @@ encoder__Encoder_sse_data_transfer_instr:
 	leaq	-336(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-560(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-288(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-592(%rbp), %rdx
 	leaq	-240(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-680(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -53897,18 +53897,18 @@ encoder__Encoder_sse_data_transfer_instr:
 	leaq	-192(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-592(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-144(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-560(%rbp), %rdx
 	leaq	-96(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-680(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -54147,7 +54147,7 @@ encoder__Encoder_movd:
 	leaq	-720(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -928(%rbp)
 	movq	%xmm0, -912(%rbp)
@@ -54158,12 +54158,12 @@ encoder__Encoder_movd:
 	leaq	-928(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-864(%rbp), %rdx
 	leaq	-624(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-1064(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -54302,7 +54302,7 @@ encoder__Encoder_movd:
 	leaq	-544(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -992(%rbp)
 	movq	%xmm0, -976(%rbp)
@@ -54313,12 +54313,12 @@ encoder__Encoder_movd:
 	leaq	-992(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-832(%rbp), %rdx
 	leaq	-448(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-1064(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -54491,18 +54491,18 @@ encoder__Encoder_movd:
 	leaq	-368(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-832(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-320(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-864(%rbp), %rdx
 	leaq	-272(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-1064(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -54705,18 +54705,18 @@ encoder__Encoder_movd:
 	leaq	-192(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-864(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-144(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-832(%rbp), %rdx
 	leaq	-96(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiSum
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
 	movq	-1064(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -54938,7 +54938,7 @@ encoder__Encoder_pop:
 	leaq	-352(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -544(%rbp)
 	movq	%xmm0, -528(%rbp)
@@ -54949,7 +54949,7 @@ encoder__Encoder_pop:
 	leaq	-544(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -480(%rbp)
 	movq	%xmm0, -464(%rbp)
@@ -54960,7 +54960,7 @@ encoder__Encoder_pop:
 	leaq	-480(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-664(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -55106,13 +55106,13 @@ encoder__Encoder_pop:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-416(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-128(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -608(%rbp)
 	movq	%xmm0, -592(%rbp)
@@ -55123,7 +55123,7 @@ encoder__Encoder_pop:
 	leaq	-608(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-664(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -55333,7 +55333,7 @@ encoder__Encoder_push:
 	leaq	-384(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -576(%rbp)
 	movq	%xmm0, -560(%rbp)
@@ -55344,7 +55344,7 @@ encoder__Encoder_push:
 	leaq	-576(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -512(%rbp)
 	movq	%xmm0, -496(%rbp)
@@ -55355,7 +55355,7 @@ encoder__Encoder_push:
 	leaq	-512(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-696(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -55519,13 +55519,13 @@ encoder__Encoder_push:
 	leaq	-208(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	movq	-448(%rbp), %rax
 	leaq	72(%rax), %rdx
 	leaq	-160(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -640(%rbp)
 	movq	%xmm0, -624(%rbp)
@@ -55536,7 +55536,7 @@ encoder__Encoder_push:
 	leaq	-640(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-696(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -55924,7 +55924,7 @@ encoder__Encoder_jmp_instr:
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -368(%rbp)
 	movq	%xmm0, -352(%rbp)
@@ -55935,7 +55935,7 @@ encoder__Encoder_jmp_instr:
 	leaq	-368(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -304(%rbp)
 	movq	%xmm0, -288(%rbp)
@@ -55946,7 +55946,7 @@ encoder__Encoder_jmp_instr:
 	leaq	-304(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-488(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -56121,7 +56121,7 @@ encoder__Encoder_call:
 	leaq	-192(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiSum
+	call	encoder__Register_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -384(%rbp)
 	movq	%xmm0, -368(%rbp)
@@ -56132,7 +56132,7 @@ encoder__Encoder_call:
 	leaq	-384(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -320(%rbp)
 	movq	%xmm0, -304(%rbp)
@@ -56143,7 +56143,7 @@ encoder__Encoder_call:
 	leaq	-320(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiSum
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
 	movq	-488(%rbp), %rsi
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -60022,67 +60022,67 @@ main__main:
 .LC510:
 	.string	"R14D"
 .LC511:
-	.string	"AX"
-.LC512:
-	.string	"CX"
-.LC513:
-	.string	"DX"
-.LC514:
-	.string	"BX"
-.LC515:
-	.string	"SP"
-.LC516:
-	.string	"SI"
-.LC517:
-	.string	"DI"
-.LC518:
-	.string	"R8W"
-.LC519:
-	.string	"R9W"
-.LC520:
-	.string	"R10W"
-.LC521:
-	.string	"R11W"
-.LC522:
-	.string	"R12W"
-.LC523:
-	.string	"R13W"
-.LC524:
-	.string	"R14W"
-.LC525:
-	.string	"R15W"
-.LC526:
-	.string	"AL"
-.LC527:
-	.string	"DL"
-.LC528:
-	.string	"BL"
-.LC529:
-	.string	"BP"
-.LC530:
-	.string	"SPL"
-.LC531:
-	.string	"SIL"
-.LC532:
-	.string	"BPL"
-.LC533:
-	.string	"DIL"
-.LC534:
-	.string	"R8B"
-.LC535:
-	.string	"R9B"
-.LC536:
-	.string	"R10B"
-.LC537:
-	.string	"R11B"
-.LC538:
-	.string	"R12B"
-.LC539:
-	.string	"R13B"
-.LC540:
-	.string	"R14B"
-.LC541:
 	.string	"R15D"
+.LC512:
+	.string	"AX"
+.LC513:
+	.string	"CX"
+.LC514:
+	.string	"DX"
+.LC515:
+	.string	"BX"
+.LC516:
+	.string	"SP"
+.LC517:
+	.string	"SI"
+.LC518:
+	.string	"DI"
+.LC519:
+	.string	"R8W"
+.LC520:
+	.string	"R9W"
+.LC521:
+	.string	"R10W"
+.LC522:
+	.string	"R11W"
+.LC523:
+	.string	"R12W"
+.LC524:
+	.string	"R13W"
+.LC525:
+	.string	"R14W"
+.LC526:
+	.string	"R15W"
+.LC527:
+	.string	"AL"
+.LC528:
+	.string	"DL"
+.LC529:
+	.string	"BL"
+.LC530:
+	.string	"BP"
+.LC531:
+	.string	"SPL"
+.LC532:
+	.string	"SIL"
+.LC533:
+	.string	"BPL"
+.LC534:
+	.string	"DIL"
+.LC535:
+	.string	"R8B"
+.LC536:
+	.string	"R9B"
+.LC537:
+	.string	"R10B"
+.LC538:
+	.string	"R11B"
+.LC539:
+	.string	"R12B"
+.LC540:
+	.string	"R13B"
+.LC541:
+	.string	"R14B"
 .LC542:
 	.string	"R15B"
 .LC543:
@@ -63179,9 +63179,10 @@ _vinit:
 	movl	$1, -19596(%rbp)
 	leaq	.LC511(%rip), %rax
 	movq	%rax, -19584(%rbp)
-	movl	$2, -19576(%rbp)
+	movl	$4, -19576(%rbp)
 	movl	$1, -19572(%rbp)
-	movl	$1, -19568(%rbp)
+	movl	$2, -19568(%rbp)
+	movb	$15, -19564(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19560(%rbp)
 	movl	$1, -19548(%rbp)
@@ -63190,7 +63191,6 @@ _vinit:
 	movl	$2, -19528(%rbp)
 	movl	$1, -19524(%rbp)
 	movl	$1, -19520(%rbp)
-	movb	$1, -19516(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19512(%rbp)
 	movl	$1, -19500(%rbp)
@@ -63199,7 +63199,7 @@ _vinit:
 	movl	$2, -19480(%rbp)
 	movl	$1, -19476(%rbp)
 	movl	$1, -19472(%rbp)
-	movb	$2, -19468(%rbp)
+	movb	$1, -19468(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19464(%rbp)
 	movl	$1, -19452(%rbp)
@@ -63208,7 +63208,7 @@ _vinit:
 	movl	$2, -19432(%rbp)
 	movl	$1, -19428(%rbp)
 	movl	$1, -19424(%rbp)
-	movb	$3, -19420(%rbp)
+	movb	$2, -19420(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19416(%rbp)
 	movl	$1, -19404(%rbp)
@@ -63217,7 +63217,7 @@ _vinit:
 	movl	$2, -19384(%rbp)
 	movl	$1, -19380(%rbp)
 	movl	$1, -19376(%rbp)
-	movb	$4, -19372(%rbp)
+	movb	$3, -19372(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19368(%rbp)
 	movl	$1, -19356(%rbp)
@@ -63226,7 +63226,7 @@ _vinit:
 	movl	$2, -19336(%rbp)
 	movl	$1, -19332(%rbp)
 	movl	$1, -19328(%rbp)
-	movb	$6, -19324(%rbp)
+	movb	$4, -19324(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19320(%rbp)
 	movl	$1, -19308(%rbp)
@@ -63235,16 +63235,16 @@ _vinit:
 	movl	$2, -19288(%rbp)
 	movl	$1, -19284(%rbp)
 	movl	$1, -19280(%rbp)
-	movb	$7, -19276(%rbp)
+	movb	$6, -19276(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19272(%rbp)
 	movl	$1, -19260(%rbp)
 	leaq	.LC518(%rip), %rax
 	movq	%rax, -19248(%rbp)
-	movl	$3, -19240(%rbp)
+	movl	$2, -19240(%rbp)
 	movl	$1, -19236(%rbp)
 	movl	$1, -19232(%rbp)
-	movb	$8, -19228(%rbp)
+	movb	$7, -19228(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19224(%rbp)
 	movl	$1, -19212(%rbp)
@@ -63253,16 +63253,16 @@ _vinit:
 	movl	$3, -19192(%rbp)
 	movl	$1, -19188(%rbp)
 	movl	$1, -19184(%rbp)
-	movb	$9, -19180(%rbp)
+	movb	$8, -19180(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19176(%rbp)
 	movl	$1, -19164(%rbp)
 	leaq	.LC520(%rip), %rax
 	movq	%rax, -19152(%rbp)
-	movl	$4, -19144(%rbp)
+	movl	$3, -19144(%rbp)
 	movl	$1, -19140(%rbp)
 	movl	$1, -19136(%rbp)
-	movb	$10, -19132(%rbp)
+	movb	$9, -19132(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19128(%rbp)
 	movl	$1, -19116(%rbp)
@@ -63271,7 +63271,7 @@ _vinit:
 	movl	$4, -19096(%rbp)
 	movl	$1, -19092(%rbp)
 	movl	$1, -19088(%rbp)
-	movb	$11, -19084(%rbp)
+	movb	$10, -19084(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19080(%rbp)
 	movl	$1, -19068(%rbp)
@@ -63280,7 +63280,7 @@ _vinit:
 	movl	$4, -19048(%rbp)
 	movl	$1, -19044(%rbp)
 	movl	$1, -19040(%rbp)
-	movb	$12, -19036(%rbp)
+	movb	$11, -19036(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -19032(%rbp)
 	movl	$1, -19020(%rbp)
@@ -63289,7 +63289,7 @@ _vinit:
 	movl	$4, -19000(%rbp)
 	movl	$1, -18996(%rbp)
 	movl	$1, -18992(%rbp)
-	movb	$13, -18988(%rbp)
+	movb	$12, -18988(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18984(%rbp)
 	movl	$1, -18972(%rbp)
@@ -63298,7 +63298,7 @@ _vinit:
 	movl	$4, -18952(%rbp)
 	movl	$1, -18948(%rbp)
 	movl	$1, -18944(%rbp)
-	movb	$14, -18940(%rbp)
+	movb	$13, -18940(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18936(%rbp)
 	movl	$1, -18924(%rbp)
@@ -63307,30 +63307,31 @@ _vinit:
 	movl	$4, -18904(%rbp)
 	movl	$1, -18900(%rbp)
 	movl	$1, -18896(%rbp)
-	movb	$15, -18892(%rbp)
+	movb	$14, -18892(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18888(%rbp)
 	movl	$1, -18876(%rbp)
 	leaq	.LC526(%rip), %rax
 	movq	%rax, -18864(%rbp)
-	movl	$2, -18856(%rbp)
+	movl	$4, -18856(%rbp)
 	movl	$1, -18852(%rbp)
+	movl	$1, -18848(%rbp)
+	movb	$15, -18844(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18840(%rbp)
 	movl	$1, -18828(%rbp)
-	leaq	.LC230(%rip), %rax
+	leaq	.LC527(%rip), %rax
 	movq	%rax, -18816(%rbp)
 	movl	$2, -18808(%rbp)
 	movl	$1, -18804(%rbp)
-	movb	$1, -18796(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18792(%rbp)
 	movl	$1, -18780(%rbp)
-	leaq	.LC527(%rip), %rax
+	leaq	.LC230(%rip), %rax
 	movq	%rax, -18768(%rbp)
 	movl	$2, -18760(%rbp)
 	movl	$1, -18756(%rbp)
-	movb	$2, -18748(%rbp)
+	movb	$1, -18748(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18744(%rbp)
 	movl	$1, -18732(%rbp)
@@ -63338,27 +63339,27 @@ _vinit:
 	movq	%rax, -18720(%rbp)
 	movl	$2, -18712(%rbp)
 	movl	$1, -18708(%rbp)
-	movb	$3, -18700(%rbp)
+	movb	$2, -18700(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18696(%rbp)
 	movl	$1, -18684(%rbp)
-	leaq	.LC224(%rip), %rax
+	leaq	.LC529(%rip), %rax
 	movq	%rax, -18672(%rbp)
 	movl	$2, -18664(%rbp)
 	movl	$1, -18660(%rbp)
-	movb	$4, -18652(%rbp)
+	movb	$3, -18652(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18648(%rbp)
 	movl	$1, -18636(%rbp)
-	leaq	.LC529(%rip), %rax
+	leaq	.LC224(%rip), %rax
 	movq	%rax, -18624(%rbp)
 	movl	$2, -18616(%rbp)
 	movl	$1, -18612(%rbp)
-	movb	$5, -18604(%rbp)
+	movb	$4, -18604(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18600(%rbp)
 	movl	$1, -18588(%rbp)
-	leaq	.LC225(%rip), %rax
+	leaq	.LC530(%rip), %rax
 	movq	%rax, -18576(%rbp)
 	movl	$2, -18568(%rbp)
 	movl	$1, -18564(%rbp)
@@ -63366,28 +63367,27 @@ _vinit:
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18552(%rbp)
 	movl	$1, -18540(%rbp)
-	leaq	.LC226(%rip), %rax
+	leaq	.LC225(%rip), %rax
 	movq	%rax, -18528(%rbp)
 	movl	$2, -18520(%rbp)
 	movl	$1, -18516(%rbp)
-	movb	$6, -18508(%rbp)
+	movb	$5, -18508(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18504(%rbp)
 	movl	$1, -18492(%rbp)
-	leaq	.LC227(%rip), %rax
+	leaq	.LC226(%rip), %rax
 	movq	%rax, -18480(%rbp)
 	movl	$2, -18472(%rbp)
 	movl	$1, -18468(%rbp)
-	movb	$7, -18460(%rbp)
+	movb	$6, -18460(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18456(%rbp)
 	movl	$1, -18444(%rbp)
-	leaq	.LC530(%rip), %rax
+	leaq	.LC227(%rip), %rax
 	movq	%rax, -18432(%rbp)
-	movl	$3, -18424(%rbp)
+	movl	$2, -18424(%rbp)
 	movl	$1, -18420(%rbp)
-	movb	$4, -18412(%rbp)
-	movb	$1, -18411(%rbp)
+	movb	$7, -18412(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18408(%rbp)
 	movl	$1, -18396(%rbp)
@@ -63395,7 +63395,7 @@ _vinit:
 	movq	%rax, -18384(%rbp)
 	movl	$3, -18376(%rbp)
 	movl	$1, -18372(%rbp)
-	movb	$6, -18364(%rbp)
+	movb	$4, -18364(%rbp)
 	movb	$1, -18363(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18360(%rbp)
@@ -63404,7 +63404,7 @@ _vinit:
 	movq	%rax, -18336(%rbp)
 	movl	$3, -18328(%rbp)
 	movl	$1, -18324(%rbp)
-	movb	$5, -18316(%rbp)
+	movb	$6, -18316(%rbp)
 	movb	$1, -18315(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18312(%rbp)
@@ -63413,7 +63413,7 @@ _vinit:
 	movq	%rax, -18288(%rbp)
 	movl	$3, -18280(%rbp)
 	movl	$1, -18276(%rbp)
-	movb	$7, -18268(%rbp)
+	movb	$5, -18268(%rbp)
 	movb	$1, -18267(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18264(%rbp)
@@ -63422,7 +63422,8 @@ _vinit:
 	movq	%rax, -18240(%rbp)
 	movl	$3, -18232(%rbp)
 	movl	$1, -18228(%rbp)
-	movb	$8, -18220(%rbp)
+	movb	$7, -18220(%rbp)
+	movb	$1, -18219(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18216(%rbp)
 	movl	$1, -18204(%rbp)
@@ -63430,15 +63431,15 @@ _vinit:
 	movq	%rax, -18192(%rbp)
 	movl	$3, -18184(%rbp)
 	movl	$1, -18180(%rbp)
-	movb	$9, -18172(%rbp)
+	movb	$8, -18172(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18168(%rbp)
 	movl	$1, -18156(%rbp)
 	leaq	.LC536(%rip), %rax
 	movq	%rax, -18144(%rbp)
-	movl	$4, -18136(%rbp)
+	movl	$3, -18136(%rbp)
 	movl	$1, -18132(%rbp)
-	movb	$10, -18124(%rbp)
+	movb	$9, -18124(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18120(%rbp)
 	movl	$1, -18108(%rbp)
@@ -63446,7 +63447,7 @@ _vinit:
 	movq	%rax, -18096(%rbp)
 	movl	$4, -18088(%rbp)
 	movl	$1, -18084(%rbp)
-	movb	$11, -18076(%rbp)
+	movb	$10, -18076(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18072(%rbp)
 	movl	$1, -18060(%rbp)
@@ -63454,7 +63455,7 @@ _vinit:
 	movq	%rax, -18048(%rbp)
 	movl	$4, -18040(%rbp)
 	movl	$1, -18036(%rbp)
-	movb	$12, -18028(%rbp)
+	movb	$11, -18028(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -18024(%rbp)
 	movl	$1, -18012(%rbp)
@@ -63462,7 +63463,7 @@ _vinit:
 	movq	%rax, -18000(%rbp)
 	movl	$4, -17992(%rbp)
 	movl	$1, -17988(%rbp)
-	movb	$13, -17980(%rbp)
+	movb	$12, -17980(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -17976(%rbp)
 	movl	$1, -17964(%rbp)
@@ -63470,7 +63471,7 @@ _vinit:
 	movq	%rax, -17952(%rbp)
 	movl	$4, -17944(%rbp)
 	movl	$1, -17940(%rbp)
-	movb	$14, -17932(%rbp)
+	movb	$13, -17932(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -17928(%rbp)
 	movl	$1, -17916(%rbp)
@@ -63478,7 +63479,7 @@ _vinit:
 	movq	%rax, -17904(%rbp)
 	movl	$4, -17896(%rbp)
 	movl	$1, -17892(%rbp)
-	movb	$15, -17884(%rbp)
+	movb	$14, -17884(%rbp)
 	leaq	.LC34(%rip), %rax
 	movq	%rax, -17880(%rbp)
 	movl	$1, -17868(%rbp)
@@ -63640,7 +63641,7 @@ _vinit:
 	movl	$1, -11492(%rbp)
 	leaq	.LC511(%rip), %rax
 	movq	%rax, -11488(%rbp)
-	movl	$2, -11480(%rbp)
+	movl	$4, -11480(%rbp)
 	movl	$1, -11476(%rbp)
 	leaq	.LC512(%rip), %rax
 	movq	%rax, -11472(%rbp)
@@ -63668,7 +63669,7 @@ _vinit:
 	movl	$1, -11380(%rbp)
 	leaq	.LC518(%rip), %rax
 	movq	%rax, -11376(%rbp)
-	movl	$3, -11368(%rbp)
+	movl	$2, -11368(%rbp)
 	movl	$1, -11364(%rbp)
 	leaq	.LC519(%rip), %rax
 	movq	%rax, -11360(%rbp)
@@ -63676,7 +63677,7 @@ _vinit:
 	movl	$1, -11348(%rbp)
 	leaq	.LC520(%rip), %rax
 	movq	%rax, -11344(%rbp)
-	movl	$4, -11336(%rbp)
+	movl	$3, -11336(%rbp)
 	movl	$1, -11332(%rbp)
 	leaq	.LC521(%rip), %rax
 	movq	%rax, -11328(%rbp)
@@ -63700,13 +63701,13 @@ _vinit:
 	movl	$1, -11252(%rbp)
 	leaq	.LC526(%rip), %rax
 	movq	%rax, -11248(%rbp)
-	movl	$2, -11240(%rbp)
+	movl	$4, -11240(%rbp)
 	movl	$1, -11236(%rbp)
-	leaq	.LC230(%rip), %rax
+	leaq	.LC527(%rip), %rax
 	movq	%rax, -11232(%rbp)
 	movl	$2, -11224(%rbp)
 	movl	$1, -11220(%rbp)
-	leaq	.LC527(%rip), %rax
+	leaq	.LC230(%rip), %rax
 	movq	%rax, -11216(%rbp)
 	movl	$2, -11208(%rbp)
 	movl	$1, -11204(%rbp)
@@ -63714,29 +63715,29 @@ _vinit:
 	movq	%rax, -11200(%rbp)
 	movl	$2, -11192(%rbp)
 	movl	$1, -11188(%rbp)
-	leaq	.LC224(%rip), %rax
+	leaq	.LC529(%rip), %rax
 	movq	%rax, -11184(%rbp)
 	movl	$2, -11176(%rbp)
 	movl	$1, -11172(%rbp)
-	leaq	.LC529(%rip), %rax
+	leaq	.LC224(%rip), %rax
 	movq	%rax, -11168(%rbp)
 	movl	$2, -11160(%rbp)
 	movl	$1, -11156(%rbp)
-	leaq	.LC225(%rip), %rax
+	leaq	.LC530(%rip), %rax
 	movq	%rax, -11152(%rbp)
 	movl	$2, -11144(%rbp)
 	movl	$1, -11140(%rbp)
-	leaq	.LC226(%rip), %rax
+	leaq	.LC225(%rip), %rax
 	movq	%rax, -11136(%rbp)
 	movl	$2, -11128(%rbp)
 	movl	$1, -11124(%rbp)
-	leaq	.LC227(%rip), %rax
+	leaq	.LC226(%rip), %rax
 	movq	%rax, -11120(%rbp)
 	movl	$2, -11112(%rbp)
 	movl	$1, -11108(%rbp)
-	leaq	.LC530(%rip), %rax
+	leaq	.LC227(%rip), %rax
 	movq	%rax, -11104(%rbp)
-	movl	$3, -11096(%rbp)
+	movl	$2, -11096(%rbp)
 	movl	$1, -11092(%rbp)
 	leaq	.LC531(%rip), %rax
 	movq	%rax, -11088(%rbp)
@@ -63760,7 +63761,7 @@ _vinit:
 	movl	$1, -11012(%rbp)
 	leaq	.LC536(%rip), %rax
 	movq	%rax, -11008(%rbp)
-	movl	$4, -11000(%rbp)
+	movl	$3, -11000(%rbp)
 	movl	$1, -10996(%rbp)
 	leaq	.LC537(%rip), %rax
 	movq	%rax, -10992(%rbp)

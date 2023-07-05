@@ -17,6 +17,7 @@ const general_registers = {
 	'R13': Register{lit: 'R13', base_offset: 13, size: .suffix_quad}
 	'R14': Register{lit: 'R14', base_offset: 14, size: .suffix_quad}
 	'R15': Register{lit: 'R15', base_offset: 15, size: .suffix_quad}
+
 	'EAX': Register{lit: 'EAX', base_offset: 0, size: .suffix_long}
 	'ECX': Register{lit: 'ECX', base_offset: 1, size: .suffix_long}
 	'EDX': Register{lit: 'EDX', base_offset: 2, size: .suffix_long}
@@ -32,6 +33,8 @@ const general_registers = {
 	'R12D': Register{lit: 'R12D', base_offset: 12, size: .suffix_long}
 	'R13D': Register{lit: 'R13D', base_offset: 13, size: .suffix_long}
 	'R14D': Register{lit: 'R14D', base_offset: 14, size: .suffix_long}
+	'R15D': Register{lit: 'R15D', base_offset: 15, size: .suffix_long}
+
 	'AX': Register{lit: 'AX', base_offset: 0, size: .suffix_word}
 	'CX': Register{lit: 'CX', base_offset: 1, size: .suffix_word}
 	'DX': Register{lit: 'DX', base_offset: 2, size: .suffix_word}
@@ -47,6 +50,7 @@ const general_registers = {
 	'R13W': Register{lit: 'R13W', base_offset: 13, size: .suffix_word}
 	'R14W': Register{lit: 'R14W', base_offset: 14, size: .suffix_word}
 	'R15W': Register{lit: 'R15W', base_offset: 15, size: .suffix_word}
+
 	'AL': Register{lit: 'AL', base_offset: 0, size: .suffix_byte}
 	'CL': Register{lit: 'CL', base_offset: 1, size: .suffix_byte}
 	'DL': Register{lit: 'DL', base_offset: 2, size: .suffix_byte}
@@ -67,8 +71,8 @@ const general_registers = {
 	'R12B': Register{lit: 'R12B', base_offset: 12, size: .suffix_byte}
 	'R13B': Register{lit: 'R13B', base_offset: 13, size: .suffix_byte}
 	'R14B': Register{lit: 'R14B', base_offset: 14, size: .suffix_byte}
-	'R15D': Register{lit: 'R15D', base_offset: 15, size: .suffix_byte}
 	'R15B': Register{lit: 'R15B', base_offset: 15, size: .suffix_byte}
+
 	'RIP': Register{lit: 'RIP', base_offset: 0, size: .suffix_quad}
 	'EIP': Register{lit: 'EIP', base_offset: 0, size: .suffix_long}
 	'IP': Register{lit: 'IP', base_offset: 0, size: .suffix_word}
