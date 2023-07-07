@@ -258,6 +258,15 @@ VAS uses AT&T assembly syntax. Some key differences between AT&T syntax and Inte
 - [x] `cmovgeq`
 - [x] `cmovgel`
 - [x] `cmovgew`
+- [x] `cmovlq`
+- [x] `cmovll`
+- [x] `cmovlw`
+- [x] `cmovleq`
+- [x] `cmovlel`
+- [x] `cmovlew`
+- [x] `cmovgq`
+- [x] `cmovgl`
+- [x] `cmovgw`
 - [x] `ret`
 - [x] `syscall`
 - [x] `nop`
