@@ -4,19 +4,19 @@ import token
 import error
 import encoding.binary
 
-fn (mut e Encoder) add_section(name string, flag string, pos token.Position) {
-	e.current_section = name
+fn (mut e Encoder) add_section(section_name string, flag string, pos token.Position) {
+	e.current_section_name = section_name
 
-	instr := Instr{kind: .section, pos: pos, section: name, symbol_type: encoder.stt_section, flags: flag}
+	instr := Instr{kind: .section, pos: pos, section_name: section_name, symbol_type: encoder.stt_section, flags: flag}
 	e.instrs << &instr
 
-	if s := e.user_defined_symbols[name] {
+	if s := e.user_defined_symbols[section_name] {
 		if s.kind == .label {
-			error.print(pos, 'symbol `$name` is already defined')
+			error.print(pos, 'symbol `$section_name` is already defined')
 			exit(1)
 		}
 	} else {
-		e.user_defined_symbols[name] = &instr
+		e.user_defined_symbols[section_name] = &instr
 	}
 }
 

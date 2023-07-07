@@ -10,9 +10,9 @@ mut:
 	tok token.Token // current token
 	l   lexer.Lexer // lexer
 pub mut:
-	current_section       string
+	current_section_name  string
 	current_instr         &Instr
-	instrs                []&Instr
+	instrs                []&Instr // All instructions, sections, symbols, directives
 	rela_text_users       []Rela
 	user_defined_symbols  map[string]&Instr
 	user_defined_sections map[string]&UserDefinedSection
@@ -100,7 +100,10 @@ pub enum InstrKind {
 	leave
 	cmovs
 	cmovns
+	cmovg
 	cmovge
+	cmovl
+	cmovle
 	cvttss2sil
 	cvtsi2ssq
 	cvtsi2sdq
@@ -198,7 +201,7 @@ pub mut:
 	binding        u8
 	visibility     u8 // STV_DEFAULT, STV_INTERNAL, STV_HIDDEN, STV_PROTECTED
 	symbol_type    u8
-	section        string         [required]
+	section_name   string         [required]
 	is_jmp_or_call bool
 	pos            token.Position [required]
 }
@@ -331,7 +334,7 @@ pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	mut e := &Encoder{
 		tok: tok
 		l: l
-		current_section: '.text'
+		current_section_name: '.text'
 		instrs: []&Instr{cap: 1500000}
 		current_instr: unsafe { nil }
 	}
@@ -345,7 +348,7 @@ fn (mut e Encoder) set_current_instr(kind InstrKind) {
 	instr := &Instr{
 		pos: e.tok.pos
 		kind: kind
-		section: e.current_section
+		section_name: e.current_section_name
 	}
 	e.current_instr = instr
 	e.instrs << instr
@@ -651,7 +654,7 @@ fn (mut e Encoder) encode_instr() {
 		instr := Instr{
 			kind: .label
 			pos: pos
-			section: e.current_section
+			section_name: e.current_section_name
 			symbol_name: instr_name
 		}
 		e.expect(.colon)
@@ -683,7 +686,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .global
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				symbol_name: e.tok.lit
 			}
 			e.next()
@@ -692,7 +695,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .local
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				symbol_name: e.tok.lit
 			}
 			e.next()
@@ -701,7 +704,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .hidden
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				symbol_name: e.tok.lit
 			}
 			e.next()
@@ -710,7 +713,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .internal
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				symbol_name: e.tok.lit
 			}
 			e.next()
@@ -719,7 +722,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .protected
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				symbol_name: e.tok.lit
 			}
 			e.next()
@@ -1021,14 +1024,23 @@ fn (mut e Encoder) encode_instr() {
 		'CMOVNSQ', 'CMOVNSL', 'CMOVNSW' {
 			e.cmov(.cmovns, [u8(0x0F), 0x49], get_size_by_suffix(instr_name_upper))
 		}
+		'CMOVLQ', 'CMOVLL', 'CMOVLW' {
+			e.cmov(.cmovl, [u8(0x0F), 0x4C], get_size_by_suffix(instr_name_upper))
+		}
 		'CMOVGEQ', 'CMOVGEL', 'CMOVGEW' {
 			e.cmov(.cmovge, [u8(0x0F), 0x4D], get_size_by_suffix(instr_name_upper))
+		}
+		'CMOVLEQ', 'CMOVLEL', 'CMOVLEW' {
+			e.cmov(.cmovle, [u8(0x0F), 0x4E], get_size_by_suffix(instr_name_upper))
+		}
+		'CMOVGQ', 'CMOVGL', 'CMOVGW' {
+			e.cmov(.cmovg, [u8(0x0F), 0x4F], get_size_by_suffix(instr_name_upper))
 		}
 		'RETQ', 'RET' {
 			e.instrs << &Instr{
 				kind: .ret
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0xc3)]
 			}
 		}
@@ -1036,7 +1048,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .syscall
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0x0f), 0x05]
 			}
 		}
@@ -1044,7 +1056,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .nop
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0x90)]
 			}
 		}
@@ -1052,7 +1064,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .hlt
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0xf4)]
 			}
 		}
@@ -1060,7 +1072,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .leave
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0xc9)]
 			}
 		}
@@ -1068,7 +1080,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .cltq
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0x48), 0x98]
 			}
 		}
@@ -1076,7 +1088,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .cltd
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0x99)]
 			}
 		}
@@ -1084,7 +1096,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .cqto
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0x48), 0x99]
 			}
 		}
@@ -1092,7 +1104,7 @@ fn (mut e Encoder) encode_instr() {
 			e.instrs << &Instr{
 				kind: .cwtl
 				pos: pos
-				section: e.current_section
+				section_name: e.current_section_name
 				code: [u8(0x98)]
 			}
 		}

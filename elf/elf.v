@@ -184,7 +184,7 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 		e.symtab_symbol_indexs[name] = e.symtab_symbol_indexs.len
 
 		unsafe { *off += str.len + 1 }
-		st_shndx := u16(e.user_defined_section_idx[symbol.section])
+		st_shndx := u16(e.user_defined_section_idx[symbol.section_name])
 		mut st_name := u32(0)
 
 		if symbol.symbol_type == stt_section {
@@ -252,13 +252,13 @@ pub fn (mut e Elf) rela_text_users() {
 				index = e.symtab_symbol_indexs[r.uses]
 			} else {
 				r_addend += s.addr
-				index = e.symtab_symbol_indexs[s.section]
+				index = e.symtab_symbol_indexs[s.section_name]
 			}
 		} else {
 			index = e.symtab_symbol_indexs[r.uses]
     	}
 
-		rela_section_name := '.rela' + r.instr.section
+		rela_section_name := '.rela' + r.instr.section_name
 		e.rela[rela_section_name] << Elf64_Rela{
     	    r_offset: u64(r.instr.addr + r.offset),
     	    r_info: (u64(index) << 32) + r.rtype,
