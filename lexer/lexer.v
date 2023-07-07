@@ -74,30 +74,40 @@ fn (mut l Lexer) is_hex() bool {
 }
 
 fn (mut l Lexer) read_number() token.Token {
-	mut pos := l.current_pos()
+	pos := l.current_pos()
 	start := l.idx
 
-	if l.is_hex() {
+	if l.text[start] == `0` {
 		l.advance()
-		l.advance()
-		for {
-			if (l.c >= `0` && l.c <= `9`) || (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) {
+
+		if l.c in [`x`, `X`] {
+			l.advance()
+			for (l.c >= `0` && l.c <= `9`) || (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) {
 				l.advance()
-			} else {
-				break
+			}
+		}
+
+		if l.c in [`o`, `O`] {
+			l.advance()
+			for l.c >= `0` && l.c <= `7` {
+				l.advance()
+			}
+		}
+
+		if l.c in [`b`, `B`] {
+			l.advance()
+			for l.c in [`0`, `1`] {
+				l.advance()
 			}
 		}
 	} else {
-		for {
-			if l.c >= `0` && l.c <= `9` {
-				l.advance()
-			} else {
-				break
-			}
+		for l.c >= `0` && l.c <= `9` {
+			l.advance()
 		}
 	}
 
 	lit := l.text[start..l.idx]
+
 	return token.Token{
 		lit: lit
 		kind: .number

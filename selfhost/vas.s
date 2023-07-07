@@ -1283,29 +1283,6 @@ encoder__Xmm_to_sumtype_encoder__RegiAll:
 	movq	-72(%rbp), %rax
 	leave
 	ret
-encoder__Xmm_to_sumtype_encoder__Expr:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	subq	$48, %rsp
-	movq	%rdi, -40(%rbp)
-	movq	%rsi, -48(%rbp)
-	movq	-48(%rbp), %rax
-	movl	$48, %esi
-	movq	%rax, %rdi
-	call	memdup
-	movq	%rax, -8(%rbp)
-	movq	-8(%rbp), %rax
-	leaq	24(%rax), %rcx
-	movq	-40(%rbp), %rax
-	movq	-8(%rbp), %rdx
-	movq	%rdx, (%rax)
-	movq	-40(%rbp), %rax
-	movl	$168, 8(%rax)
-	movq	-40(%rbp), %rax
-	movq	%rcx, 16(%rax)
-	movq	-40(%rbp), %rax
-	leave
-	ret
 encoder__Register_to_sumtype_encoder__Expr:
 	pushq	%rbp
 	movq	%rsp, %rbp
@@ -1324,6 +1301,29 @@ encoder__Register_to_sumtype_encoder__Expr:
 	movq	%rdx, (%rax)
 	movq	-40(%rbp), %rax
 	movl	$166, 8(%rax)
+	movq	-40(%rbp), %rax
+	movq	%rcx, 16(%rax)
+	movq	-40(%rbp), %rax
+	leave
+	ret
+encoder__Xmm_to_sumtype_encoder__Expr:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$48, %rsp
+	movq	%rdi, -40(%rbp)
+	movq	%rsi, -48(%rbp)
+	movq	-48(%rbp), %rax
+	movl	$48, %esi
+	movq	%rax, %rdi
+	call	memdup
+	movq	%rax, -8(%rbp)
+	movq	-8(%rbp), %rax
+	leaq	24(%rax), %rcx
+	movq	-40(%rbp), %rax
+	movq	-8(%rbp), %rdx
+	movq	%rdx, (%rax)
+	movq	-40(%rbp), %rax
+	movl	$168, 8(%rax)
 	movq	-40(%rbp), %rax
 	movq	%rcx, 16(%rax)
 	movq	-40(%rbp), %rax
@@ -26851,61 +26851,6 @@ lexer__Lexer_skip_comment:
 	nop
 	leave
 	ret
-	.globl	lexer__Lexer_is_hex
-	.hidden	lexer__Lexer_is_hex
-lexer__Lexer_is_hex:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	subq	$32, %rsp
-	movq	%rdi, -24(%rbp)
-	movq	-24(%rbp), %rax
-	movl	16(%rax), %edx
-	movq	-24(%rbp), %rax
-	movl	24(%rax), %eax
-	addl	$1, %eax
-	cmpl	%eax, %edx
-	jne	.L1977
-	movb	$0, -2(%rbp)
-	movzbl	-2(%rbp), %eax
-	jmp	.L1978
-.L1977:
-	movq	-24(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$48, %al
-	jne	.L1979
-	movq	-24(%rbp), %rax
-	movl	24(%rax), %eax
-	leal	1(%rax), %edx
-	movq	-24(%rbp), %rax
-	movq	8(%rax), %rcx
-	movq	16(%rax), %rax
-	movq	%rcx, %rdi
-	movq	%rax, %rsi
-	call	string_at
-	cmpb	$120, %al
-	je	.L1980
-	movq	-24(%rbp), %rax
-	movl	24(%rax), %eax
-	leal	1(%rax), %edx
-	movq	-24(%rbp), %rax
-	movq	8(%rax), %rcx
-	movq	16(%rax), %rax
-	movq	%rcx, %rdi
-	movq	%rax, %rsi
-	call	string_at
-	cmpb	$88, %al
-	jne	.L1979
-.L1980:
-	movl	$1, %eax
-	jmp	.L1981
-.L1979:
-	movl	$0, %eax
-.L1981:
-	movb	%al, -1(%rbp)
-	movzbl	-1(%rbp), %eax
-.L1978:
-	leave
-	ret
 	.globl	lexer__Lexer_read_number
 	.hidden	lexer__Lexer_read_number
 lexer__Lexer_read_number:
@@ -26923,63 +26868,131 @@ lexer__Lexer_read_number:
 	movq	-176(%rbp), %rax
 	movl	24(%rax), %eax
 	movl	%eax, -20(%rbp)
+	movl	-20(%rbp), %edx
 	movq	-176(%rbp), %rax
-	movq	%rax, %rdi
-	call	lexer__Lexer_is_hex
-	testb	%al, %al
-	je	.L1983
-	movq	-176(%rbp), %rax
-	movq	%rax, %rdi
-	call	lexer__Lexer_advance
-	movq	-176(%rbp), %rax
-	movq	%rax, %rdi
-	call	lexer__Lexer_advance
-.L1988:
-	movq	-176(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$47, %al
-	jbe	.L1984
-	movq	-176(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$57, %al
-	jbe	.L1985
-.L1984:
-	movq	-176(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$96, %al
-	jbe	.L1986
-	movq	-176(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$122, %al
-	jbe	.L1985
-.L1986:
-	movq	-176(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$64, %al
-	jbe	.L1987
-	movq	-176(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$90, %al
-	ja	.L1987
-.L1985:
+	movq	8(%rax), %rcx
+	movq	16(%rax), %rax
+	movq	%rcx, %rdi
+	movq	%rax, %rsi
+	call	string_at
+	cmpb	$48, %al
+	jne	.L1977
 	movq	-176(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
-	jmp	.L1988
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$120, %al
+	je	.L1978
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$88, %al
+	jne	.L1979
+.L1978:
+	movq	-176(%rbp), %rax
+	movq	%rax, %rdi
+	call	lexer__Lexer_advance
 .L1983:
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$47, %al
-	jbe	.L1987
+	jbe	.L1980
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$57, %al
-	ja	.L1987
+	jbe	.L1981
+.L1980:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$96, %al
+	jbe	.L1982
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$122, %al
+	jbe	.L1981
+.L1982:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$64, %al
+	jbe	.L1979
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$90, %al
+	ja	.L1979
+.L1981:
 	movq	-176(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
 	jmp	.L1983
+.L1979:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$111, %al
+	je	.L1984
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$79, %al
+	jne	.L1985
+.L1984:
+	movq	-176(%rbp), %rax
+	movq	%rax, %rdi
+	call	lexer__Lexer_advance
+.L1986:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$47, %al
+	jbe	.L1985
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$55, %al
+	ja	.L1985
+	movq	-176(%rbp), %rax
+	movq	%rax, %rdi
+	call	lexer__Lexer_advance
+	jmp	.L1986
+.L1985:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$98, %al
+	je	.L1987
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$66, %al
+	jne	.L1991
 .L1987:
+	movq	-176(%rbp), %rax
+	movq	%rax, %rdi
+	call	lexer__Lexer_advance
+.L1990:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$48, %al
+	je	.L1989
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$49, %al
+	jne	.L1993
+.L1989:
+	movq	-176(%rbp), %rax
+	movq	%rax, %rdi
+	call	lexer__Lexer_advance
+	jmp	.L1990
+.L1977:
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$47, %al
+	jbe	.L1991
+	movq	-176(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$57, %al
+	ja	.L1991
+	movq	-176(%rbp), %rax
+	movq	%rax, %rdi
+	call	lexer__Lexer_advance
+	jmp	.L1977
+.L1993:
+	nop
+.L1991:
 	movq	-176(%rbp), %rax
 	movl	24(%rax), %ecx
 	movl	-20(%rbp), %edx
@@ -27036,56 +27049,56 @@ lexer__Lexer_read_ident:
 	movq	-176(%rbp), %rax
 	movl	24(%rax), %eax
 	movl	%eax, -20(%rbp)
-.L1996:
+.L2000:
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$96, %al
-	jbe	.L1991
+	jbe	.L1995
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$122, %al
-	jbe	.L1992
-.L1991:
+	jbe	.L1996
+.L1995:
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$64, %al
-	jbe	.L1993
+	jbe	.L1997
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$90, %al
-	jbe	.L1992
-.L1993:
+	jbe	.L1996
+.L1997:
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$47, %al
-	jbe	.L1994
+	jbe	.L1998
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$57, %al
-	jbe	.L1992
-.L1994:
+	jbe	.L1996
+.L1998:
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$95, %al
-	je	.L1992
+	je	.L1996
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$46, %al
-	je	.L1992
+	je	.L1996
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$45, %al
-	je	.L1992
+	je	.L1996
 	movq	-176(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$36, %al
-	jne	.L1995
-.L1992:
+	jne	.L1999
+.L1996:
 	movq	-176(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
-	jmp	.L1996
-.L1995:
+	jmp	.L2000
+.L1999:
 	movq	-176(%rbp), %rax
 	movl	24(%rax), %ecx
 	movl	-20(%rbp), %edx
@@ -27149,106 +27162,106 @@ lexer__Lexer_read_string:
 	movl	$0, %esi
 	movq	%rax, %rdi
 	call	__new_array_with_default
-.L2015:
+.L2019:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$34, %al
-	je	.L2018
+	je	.L2022
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$92, %al
-	jne	.L2001
+	jne	.L2005
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$110, %al
-	jne	.L2002
+	jne	.L2006
 	movb	$10, -177(%rbp)
 	leaq	-177(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2002:
+	jmp	.L2007
+.L2006:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$116, %al
-	jne	.L2004
+	jne	.L2008
 	movb	$9, -178(%rbp)
 	leaq	-178(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2004:
+	jmp	.L2007
+.L2008:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$97, %al
-	jne	.L2005
+	jne	.L2009
 	movb	$7, -179(%rbp)
 	leaq	-179(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2005:
+	jmp	.L2007
+.L2009:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$98, %al
-	jne	.L2006
+	jne	.L2010
 	movb	$8, -180(%rbp)
 	leaq	-180(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2006:
+	jmp	.L2007
+.L2010:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$102, %al
-	jne	.L2007
+	jne	.L2011
 	movb	$12, -181(%rbp)
 	leaq	-181(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2007:
+	jmp	.L2007
+.L2011:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$118, %al
-	jne	.L2008
+	jne	.L2012
 	movb	$11, -182(%rbp)
 	leaq	-182(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2008:
+	jmp	.L2007
+.L2012:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$48, %al
-	jne	.L2009
+	jne	.L2013
 	movq	-208(%rbp), %rax
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	lexer__Lexer_peak
 	cmpb	$51, %al
-	jne	.L2010
+	jne	.L2014
 	movq	-208(%rbp), %rax
 	movl	$2, %esi
 	movq	%rax, %rdi
 	call	lexer__Lexer_peak
 	cmpb	$51, %al
-	jne	.L2010
+	jne	.L2014
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
@@ -27261,20 +27274,20 @@ lexer__Lexer_read_string:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2010:
+	jmp	.L2007
+.L2014:
 	movq	-208(%rbp), %rax
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	lexer__Lexer_peak
 	cmpb	$49, %al
-	jne	.L2012
+	jne	.L2016
 	movq	-208(%rbp), %rax
 	movl	$2, %esi
 	movq	%rax, %rdi
 	call	lexer__Lexer_peak
 	cmpb	$49, %al
-	jne	.L2012
+	jne	.L2016
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
@@ -27287,20 +27300,20 @@ lexer__Lexer_read_string:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2012:
+	jmp	.L2007
+.L2016:
 	movq	-208(%rbp), %rax
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	lexer__Lexer_peak
 	cmpb	$50, %al
-	jne	.L2013
+	jne	.L2017
 	movq	-208(%rbp), %rax
 	movl	$2, %esi
 	movq	%rax, %rdi
 	call	lexer__Lexer_peak
 	cmpb	$50, %al
-	jne	.L2013
+	jne	.L2017
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
@@ -27313,16 +27326,16 @@ lexer__Lexer_read_string:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2013:
+	jmp	.L2007
+.L2017:
 	movb	$0, -186(%rbp)
 	leaq	-186(%rbp), %rdx
 	leaq	-80(%rbp), %rax
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-	jmp	.L2003
-.L2009:
+	jmp	.L2007
+.L2013:
 	movb	$92, -187(%rbp)
 	leaq	-187(%rbp), %rdx
 	leaq	-80(%rbp), %rax
@@ -27337,12 +27350,12 @@ lexer__Lexer_read_string:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	array_push
-.L2003:
+.L2007:
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
-	jmp	.L2015
-.L2001:
+	jmp	.L2019
+.L2005:
 	movq	-208(%rbp), %rax
 	movzbl	(%rax), %eax
 	movb	%al, -189(%rbp)
@@ -27354,8 +27367,8 @@ lexer__Lexer_read_string:
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
-	jmp	.L2015
-.L2018:
+	jmp	.L2019
+.L2022:
 	nop
 	movq	-208(%rbp), %rax
 	movq	%rax, %rdi
@@ -27478,11 +27491,11 @@ lexer__Lexer_lex:
 	subq	$424, %rsp
 	movq	%rdi, -328(%rbp)
 	movq	%rsi, -336(%rbp)
-.L2046:
+.L2050:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	testb	%al, %al
-	jne	.L2022
+	jne	.L2026
 	movl	$14, -128(%rbp)
 	leaq	-120(%rbp), %rax
 	movq	-336(%rbp), %rdx
@@ -27506,8 +27519,8 @@ lexer__Lexer_lex:
 	movq	-88(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2022:
+	jmp	.L2027
+.L2026:
 	leaq	-208(%rbp), %rdx
 	movq	-336(%rbp), %rax
 	movq	%rax, %rsi
@@ -27516,25 +27529,25 @@ lexer__Lexer_lex:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$32, %al
-	je	.L2024
+	je	.L2028
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$9, %al
-	jne	.L2025
-.L2024:
+	jne	.L2029
+.L2028:
 	movq	-336(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
-	jmp	.L2026
-.L2025:
+	jmp	.L2030
+.L2029:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$47, %al
-	jbe	.L2027
+	jbe	.L2031
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$57, %al
-	ja	.L2027
+	ja	.L2031
 	leaq	-320(%rbp), %rax
 	movq	-336(%rbp), %rdx
 	movq	%rdx, %rsi
@@ -27553,35 +27566,35 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2027:
-	movq	-336(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$96, %al
-	jbe	.L2029
-	movq	-336(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$122, %al
-	jbe	.L2030
-.L2029:
-	movq	-336(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$64, %al
-	jbe	.L2031
-	movq	-336(%rbp), %rax
-	movzbl	(%rax), %eax
-	cmpb	$90, %al
-	jbe	.L2030
+	jmp	.L2027
 .L2031:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
+	cmpb	$96, %al
+	jbe	.L2033
+	movq	-336(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$122, %al
+	jbe	.L2034
+.L2033:
+	movq	-336(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$64, %al
+	jbe	.L2035
+	movq	-336(%rbp), %rax
+	movzbl	(%rax), %eax
+	cmpb	$90, %al
+	jbe	.L2034
+.L2035:
+	movq	-336(%rbp), %rax
+	movzbl	(%rax), %eax
 	cmpb	$95, %al
-	je	.L2030
+	je	.L2034
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$46, %al
-	jne	.L2032
-.L2030:
+	jne	.L2036
+.L2034:
 	leaq	-320(%rbp), %rax
 	movq	-336(%rbp), %rdx
 	movq	%rdx, %rsi
@@ -27600,12 +27613,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2032:
+	jmp	.L2027
+.L2036:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$34, %al
-	jne	.L2033
+	jne	.L2037
 	leaq	-320(%rbp), %rax
 	movq	-336(%rbp), %rdx
 	movq	%rdx, %rsi
@@ -27624,30 +27637,30 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2033:
+	jmp	.L2027
+.L2037:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$35, %al
-	jne	.L2034
+	jne	.L2038
 	movq	-336(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_skip_comment
-	jmp	.L2046
-.L2034:
+	jmp	.L2050
+.L2038:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$10, %al
-	jne	.L2035
+	jne	.L2039
 	movq	-336(%rbp), %rax
 	movq	%rax, %rdi
 	call	lexer__Lexer_advance
-	jmp	.L2046
-.L2035:
+	jmp	.L2050
+.L2039:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$58, %al
-	jne	.L2036
+	jne	.L2040
 	leaq	.LC199(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -27679,12 +27692,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2036:
+	jmp	.L2027
+.L2040:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$40, %al
-	jne	.L2037
+	jne	.L2041
 	leaq	.LC203(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -27716,12 +27729,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2037:
+	jmp	.L2027
+.L2041:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$41, %al
-	jne	.L2038
+	jne	.L2042
 	leaq	.LC54(%rip), %rax
 	movq	%rax, -352(%rbp)
 	movq	-344(%rbp), %rdx
@@ -27754,12 +27767,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2038:
+	jmp	.L2027
+.L2042:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$43, %al
-	jne	.L2039
+	jne	.L2043
 	leaq	.LC204(%rip), %rax
 	movq	%rax, -368(%rbp)
 	movq	-360(%rbp), %rdx
@@ -27792,12 +27805,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2039:
+	jmp	.L2027
+.L2043:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$45, %al
-	jne	.L2040
+	jne	.L2044
 	leaq	.LC44(%rip), %rax
 	movq	%rax, -384(%rbp)
 	movq	-376(%rbp), %rdx
@@ -27830,12 +27843,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2040:
+	jmp	.L2027
+.L2044:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$42, %al
-	jne	.L2041
+	jne	.L2045
 	leaq	.LC205(%rip), %rax
 	movq	%rax, -400(%rbp)
 	movq	-392(%rbp), %rdx
@@ -27868,12 +27881,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2041:
+	jmp	.L2027
+.L2045:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$47, %al
-	jne	.L2042
+	jne	.L2046
 	leaq	.LC195(%rip), %rax
 	movq	%rax, -416(%rbp)
 	movq	-408(%rbp), %rdx
@@ -27906,12 +27919,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2042:
+	jmp	.L2027
+.L2046:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$36, %al
-	jne	.L2043
+	jne	.L2047
 	leaq	.LC206(%rip), %rax
 	movq	%rax, -432(%rbp)
 	movq	-424(%rbp), %rdx
@@ -27944,12 +27957,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2043:
+	jmp	.L2027
+.L2047:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$37, %al
-	jne	.L2044
+	jne	.L2048
 	leaq	.LC207(%rip), %rax
 	movq	%rax, -448(%rbp)
 	movq	-440(%rbp), %rdx
@@ -27982,12 +27995,12 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2044:
+	jmp	.L2027
+.L2048:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$44, %al
-	jne	.L2045
+	jne	.L2049
 	leaq	.LC208(%rip), %rax
 	movq	%rax, -464(%rbp)
 	movq	-456(%rbp), %rdx
@@ -28020,8 +28033,8 @@ lexer__Lexer_lex:
 	movq	-280(%rbp), %rbx
 	movq	%rcx, 32(%rax)
 	movq	%rbx, 40(%rax)
-	jmp	.L2023
-.L2045:
+	jmp	.L2027
+.L2049:
 	movq	-336(%rbp), %rax
 	movzbl	(%rax), %eax
 	movb	%al, -225(%rbp)
@@ -28087,9 +28100,9 @@ lexer__Lexer_lex:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2026:
-	jmp	.L2046
-.L2023:
+.L2030:
+	jmp	.L2050
+.L2027:
 	movq	-328(%rbp), %rax
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
@@ -28117,8 +28130,8 @@ encoder__section_flags:
 	movq	%rdx, -120(%rbp)
 	movl	$0, -20(%rbp)
 	movl	$0, -24(%rbp)
-	jmp	.L2049
-.L2054:
+	jmp	.L2053
+.L2058:
 	movq	-128(%rbp), %rdx
 	movl	-24(%rbp), %eax
 	cltq
@@ -28126,20 +28139,20 @@ encoder__section_flags:
 	movzbl	(%rax), %eax
 	movb	%al, -25(%rbp)
 	cmpb	$97, -25(%rbp)
-	jne	.L2050
+	jne	.L2054
 	orl	$2, -20(%rbp)
-	jmp	.L2051
-.L2050:
+	jmp	.L2055
+.L2054:
 	cmpb	$120, -25(%rbp)
-	jne	.L2052
+	jne	.L2056
 	orl	$4, -20(%rbp)
-	jmp	.L2051
-.L2052:
+	jmp	.L2055
+.L2056:
 	cmpb	$119, -25(%rbp)
-	jne	.L2053
+	jne	.L2057
 	orl	$1, -20(%rbp)
-	jmp	.L2051
-.L2053:
+	jmp	.L2055
+.L2057:
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -112(%rbp)
 	movaps	%xmm0, -96(%rbp)
@@ -28166,12 +28179,12 @@ encoder__section_flags:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2051:
+.L2055:
 	addl	$1, -24(%rbp)
-.L2049:
+.L2053:
 	movl	-120(%rbp), %eax
 	cmpl	%eax, -24(%rbp)
-	jl	.L2054
+	jl	.L2058
 	movl	-20(%rbp), %eax
 	movq	-8(%rbp), %rbx
 	leave
@@ -28244,14 +28257,14 @@ encoder__Encoder_change_symbol_binding:
 	movaps	%xmm0, -240(%rbp)
 	movaps	%xmm0, -224(%rbp)
 	cmpq	$0, -56(%rbp)
-	je	.L2057
+	je	.L2061
 	leaq	-256(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-56(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2058
-.L2057:
+	jmp	.L2062
+.L2061:
 	movb	$2, -256(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -28280,10 +28293,10 @@ encoder__Encoder_change_symbol_binding:
 	movq	-392(%rbp), %rdx
 	movq	%rax, -232(%rbp)
 	movq	%rdx, -224(%rbp)
-.L2058:
+.L2062:
 	movzbl	-256(%rbp), %eax
 	testb	%al, %al
-	je	.L2059
+	je	.L2063
 	movq	-248(%rbp), %rax
 	movq	-240(%rbp), %rdx
 	movq	%rax, -368(%rbp)
@@ -28332,17 +28345,17 @@ encoder__Encoder_change_symbol_binding:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2059:
+.L2063:
 	leaq	-256(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
 	movq	%rax, -64(%rbp)
 	cmpb	$1, -380(%rbp)
-	jne	.L2060
+	jne	.L2064
 	movq	-64(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$1, %eax
-	jne	.L2060
+	jne	.L2064
 	leaq	.LC213(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -28373,7 +28386,7 @@ encoder__Encoder_change_symbol_binding:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2060:
+.L2064:
 	movq	-64(%rbp), %rax
 	movzbl	-380(%rbp), %edx
 	movb	%dl, 80(%rax)
@@ -28444,14 +28457,14 @@ encoder__Encoder_change_symbol_visibility:
 	movaps	%xmm0, -224(%rbp)
 	movaps	%xmm0, -208(%rbp)
 	cmpq	$0, -40(%rbp)
-	je	.L2062
+	je	.L2066
 	leaq	-240(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-40(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2063
-.L2062:
+	jmp	.L2067
+.L2066:
 	movb	$2, -240(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -28480,10 +28493,10 @@ encoder__Encoder_change_symbol_visibility:
 	movq	-376(%rbp), %rdx
 	movq	%rax, -216(%rbp)
 	movq	%rdx, -208(%rbp)
-.L2063:
+.L2067:
 	movzbl	-240(%rbp), %eax
 	testb	%al, %al
-	je	.L2064
+	je	.L2068
 	movq	-232(%rbp), %rax
 	movq	-224(%rbp), %rdx
 	movq	%rax, -352(%rbp)
@@ -28532,7 +28545,7 @@ encoder__Encoder_change_symbol_visibility:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2064:
+.L2068:
 	leaq	-240(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -28564,8 +28577,8 @@ encoder__Encoder_fix_same_section_relocations:
 	subq	$600, %rsp
 	movq	%rdi, -584(%rbp)
 	movl	$0, -52(%rbp)
-	jmp	.L2066
-.L2078:
+	jmp	.L2070
+.L2082:
 	movq	-584(%rbp), %rax
 	movq	168(%rax), %rcx
 	movl	-52(%rbp), %eax
@@ -28623,14 +28636,14 @@ encoder__Encoder_fix_same_section_relocations:
 	movaps	%xmm0, -496(%rbp)
 	movaps	%xmm0, -480(%rbp)
 	cmpq	$0, -72(%rbp)
-	je	.L2067
+	je	.L2071
 	leaq	-512(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-72(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2068
-.L2067:
+	jmp	.L2072
+.L2071:
 	movb	$2, -512(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -28659,10 +28672,10 @@ encoder__Encoder_fix_same_section_relocations:
 	movq	-600(%rbp), %rdx
 	movq	%rax, -488(%rbp)
 	movq	%rdx, -480(%rbp)
-.L2068:
+.L2072:
 	movzbl	-512(%rbp), %eax
 	testb	%al, %al
-	jne	.L2077
+	jne	.L2081
 	leaq	-512(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -28678,22 +28691,22 @@ encoder__Encoder_fix_same_section_relocations:
 	movq	%rax, %rdx
 	call	string__eq
 	testb	%al, %al
-	je	.L2079
+	je	.L2083
 	movq	-80(%rbp), %rax
 	movzbl	80(%rax), %eax
 	cmpb	$1, %al
-	je	.L2080
+	je	.L2084
 	movq	-64(%rbp), %rax
 	movq	16(%rax), %rax
 	movzbl	104(%rax), %eax
 	testb	%al, %al
-	jne	.L2073
+	jne	.L2077
 	movq	-64(%rbp), %rax
 	movq	32(%rax), %rax
 	movl	$2, %edx
 	cmpq	%rdx, %rax
-	jne	.L2081
-.L2073:
+	jne	.L2085
+.L2077:
 	movq	-80(%rbp), %rax
 	movq	72(%rax), %rdx
 	movq	-64(%rbp), %rax
@@ -28776,14 +28789,14 @@ encoder__Encoder_fix_same_section_relocations:
 	movaps	%xmm0, -448(%rbp)
 	movaps	%xmm0, -432(%rbp)
 	cmpq	$0, -96(%rbp)
-	je	.L2074
+	je	.L2078
 	leaq	-464(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-96(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2075
-.L2074:
+	jmp	.L2079
+.L2078:
 	movb	$2, -464(%rbp)
 	leaq	.LC211(%rip), %r14
 	movq	%r15, %rdx
@@ -28812,10 +28825,10 @@ encoder__Encoder_fix_same_section_relocations:
 	movq	-600(%rbp), %rdx
 	movq	%rax, -440(%rbp)
 	movq	%rdx, -432(%rbp)
-.L2075:
+.L2079:
 	movzbl	-464(%rbp), %eax
 	testb	%al, %al
-	je	.L2076
+	je	.L2080
 	movq	-456(%rbp), %rax
 	movq	-448(%rbp), %rdx
 	movq	%rax, -544(%rbp)
@@ -28844,7 +28857,7 @@ encoder__Encoder_fix_same_section_relocations:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2076:
+.L2080:
 	leaq	-464(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -28966,22 +28979,22 @@ encoder__Encoder_fix_same_section_relocations:
 	call	array_set
 	movq	-64(%rbp), %rax
 	movb	$1, 44(%rax)
-	jmp	.L2077
-.L2079:
+	jmp	.L2081
+.L2083:
 	nop
-	jmp	.L2077
-.L2080:
+	jmp	.L2081
+.L2084:
 	nop
-	jmp	.L2077
+	jmp	.L2081
+.L2085:
+	nop
 .L2081:
-	nop
-.L2077:
 	addl	$1, -52(%rbp)
-.L2066:
+.L2070:
 	movq	-584(%rbp), %rax
 	movl	180(%rax), %eax
 	cmpl	%eax, -52(%rbp)
-	jl	.L2078
+	jl	.L2082
 	nop
 	nop
 	leaq	-40(%rbp), %rsp
@@ -29004,8 +29017,8 @@ encoder__Encoder_assign_addresses:
 	subq	$344, %rsp
 	movq	%rdi, -344(%rbp)
 	movl	$0, -52(%rbp)
-	jmp	.L2083
-.L2095:
+	jmp	.L2087
+.L2099:
 	movq	-344(%rbp), %rax
 	movq	136(%rax), %rax
 	movl	-52(%rbp), %edx
@@ -29017,7 +29030,7 @@ encoder__Encoder_assign_addresses:
 	movq	(%rax), %rax
 	movl	(%rax), %eax
 	cmpl	$1, %eax
-	jne	.L2084
+	jne	.L2088
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	96(%rax), %rdx
@@ -29061,7 +29074,7 @@ encoder__Encoder_assign_addresses:
 	movq	%rax, %rdi
 	call	map_exists
 	testb	%al, %al
-	jne	.L2084
+	jne	.L2088
 	leaq	-304(%rbp), %rax
 	movl	$1, %ecx
 	movl	$0, %edx
@@ -29097,7 +29110,7 @@ encoder__Encoder_assign_addresses:
 	movq	%rax, %rdi
 	call	memdup
 	movq	%rax, (%rbx)
-.L2084:
+.L2088:
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	96(%rax), %rdx
@@ -29146,14 +29159,14 @@ encoder__Encoder_assign_addresses:
 	movaps	%xmm0, -288(%rbp)
 	movaps	%xmm0, -272(%rbp)
 	cmpq	$0, -72(%rbp)
-	je	.L2085
+	je	.L2089
 	leaq	-304(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-72(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2086
-.L2085:
+	jmp	.L2090
+.L2089:
 	movb	$2, -304(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -29182,10 +29195,10 @@ encoder__Encoder_assign_addresses:
 	movq	-360(%rbp), %rdx
 	movq	%rax, -280(%rbp)
 	movq	%rdx, -272(%rbp)
-.L2086:
+.L2090:
 	movzbl	-304(%rbp), %eax
 	testb	%al, %al
-	je	.L2087
+	je	.L2091
 	movq	-296(%rbp), %rax
 	movq	-288(%rbp), %rdx
 	movq	%rax, -336(%rbp)
@@ -29213,7 +29226,7 @@ encoder__Encoder_assign_addresses:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2087:
+.L2091:
 	leaq	-304(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -29222,7 +29235,7 @@ encoder__Encoder_assign_addresses:
 	movq	(%rax), %rax
 	movl	(%rax), %eax
 	cmpl	$2, %eax
-	jne	.L2088
+	jne	.L2092
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	-344(%rbp), %rdi
@@ -29266,13 +29279,13 @@ encoder__Encoder_assign_addresses:
 	movl	$1, %esi
 	call	encoder__Encoder_change_symbol_binding
 	addq	$144, %rsp
-	jmp	.L2094
-.L2088:
+	jmp	.L2098
+.L2092:
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	jne	.L2090
+	jne	.L2094
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	-344(%rbp), %rdi
@@ -29316,13 +29329,13 @@ encoder__Encoder_assign_addresses:
 	movl	$0, %esi
 	call	encoder__Encoder_change_symbol_binding
 	addq	$144, %rsp
-	jmp	.L2094
-.L2090:
+	jmp	.L2098
+.L2094:
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movl	(%rax), %eax
 	cmpl	$4, %eax
-	jne	.L2091
+	jne	.L2095
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	-344(%rbp), %rdi
@@ -29366,13 +29379,13 @@ encoder__Encoder_assign_addresses:
 	movl	$2, %esi
 	call	encoder__Encoder_change_symbol_visibility
 	addq	$144, %rsp
-	jmp	.L2094
-.L2091:
+	jmp	.L2098
+.L2095:
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movl	(%rax), %eax
 	cmpl	$5, %eax
-	jne	.L2092
+	jne	.L2096
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	-344(%rbp), %rdi
@@ -29416,13 +29429,13 @@ encoder__Encoder_assign_addresses:
 	movl	$1, %esi
 	call	encoder__Encoder_change_symbol_visibility
 	addq	$144, %rsp
-	jmp	.L2094
-.L2092:
+	jmp	.L2098
+.L2096:
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movl	(%rax), %eax
 	cmpl	$6, %eax
-	jne	.L2093
+	jne	.L2097
 	movq	-64(%rbp), %rax
 	movq	(%rax), %rax
 	movq	-344(%rbp), %rdi
@@ -29466,8 +29479,8 @@ encoder__Encoder_assign_addresses:
 	movl	$3, %esi
 	call	encoder__Encoder_change_symbol_visibility
 	addq	$144, %rsp
-	jmp	.L2094
-.L2093:
+	jmp	.L2098
+.L2097:
 	movq	-80(%rbp), %rax
 	movl	32(%rax), %edx
 	movq	-64(%rbp), %rax
@@ -29498,13 +29511,13 @@ encoder__Encoder_assign_addresses:
 	movq	%rcx, %rsi
 	movq	%rax, %rdi
 	call	array_push_many
-.L2094:
+.L2098:
 	addl	$1, -52(%rbp)
-.L2083:
+.L2087:
 	movq	-344(%rbp), %rax
 	movl	148(%rax), %eax
 	cmpl	%eax, -52(%rbp)
-	jl	.L2095
+	jl	.L2099
 	movq	-344(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_fix_same_section_relocations
@@ -29548,7 +29561,7 @@ encoder__Encoder_add_imm_rela:
 	movl	%eax, -8(%rbp)
 	movb	$0, -4(%rbp)
 	cmpl	$0, -208(%rbp)
-	jne	.L2097
+	jne	.L2101
 	movl	$14, %eax
 	movq	%rax, -16(%rbp)
 	movb	$0, -145(%rbp)
@@ -29559,10 +29572,10 @@ encoder__Encoder_add_imm_rela:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2098
-.L2097:
+	jmp	.L2102
+.L2101:
 	cmpl	$1, -208(%rbp)
-	jne	.L2099
+	jne	.L2103
 	movl	$12, %eax
 	movq	%rax, -16(%rbp)
 	movb	$0, -147(%rbp)
@@ -29583,10 +29596,10 @@ encoder__Encoder_add_imm_rela:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2098
-.L2099:
+	jmp	.L2102
+.L2103:
 	cmpl	$2, -208(%rbp)
-	jne	.L2100
+	jne	.L2104
 	movl	$10, %eax
 	movq	%rax, -16(%rbp)
 	movb	$0, -151(%rbp)
@@ -29609,10 +29622,10 @@ encoder__Encoder_add_imm_rela:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2098
-.L2100:
+	jmp	.L2102
+.L2104:
 	cmpl	$3, -208(%rbp)
-	jne	.L2098
+	jne	.L2102
 	movl	$11, %eax
 	movq	%rax, -16(%rbp)
 	movb	$0, -155(%rbp)
@@ -29635,7 +29648,7 @@ encoder__Encoder_add_imm_rela:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-.L2098:
+.L2102:
 	movq	-48(%rbp), %rax
 	movq	-40(%rbp), %rdx
 	movq	%rax, -144(%rbp)
@@ -29677,10 +29690,10 @@ encoder__Encoder_add_imm_value:
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	jne	.L2102
+	jne	.L2106
 	cmpl	$0, -128(%rbp)
-	jne	.L2103
-.L2102:
+	jne	.L2107
+.L2106:
 	movl	-124(%rbp), %eax
 	movb	%al, -33(%rbp)
 	movq	-120(%rbp), %rax
@@ -29691,10 +29704,10 @@ encoder__Encoder_add_imm_value:
 	movq	%rdx, %rdi
 	call	array_push
 	nop
-	jmp	.L2101
-.L2103:
+	jmp	.L2105
+.L2107:
 	cmpl	$1, -128(%rbp)
-	jne	.L2105
+	jne	.L2109
 	movb	$0, -35(%rbp)
 	movb	$0, -34(%rbp)
 	leaq	-112(%rbp), %rax
@@ -29727,13 +29740,13 @@ encoder__Encoder_add_imm_value:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2101
-.L2105:
+	jmp	.L2105
+.L2109:
 	movl	-124(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i32_range
 	testb	%al, %al
-	je	.L2106
+	je	.L2110
 	movb	$0, -39(%rbp)
 	movb	$0, -38(%rbp)
 	movb	$0, -37(%rbp)
@@ -29767,8 +29780,8 @@ encoder__Encoder_add_imm_value:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2101
-.L2106:
+	jmp	.L2105
+.L2110:
 	leaq	.LC215(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -29788,7 +29801,7 @@ encoder__Encoder_add_imm_value:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2101:
+.L2105:
 	addq	$104, %rsp
 	popq	%rbx
 	popq	%r12
@@ -29805,7 +29818,7 @@ encoder__Encoder_add_imm_value2:
 	movl	%esi, -92(%rbp)
 	movl	%edx, -96(%rbp)
 	cmpl	$0, -96(%rbp)
-	jne	.L2108
+	jne	.L2112
 	movl	-92(%rbp), %eax
 	movb	%al, -1(%rbp)
 	leaq	-48(%rbp), %rax
@@ -29824,10 +29837,10 @@ encoder__Encoder_add_imm_value2:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2111
-.L2108:
+	jmp	.L2115
+.L2112:
 	cmpl	$1, -96(%rbp)
-	jne	.L2110
+	jne	.L2114
 	movb	$0, -3(%rbp)
 	movb	$0, -2(%rbp)
 	leaq	-80(%rbp), %rax
@@ -29890,8 +29903,8 @@ encoder__Encoder_add_imm_value2:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2111
-.L2110:
+	jmp	.L2115
+.L2114:
 	movb	$0, -9(%rbp)
 	movb	$0, -8(%rbp)
 	movb	$0, -7(%rbp)
@@ -29985,7 +29998,7 @@ encoder__Encoder_add_imm_value2:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-.L2111:
+.L2115:
 	nop
 	leave
 	ret
@@ -30029,10 +30042,10 @@ encoder__Encoder_cmov:
 	movq	%rax, -304(%rbp)
 	movl	-280(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2113
+	jne	.L2117
 	movl	-312(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2113
+	jne	.L2117
 	movl	-448(%rbp), %eax
 	movl	%eax, -388(%rbp)
 	leaq	-208(%rbp), %rax
@@ -30159,8 +30172,8 @@ encoder__Encoder_cmov:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2115
-.L2113:
+	jmp	.L2119
+.L2117:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -30193,7 +30206,7 @@ encoder__Encoder_cmov:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2115:
+.L2119:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -30240,10 +30253,10 @@ encoder__Encoder_mov:
 	movq	%rax, -1744(%rbp)
 	movl	-1720(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2117
+	jne	.L2121
 	movl	-1752(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2117
+	jne	.L2121
 	movq	-1760(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -30390,14 +30403,14 @@ encoder__Encoder_mov:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2118
-.L2117:
+	jmp	.L2122
+.L2121:
 	movl	-1720(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2119
+	jne	.L2123
 	movl	-1752(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2119
+	jne	.L2123
 	movq	-1728(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -30544,14 +30557,14 @@ encoder__Encoder_mov:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2118
-.L2119:
+	jmp	.L2122
+.L2123:
 	movl	-1720(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2120
+	jne	.L2124
 	movl	-1752(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2120
+	jne	.L2124
 	movq	-1728(%rbp), %rax
 	movq	-2296(%rbp), %rsi
 	subq	$176, %rsp
@@ -30758,14 +30771,14 @@ encoder__Encoder_mov:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2118
-.L2120:
+	jmp	.L2122
+.L2124:
 	movl	-1720(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2121
+	jne	.L2125
 	movl	-1752(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2121
+	jne	.L2125
 	movq	-1760(%rbp), %rax
 	movq	-2296(%rbp), %rsi
 	subq	$176, %rsp
@@ -30972,13 +30985,13 @@ encoder__Encoder_mov:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2118
-.L2121:
+	jmp	.L2122
+.L2125:
 	movl	-1720(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2122
+	jne	.L2126
 	cmpl	$0, -2300(%rbp)
-	jne	.L2123
+	jne	.L2127
 	movb	$-120, -1931(%rbp)
 	leaq	-2288(%rbp), %rax
 	leaq	-1931(%rbp), %rdx
@@ -30988,8 +31001,8 @@ encoder__Encoder_mov:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2124
-.L2123:
+	jmp	.L2128
+.L2127:
 	movb	$-119, -1932(%rbp)
 	leaq	-2288(%rbp), %rax
 	leaq	-1932(%rbp), %rdx
@@ -30999,7 +31012,7 @@ encoder__Encoder_mov:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2124:
+.L2128:
 	movq	-1728(%rbp), %rax
 	movl	-2300(%rbp), %esi
 	subq	$48, %rsp
@@ -31021,7 +31034,7 @@ encoder__Encoder_mov:
 	addq	$48, %rsp
 	movl	-1752(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2125
+	jne	.L2129
 	movq	-1760(%rbp), %rax
 	movl	-2300(%rbp), %esi
 	subq	$48, %rsp
@@ -31167,11 +31180,11 @@ encoder__Encoder_mov:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2118
-.L2125:
+	jmp	.L2122
+.L2129:
 	movl	-1752(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2122
+	jne	.L2126
 	movq	-1760(%rbp), %rax
 	movq	-2296(%rbp), %rsi
 	subq	$176, %rsp
@@ -31377,16 +31390,16 @@ encoder__Encoder_mov:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2118
-.L2122:
+	jmp	.L2122
+.L2126:
 	movl	-1720(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2128
+	jne	.L2132
 	movl	-1752(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2128
+	jne	.L2132
 	cmpl	$0, -2300(%rbp)
-	jne	.L2129
+	jne	.L2133
 	movb	$-118, -2013(%rbp)
 	leaq	-2288(%rbp), %rax
 	leaq	-2013(%rbp), %rdx
@@ -31396,8 +31409,8 @@ encoder__Encoder_mov:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2130
-.L2129:
+	jmp	.L2134
+.L2133:
 	movb	$-117, -2014(%rbp)
 	leaq	-2288(%rbp), %rax
 	leaq	-2014(%rbp), %rdx
@@ -31407,7 +31420,7 @@ encoder__Encoder_mov:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2130:
+.L2134:
 	movq	-1760(%rbp), %rax
 	movl	-2300(%rbp), %esi
 	subq	$48, %rsp
@@ -31632,14 +31645,14 @@ encoder__Encoder_mov:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2118
-.L2128:
+	jmp	.L2122
+.L2132:
 	movl	-1720(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2131
+	jne	.L2135
 	movl	-1752(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2132
+	jne	.L2136
 	movq	-1760(%rbp), %rax
 	movl	-2300(%rbp), %esi
 	subq	$48, %rsp
@@ -31753,7 +31766,7 @@ encoder__Encoder_mov:
 	call	encoder__Encoder_add_prefix
 	addq	$176, %rsp
 	cmpl	$3, -2300(%rbp)
-	jne	.L2133
+	jne	.L2137
 	movb	$-57, -2150(%rbp)
 	movq	-2296(%rbp), %rax
 	movq	120(%rax), %rax
@@ -31767,23 +31780,23 @@ encoder__Encoder_mov:
 	andl	$7, %eax
 	subl	$64, %eax
 	movb	%al, -49(%rbp)
-	jmp	.L2134
-.L2133:
+	jmp	.L2138
+.L2137:
 	cmpl	$0, -2300(%rbp)
-	jne	.L2135
+	jne	.L2139
 	movq	-1760(%rbp), %rax
 	movzbl	20(%rax), %eax
 	andl	$7, %eax
 	subl	$80, %eax
 	movb	%al, -49(%rbp)
-	jmp	.L2134
-.L2135:
+	jmp	.L2138
+.L2139:
 	movq	-1760(%rbp), %rax
 	movzbl	20(%rax), %eax
 	andl	$7, %eax
 	subl	$72, %eax
 	movb	%al, -49(%rbp)
-.L2134:
+.L2138:
 	movzbl	-49(%rbp), %eax
 	movb	%al, -2149(%rbp)
 	movq	-2296(%rbp), %rax
@@ -31793,11 +31806,11 @@ encoder__Encoder_mov:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2136
-.L2132:
+	jmp	.L2140
+.L2136:
 	movl	-1752(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2137
+	jne	.L2141
 	movq	-1760(%rbp), %rax
 	movq	-2296(%rbp), %rsi
 	subq	$176, %rsp
@@ -31939,12 +31952,12 @@ encoder__Encoder_mov:
 	call	encoder__Encoder_add_prefix
 	addq	$176, %rsp
 	cmpl	$0, -2300(%rbp)
-	jne	.L2138
+	jne	.L2142
 	movl	$-58, %eax
-	jmp	.L2139
-.L2138:
+	jmp	.L2143
+.L2142:
 	movl	$-57, %eax
-.L2139:
+.L2143:
 	movb	%al, -2213(%rbp)
 	movq	-2296(%rbp), %rax
 	movq	120(%rax), %rax
@@ -32004,8 +32017,8 @@ encoder__Encoder_mov:
 	movl	$0, %esi
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2136
-.L2137:
+	jmp	.L2140
+.L2141:
 	leaq	.LC216(%rip), %rax
 	movq	%rax, -2320(%rbp)
 	movq	-2312(%rbp), %rdx
@@ -32039,7 +32052,7 @@ encoder__Encoder_mov:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2136:
+.L2140:
 	leaq	-2256(%rbp), %rax
 	movl	$0, %r8d
 	movl	$16, %ecx
@@ -32063,7 +32076,7 @@ encoder__Encoder_mov:
 	movl	%eax, -56(%rbp)
 	movl	-2236(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2140
+	jle	.L2144
 	leaq	.LC217(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -32096,13 +32109,13 @@ encoder__Encoder_mov:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2140:
+.L2144:
 	movl	-2236(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
 	movb	%al, -57(%rbp)
 	cmpb	$0, -57(%rbp)
-	je	.L2141
+	je	.L2145
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-2256(%rbp), %rax
@@ -32124,16 +32137,16 @@ encoder__Encoder_mov:
 	movl	%edi, %r8d
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_rela
-	jmp	.L2118
-.L2141:
+	jmp	.L2122
+.L2145:
 	movl	-2300(%rbp), %edx
 	movl	-56(%rbp), %ecx
 	movq	-2296(%rbp), %rax
 	movl	%ecx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_value2
-	jmp	.L2118
-.L2131:
+	jmp	.L2122
+.L2135:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -32166,7 +32179,7 @@ encoder__Encoder_mov:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2118:
+.L2122:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -32203,7 +32216,7 @@ encoder__Encoder_rep:
 	call	encoder__Encoder_parse_operand
 	movl	-56(%rbp), %eax
 	cmpl	$171, %eax
-	jne	.L2145
+	jne	.L2149
 	leaq	.LC218(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -32224,7 +32237,7 @@ encoder__Encoder_rep:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2146
+	je	.L2150
 	movb	$-13, -67(%rbp)
 	movb	$72, -66(%rbp)
 	movb	$-91, -65(%rbp)
@@ -32244,8 +32257,8 @@ encoder__Encoder_rep:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2150
-.L2146:
+	jmp	.L2154
+.L2150:
 	leaq	.LC219(%rip), %rax
 	movq	%rax, -144(%rbp)
 	movq	-136(%rbp), %rdx
@@ -32267,7 +32280,7 @@ encoder__Encoder_rep:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2145
+	je	.L2149
 	movb	$-13, -70(%rbp)
 	movb	$72, -69(%rbp)
 	movb	$-85, -68(%rbp)
@@ -32287,8 +32300,8 @@ encoder__Encoder_rep:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2150
-.L2145:
+	jmp	.L2154
+.L2149:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -32321,7 +32334,7 @@ encoder__Encoder_rep:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2150:
+.L2154:
 	leaq	-32(%rbp), %rsp
 	popq	%r12
 	popq	%r13
@@ -32364,10 +32377,10 @@ encoder__Encoder_movabsq:
 	movq	%rax, -336(%rbp)
 	movl	-312(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2152
+	jne	.L2156
 	movl	-344(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2152
+	jne	.L2156
 	movq	-352(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -32513,7 +32526,7 @@ encoder__Encoder_movabsq:
 	movq	%rax, -56(%rbp)
 	movl	-620(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2153
+	jle	.L2157
 	leaq	.LC217(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -32546,13 +32559,13 @@ encoder__Encoder_movabsq:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2153:
+.L2157:
 	movl	-620(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
 	movb	%al, -57(%rbp)
 	cmpb	$0, -57(%rbp)
-	je	.L2154
+	je	.L2158
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-640(%rbp), %rax
@@ -32619,8 +32632,8 @@ encoder__Encoder_movabsq:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2157
-.L2154:
+	jmp	.L2161
+.L2158:
 	movq	$0, -501(%rbp)
 	leaq	-608(%rbp), %rax
 	leaq	-501(%rbp), %rdx
@@ -32651,8 +32664,8 @@ encoder__Encoder_movabsq:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2157
-.L2152:
+	jmp	.L2161
+.L2156:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -32685,7 +32698,7 @@ encoder__Encoder_movabsq:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2157:
+.L2161:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -32717,9 +32730,9 @@ encoder__Encoder_mul:
 	movq	-696(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	je	.L2159
+	je	.L2163
 	cmpl	$0, -700(%rbp)
-	jne	.L2160
+	jne	.L2164
 	movb	$-10, -417(%rbp)
 	leaq	-688(%rbp), %rax
 	leaq	-417(%rbp), %rdx
@@ -32729,8 +32742,8 @@ encoder__Encoder_mul:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2161
-.L2160:
+	jmp	.L2165
+.L2164:
 	movb	$-9, -418(%rbp)
 	leaq	-688(%rbp), %rax
 	leaq	-418(%rbp), %rdx
@@ -32740,10 +32753,10 @@ encoder__Encoder_mul:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2161:
+.L2165:
 	movl	-408(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2162
+	jne	.L2166
 	movq	-416(%rbp), %rax
 	movl	-700(%rbp), %esi
 	subq	$48, %rsp
@@ -32890,11 +32903,11 @@ encoder__Encoder_mul:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2166
-.L2162:
+	jmp	.L2170
+.L2166:
 	movl	-408(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2159
+	jne	.L2163
 	movq	-416(%rbp), %rax
 	movq	-696(%rbp), %rsi
 	subq	$176, %rsp
@@ -33102,8 +33115,8 @@ encoder__Encoder_mul:
 	movl	$4, %esi
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2166
-.L2159:
+	jmp	.L2170
+.L2163:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -33136,7 +33149,7 @@ encoder__Encoder_mul:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2166:
+.L2170:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -33194,12 +33207,12 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rax, -496(%rbp)
 	movl	-472(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2168
+	jne	.L2172
 	movl	-504(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2168
+	jne	.L2172
 	cmpl	$3, -688(%rbp)
-	jne	.L2169
+	jne	.L2173
 	leaq	.LC220(%rip), %rax
 	movq	%rax, -704(%rbp)
 	movq	-696(%rbp), %rdx
@@ -33221,7 +33234,7 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2170
+	jne	.L2174
 	leaq	.LC221(%rip), %rax
 	movq	%rax, -720(%rbp)
 	movq	-712(%rbp), %rdx
@@ -33243,7 +33256,7 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2170
+	jne	.L2174
 	leaq	.LC222(%rip), %rax
 	movq	%rax, -736(%rbp)
 	movq	-728(%rbp), %rdx
@@ -33265,7 +33278,7 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2170
+	jne	.L2174
 	leaq	.LC223(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -33286,8 +33299,8 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2169
-.L2170:
+	je	.L2173
+.L2174:
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -672(%rbp)
 	movaps	%xmm0, -656(%rbp)
@@ -33331,7 +33344,7 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2169:
+.L2173:
 	movq	-480(%rbp), %rax
 	movl	-684(%rbp), %esi
 	subq	$48, %rsp
@@ -33496,14 +33509,14 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2171
-.L2168:
+	jmp	.L2175
+.L2172:
 	movl	-472(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2172
+	jne	.L2176
 	movl	-504(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2172
+	jne	.L2176
 	movq	-512(%rbp), %rax
 	movl	-688(%rbp), %esi
 	subq	$48, %rsp
@@ -33728,8 +33741,8 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2171
-.L2172:
+	jmp	.L2175
+.L2176:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -33762,7 +33775,7 @@ encoder__Encoder_mov_zero_or_sign_extend:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2171:
+.L2175:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -33807,9 +33820,9 @@ encoder__Encoder_test:
 	movq	%rax, -1040(%rbp)
 	movl	-1016(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2175
+	jne	.L2179
 	cmpl	$0, -1420(%rbp)
-	jne	.L2176
+	jne	.L2180
 	movb	$-124, -1057(%rbp)
 	leaq	-1408(%rbp), %rax
 	leaq	-1057(%rbp), %rdx
@@ -33819,8 +33832,8 @@ encoder__Encoder_test:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2177
-.L2176:
+	jmp	.L2181
+.L2180:
 	movb	$-123, -1058(%rbp)
 	leaq	-1408(%rbp), %rax
 	leaq	-1058(%rbp), %rdx
@@ -33830,7 +33843,7 @@ encoder__Encoder_test:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2177:
+.L2181:
 	movq	-1024(%rbp), %rax
 	movl	-1420(%rbp), %esi
 	subq	$48, %rsp
@@ -33852,7 +33865,7 @@ encoder__Encoder_test:
 	addq	$48, %rsp
 	movl	-1048(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2178
+	jne	.L2182
 	movq	-1056(%rbp), %rax
 	movl	-1420(%rbp), %esi
 	subq	$48, %rsp
@@ -33998,11 +34011,11 @@ encoder__Encoder_test:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2181
-.L2178:
+	jmp	.L2185
+.L2182:
 	movl	-1048(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2175
+	jne	.L2179
 	movq	-1056(%rbp), %rax
 	movq	-1416(%rbp), %rsi
 	subq	$176, %rsp
@@ -34208,16 +34221,16 @@ encoder__Encoder_test:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2181
-.L2175:
+	jmp	.L2185
+.L2179:
 	movl	-1016(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2182
+	jne	.L2186
 	movl	-1048(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2182
+	jne	.L2186
 	cmpl	$0, -1420(%rbp)
-	jne	.L2183
+	jne	.L2187
 	movb	$-124, -1133(%rbp)
 	leaq	-1408(%rbp), %rax
 	leaq	-1133(%rbp), %rdx
@@ -34227,8 +34240,8 @@ encoder__Encoder_test:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2184
-.L2183:
+	jmp	.L2188
+.L2187:
 	movb	$-123, -1134(%rbp)
 	leaq	-1408(%rbp), %rax
 	leaq	-1134(%rbp), %rdx
@@ -34238,7 +34251,7 @@ encoder__Encoder_test:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2184:
+.L2188:
 	movq	-1056(%rbp), %rax
 	movl	-1420(%rbp), %esi
 	subq	$48, %rsp
@@ -34463,11 +34476,11 @@ encoder__Encoder_test:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2181
-.L2182:
+	jmp	.L2185
+.L2186:
 	movl	-1016(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2185
+	jne	.L2189
 	leaq	-1376(%rbp), %rax
 	movl	$0, %r8d
 	movl	$16, %ecx
@@ -34491,7 +34504,7 @@ encoder__Encoder_test:
 	movl	%eax, -52(%rbp)
 	movl	-1356(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2186
+	jle	.L2190
 	leaq	.LC217(%rip), %rax
 	movq	%rax, -1440(%rbp)
 	movq	-1432(%rbp), %rdx
@@ -34525,22 +34538,22 @@ encoder__Encoder_test:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2186:
+.L2190:
 	movl	-1356(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
 	movb	%al, -53(%rbp)
 	cmpl	$0, -1420(%rbp)
-	jne	.L2187
+	jne	.L2191
 	movl	$-10, %eax
-	jmp	.L2188
-.L2187:
+	jmp	.L2192
+.L2191:
 	movl	$-9, %eax
-.L2188:
+.L2192:
 	movb	%al, -54(%rbp)
 	movl	-1048(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2189
+	jne	.L2193
 	movq	-1056(%rbp), %rax
 	movl	-1420(%rbp), %esi
 	subq	$48, %rsp
@@ -34680,11 +34693,11 @@ encoder__Encoder_test:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2190
-.L2189:
+	jmp	.L2194
+.L2193:
 	movl	-1048(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2191
+	jne	.L2195
 	movq	-1056(%rbp), %rax
 	movq	-1416(%rbp), %rsi
 	subq	$176, %rsp
@@ -34885,8 +34898,8 @@ encoder__Encoder_test:
 	movl	$0, %esi
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2190
-.L2191:
+	jmp	.L2194
+.L2195:
 	leaq	.LC216(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -34919,9 +34932,9 @@ encoder__Encoder_test:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2190:
+.L2194:
 	cmpb	$0, -53(%rbp)
-	je	.L2192
+	je	.L2196
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-1376(%rbp), %rax
@@ -34943,16 +34956,16 @@ encoder__Encoder_test:
 	movl	%edi, %r8d
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_rela
-	jmp	.L2181
-.L2192:
+	jmp	.L2185
+.L2196:
 	movl	-1420(%rbp), %edx
 	movl	-52(%rbp), %ecx
 	movq	-1416(%rbp), %rax
 	movl	%ecx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_value2
-	jmp	.L2181
-.L2185:
+	jmp	.L2185
+.L2189:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -34985,7 +34998,7 @@ encoder__Encoder_test:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2181:
+.L2185:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -35035,15 +35048,15 @@ encoder__Encoder_arith_instr:
 	movq	%rax, -1040(%rbp)
 	movl	-1016(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2196
+	jne	.L2200
 	cmpl	$0, -1400(%rbp)
-	je	.L2197
+	je	.L2201
 	movzbl	-1392(%rbp), %eax
 	addl	$1, %eax
-	jmp	.L2198
-.L2197:
+	jmp	.L2202
+.L2201:
 	movzbl	-1392(%rbp), %eax
-.L2198:
+.L2202:
 	movb	%al, -49(%rbp)
 	movq	-1024(%rbp), %rax
 	movl	-1400(%rbp), %esi
@@ -35066,7 +35079,7 @@ encoder__Encoder_arith_instr:
 	addq	$48, %rsp
 	movl	-1048(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2199
+	jne	.L2203
 	movq	-1056(%rbp), %rax
 	movl	-1400(%rbp), %esi
 	subq	$48, %rsp
@@ -35205,11 +35218,11 @@ encoder__Encoder_arith_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2200
-.L2199:
+	jmp	.L2204
+.L2203:
 	movl	-1048(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2196
+	jne	.L2200
 	movq	-1056(%rbp), %rax
 	movq	-1384(%rbp), %rsi
 	subq	$176, %rsp
@@ -35408,23 +35421,23 @@ encoder__Encoder_arith_instr:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2200
-.L2196:
+	jmp	.L2204
+.L2200:
 	movl	-1016(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2201
+	jne	.L2205
 	movl	-1048(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2201
+	jne	.L2205
 	cmpl	$0, -1400(%rbp)
-	jne	.L2202
+	jne	.L2206
 	movzbl	-1392(%rbp), %eax
 	addl	$2, %eax
-	jmp	.L2203
-.L2202:
+	jmp	.L2207
+.L2206:
 	movzbl	-1392(%rbp), %eax
 	addl	$3, %eax
-.L2203:
+.L2207:
 	movb	%al, -50(%rbp)
 	movq	-1056(%rbp), %rax
 	movl	-1400(%rbp), %esi
@@ -35643,11 +35656,11 @@ encoder__Encoder_arith_instr:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2200
-.L2201:
+	jmp	.L2204
+.L2205:
 	movl	-1016(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2204
+	jne	.L2208
 	leaq	-1376(%rbp), %rax
 	movl	$0, %r8d
 	movl	$16, %ecx
@@ -35671,7 +35684,7 @@ encoder__Encoder_arith_instr:
 	movl	%eax, -56(%rbp)
 	movl	-1356(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2205
+	jle	.L2209
 	leaq	.LC217(%rip), %rax
 	movq	%rax, -1424(%rbp)
 	movq	-1416(%rbp), %rdx
@@ -35705,32 +35718,32 @@ encoder__Encoder_arith_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2205:
+.L2209:
 	movl	-1356(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
 	movb	%al, -57(%rbp)
 	cmpl	$0, -1400(%rbp)
-	je	.L2206
+	je	.L2210
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	je	.L2207
+	je	.L2211
 	cmpb	$0, -57(%rbp)
-	jne	.L2207
+	jne	.L2211
 	movl	$-125, %eax
-	jmp	.L2209
-.L2207:
+	jmp	.L2213
+.L2211:
 	movl	$-127, %eax
-	jmp	.L2209
-.L2206:
+	jmp	.L2213
+.L2210:
 	movl	$-128, %eax
-.L2209:
+.L2213:
 	movb	%al, -58(%rbp)
 	movl	-1048(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2210
+	jne	.L2214
 	movq	-1056(%rbp), %rax
 	movl	-1400(%rbp), %esi
 	subq	$48, %rsp
@@ -35871,11 +35884,11 @@ encoder__Encoder_arith_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2211
-.L2210:
+	jmp	.L2215
+.L2214:
 	movl	-1048(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2212
+	jne	.L2216
 	movq	-1056(%rbp), %rax
 	movq	-1384(%rbp), %rsi
 	subq	$176, %rsp
@@ -36076,8 +36089,8 @@ encoder__Encoder_arith_instr:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2211
-.L2212:
+	jmp	.L2215
+.L2216:
 	leaq	.LC216(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -36110,9 +36123,9 @@ encoder__Encoder_arith_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2211:
+.L2215:
 	cmpb	$0, -57(%rbp)
-	je	.L2213
+	je	.L2217
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-1376(%rbp), %rax
@@ -36134,16 +36147,16 @@ encoder__Encoder_arith_instr:
 	movl	%edi, %r8d
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_rela
-	jmp	.L2200
-.L2213:
+	jmp	.L2204
+.L2217:
 	movl	-1400(%rbp), %edx
 	movl	-56(%rbp), %ecx
 	movq	-1384(%rbp), %rax
 	movl	%ecx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_value
-	jmp	.L2200
-.L2204:
+	jmp	.L2204
+.L2208:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -36176,7 +36189,7 @@ encoder__Encoder_arith_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2200:
+.L2204:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -36210,9 +36223,9 @@ encoder__Encoder_imul:
 	movq	-1496(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	je	.L2217
+	je	.L2221
 	cmpl	$0, -1500(%rbp)
-	jne	.L2218
+	jne	.L2222
 	movb	$-10, -1073(%rbp)
 	leaq	-1488(%rbp), %rax
 	leaq	-1073(%rbp), %rdx
@@ -36222,8 +36235,8 @@ encoder__Encoder_imul:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2219
-.L2218:
+	jmp	.L2223
+.L2222:
 	movb	$-9, -1074(%rbp)
 	leaq	-1488(%rbp), %rax
 	leaq	-1074(%rbp), %rdx
@@ -36233,10 +36246,10 @@ encoder__Encoder_imul:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2219:
+.L2223:
 	movl	-968(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2220
+	jne	.L2224
 	movq	-976(%rbp), %rax
 	movl	-1500(%rbp), %esi
 	subq	$48, %rsp
@@ -36383,11 +36396,11 @@ encoder__Encoder_imul:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2223
-.L2220:
+	jmp	.L2227
+.L2224:
 	movl	-968(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2217
+	jne	.L2221
 	movq	-976(%rbp), %rax
 	movq	-1496(%rbp), %rsi
 	subq	$176, %rsp
@@ -36595,8 +36608,8 @@ encoder__Encoder_imul:
 	movl	$5, %esi
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2223
-.L2217:
+	jmp	.L2227
+.L2221:
 	movq	-1496(%rbp), %rax
 	movl	$3, %esi
 	movq	%rax, %rdi
@@ -36608,10 +36621,10 @@ encoder__Encoder_imul:
 	call	encoder__Encoder_parse_operand
 	movl	-968(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2224
+	jne	.L2228
 	movl	-1000(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2224
+	jne	.L2228
 	movq	-1008(%rbp), %rax
 	movl	-1500(%rbp), %esi
 	subq	$48, %rsp
@@ -36838,14 +36851,14 @@ encoder__Encoder_imul:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2223
-.L2224:
+	jmp	.L2227
+.L2228:
 	movl	-968(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2225
+	jne	.L2229
 	movl	-1000(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2225
+	jne	.L2229
 	movq	-976(%rbp), %rax
 	movl	-1500(%rbp), %esi
 	subq	$48, %rsp
@@ -37012,20 +37025,20 @@ encoder__Encoder_imul:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2223
-.L2225:
+	jmp	.L2227
+.L2229:
 	movq	-1496(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	je	.L2226
+	je	.L2230
 	movq	-1008(%rbp), %rax
 	movq	-1000(%rbp), %rdx
 	movq	%rax, -1040(%rbp)
 	movq	%rdx, -1032(%rbp)
 	movq	-992(%rbp), %rax
 	movq	%rax, -1024(%rbp)
-	jmp	.L2227
-.L2226:
+	jmp	.L2231
+.L2230:
 	movq	-1496(%rbp), %rax
 	movl	$3, %esi
 	movq	%rax, %rdi
@@ -37035,7 +37048,7 @@ encoder__Encoder_imul:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	encoder__Encoder_parse_operand
-.L2227:
+.L2231:
 	movq	-1040(%rbp), %rax
 	movq	-1032(%rbp), %rdx
 	movq	%rax, -1072(%rbp)
@@ -37044,13 +37057,13 @@ encoder__Encoder_imul:
 	movq	%rax, -1056(%rbp)
 	movl	-968(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2228
+	jne	.L2232
 	movl	-1000(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2228
+	jne	.L2232
 	movl	-1064(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2228
+	jne	.L2232
 	leaq	-1456(%rbp), %rax
 	movl	$0, %r8d
 	movl	$16, %ecx
@@ -37074,7 +37087,7 @@ encoder__Encoder_imul:
 	movl	%eax, -52(%rbp)
 	movl	-1436(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2229
+	jle	.L2233
 	leaq	.LC217(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -37107,7 +37120,7 @@ encoder__Encoder_imul:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2229:
+.L2233:
 	movl	-1436(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
@@ -37116,14 +37129,14 @@ encoder__Encoder_imul:
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	je	.L2230
+	je	.L2234
 	cmpb	$0, -53(%rbp)
-	jne	.L2230
+	jne	.L2234
 	movl	$107, %eax
-	jmp	.L2231
-.L2230:
+	jmp	.L2235
+.L2234:
 	movl	$105, %eax
-.L2231:
+.L2235:
 	movb	%al, -54(%rbp)
 	movq	-1008(%rbp), %rax
 	movl	-1500(%rbp), %esi
@@ -37283,7 +37296,7 @@ encoder__Encoder_imul:
 	movq	%rdx, %rdi
 	call	array_push
 	cmpb	$0, -53(%rbp)
-	je	.L2232
+	je	.L2236
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-1456(%rbp), %rax
@@ -37305,16 +37318,16 @@ encoder__Encoder_imul:
 	movl	%edi, %r8d
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_rela
-	jmp	.L2223
-.L2232:
+	jmp	.L2227
+.L2236:
 	movl	-1500(%rbp), %edx
 	movl	-52(%rbp), %ecx
 	movq	-1496(%rbp), %rax
 	movl	%ecx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_value
-	jmp	.L2223
-.L2228:
+	jmp	.L2227
+.L2232:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -37347,7 +37360,7 @@ encoder__Encoder_imul:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2223:
+.L2227:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -37381,7 +37394,7 @@ encoder__Encoder_one_operand_arith:
 	movq	%rax, %rdi
 	call	encoder__Encoder_parse_operand
 	cmpl	$0, -708(%rbp)
-	jne	.L2236
+	jne	.L2240
 	movb	$-10, -449(%rbp)
 	leaq	-448(%rbp), %rax
 	leaq	-449(%rbp), %rdx
@@ -37391,8 +37404,8 @@ encoder__Encoder_one_operand_arith:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-	jmp	.L2237
-.L2236:
+	jmp	.L2241
+.L2240:
 	movb	$-9, -450(%rbp)
 	leaq	-448(%rbp), %rax
 	leaq	-450(%rbp), %rdx
@@ -37402,10 +37415,10 @@ encoder__Encoder_one_operand_arith:
 	movl	$1, %esi
 	movq	%rax, %rdi
 	call	new_array_from_c_array
-.L2237:
+.L2241:
 	movl	-408(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2238
+	jne	.L2242
 	movq	-416(%rbp), %rax
 	movl	-708(%rbp), %esi
 	subq	$48, %rsp
@@ -37553,11 +37566,11 @@ encoder__Encoder_one_operand_arith:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2239
-.L2238:
+	jmp	.L2243
+.L2242:
 	movl	-408(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2240
+	jne	.L2244
 	movq	-416(%rbp), %rax
 	movq	-696(%rbp), %rsi
 	subq	$176, %rsp
@@ -37765,8 +37778,8 @@ encoder__Encoder_one_operand_arith:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2239
-.L2240:
+	jmp	.L2243
+.L2244:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -37799,7 +37812,7 @@ encoder__Encoder_one_operand_arith:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2239:
+.L2243:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -37851,10 +37864,10 @@ encoder__Encoder_lea:
 	movq	%rax, -320(%rbp)
 	movl	-296(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2243
+	jne	.L2247
 	movl	-328(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2243
+	jne	.L2247
 	movq	-336(%rbp), %rax
 	movl	-36(%rbp), %esi
 	subq	$48, %rsp
@@ -38071,8 +38084,8 @@ encoder__Encoder_lea:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2245
-.L2243:
+	jmp	.L2249
+.L2247:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -38105,7 +38118,7 @@ encoder__Encoder_lea:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2245:
+.L2249:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -38135,7 +38148,7 @@ encoder__Encoder_set:
 	call	encoder__Encoder_parse_operand
 	movl	-232(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2247
+	jne	.L2251
 	movq	-240(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -38280,8 +38293,8 @@ encoder__Encoder_set:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2249
-.L2247:
+	jmp	.L2253
+.L2251:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -38314,7 +38327,7 @@ encoder__Encoder_set:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2249:
+.L2253:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -38354,18 +38367,18 @@ encoder__Encoder_shift:
 	movq	-1704(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	je	.L2251
+	je	.L2255
 	cmpl	$0, -1716(%rbp)
-	jne	.L2252
+	jne	.L2256
 	movl	$-48, %eax
-	jmp	.L2253
-.L2252:
+	jmp	.L2257
+.L2256:
 	movl	$-47, %eax
-.L2253:
+.L2257:
 	movb	%al, -49(%rbp)
 	movl	-1144(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2254
+	jne	.L2258
 	movq	-1152(%rbp), %rax
 	movl	-1716(%rbp), %esi
 	subq	$48, %rsp
@@ -38506,11 +38519,11 @@ encoder__Encoder_shift:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2255
-.L2254:
+	jmp	.L2259
+.L2258:
 	movl	-1144(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2251
+	jne	.L2255
 	movq	-1152(%rbp), %rax
 	movq	-1704(%rbp), %rsi
 	subq	$176, %rsp
@@ -38711,8 +38724,8 @@ encoder__Encoder_shift:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2255
-.L2251:
+	jmp	.L2259
+.L2255:
 	movq	-1704(%rbp), %rax
 	movl	$3, %esi
 	movq	%rax, %rdi
@@ -38724,7 +38737,7 @@ encoder__Encoder_shift:
 	call	encoder__Encoder_parse_operand
 	movl	-1144(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2256
+	jne	.L2260
 	leaq	.LC226(%rip), %rax
 	movq	%rax, -1744(%rbp)
 	movq	-1736(%rbp), %rdx
@@ -38746,7 +38759,7 @@ encoder__Encoder_shift:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2257
+	jne	.L2261
 	leaq	.LC216(%rip), %rax
 	movq	%rax, -1760(%rbp)
 	movq	-1752(%rbp), %rdx
@@ -38780,18 +38793,18 @@ encoder__Encoder_shift:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2257:
+.L2261:
 	cmpl	$0, -1716(%rbp)
-	jne	.L2258
+	jne	.L2262
 	movl	$-46, %eax
-	jmp	.L2259
-.L2258:
+	jmp	.L2263
+.L2262:
 	movl	$-45, %eax
-.L2259:
+.L2263:
 	movb	%al, -50(%rbp)
 	movl	-1176(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2260
+	jne	.L2264
 	movq	-1184(%rbp), %rax
 	movl	-1716(%rbp), %esi
 	subq	$48, %rsp
@@ -38926,11 +38939,11 @@ encoder__Encoder_shift:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2255
-.L2260:
+	jmp	.L2259
+.L2264:
 	movl	-1176(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2256
+	jne	.L2260
 	movq	-1184(%rbp), %rax
 	movq	-1704(%rbp), %rsi
 	subq	$176, %rsp
@@ -39125,11 +39138,11 @@ encoder__Encoder_shift:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2255
-.L2256:
+	jmp	.L2259
+.L2260:
 	movl	-1144(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2261
+	jne	.L2265
 	leaq	-1696(%rbp), %rax
 	movl	$0, %r8d
 	movl	$16, %ecx
@@ -39153,7 +39166,7 @@ encoder__Encoder_shift:
 	movl	%eax, -56(%rbp)
 	movl	-1676(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2262
+	jle	.L2266
 	leaq	.LC217(%rip), %rax
 	movq	%rax, -1776(%rbp)
 	movq	-1768(%rbp), %rdx
@@ -39188,34 +39201,34 @@ encoder__Encoder_shift:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2262:
+.L2266:
 	movl	-1676(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
 	movb	%al, -57(%rbp)
 	cmpl	$1, -56(%rbp)
-	jne	.L2263
-	cmpb	$0, -57(%rbp)
-	jne	.L2263
-	cmpl	$0, -1716(%rbp)
-	jne	.L2264
-	movl	$-48, %eax
-	jmp	.L2266
-.L2264:
-	movl	$-47, %eax
-	jmp	.L2266
-.L2263:
-	cmpl	$0, -1716(%rbp)
 	jne	.L2267
-	movl	$-64, %eax
-	jmp	.L2266
+	cmpb	$0, -57(%rbp)
+	jne	.L2267
+	cmpl	$0, -1716(%rbp)
+	jne	.L2268
+	movl	$-48, %eax
+	jmp	.L2270
+.L2268:
+	movl	$-47, %eax
+	jmp	.L2270
 .L2267:
+	cmpl	$0, -1716(%rbp)
+	jne	.L2271
+	movl	$-64, %eax
+	jmp	.L2270
+.L2271:
 	movl	$-63, %eax
-.L2266:
+.L2270:
 	movb	%al, -58(%rbp)
 	movl	-1176(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2269
+	jne	.L2273
 	movq	-1184(%rbp), %rax
 	movl	-1716(%rbp), %esi
 	subq	$48, %rsp
@@ -39356,11 +39369,11 @@ encoder__Encoder_shift:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2270
-.L2269:
+	jmp	.L2274
+.L2273:
 	movl	-1176(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2271
+	jne	.L2275
 	movq	-1184(%rbp), %rax
 	movq	-1704(%rbp), %rsi
 	subq	$176, %rsp
@@ -39561,8 +39574,8 @@ encoder__Encoder_shift:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2270
-.L2271:
+	jmp	.L2274
+.L2275:
 	leaq	.LC216(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -39595,9 +39608,9 @@ encoder__Encoder_shift:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2270:
+.L2274:
 	cmpb	$0, -57(%rbp)
-	je	.L2272
+	je	.L2276
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-1696(%rbp), %rax
@@ -39618,10 +39631,10 @@ encoder__Encoder_shift:
 	movl	$0, %ecx
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_rela
-	jmp	.L2255
-.L2272:
+	jmp	.L2259
+.L2276:
 	cmpl	$1, -56(%rbp)
-	je	.L2255
+	je	.L2259
 	movl	-56(%rbp), %eax
 	movzbl	%al, %ecx
 	movq	-1704(%rbp), %rax
@@ -39629,8 +39642,8 @@ encoder__Encoder_shift:
 	movl	%ecx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_value
-	jmp	.L2255
-.L2261:
+	jmp	.L2259
+.L2265:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -39663,7 +39676,7 @@ encoder__Encoder_shift:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2255:
+.L2259:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -39793,14 +39806,14 @@ encoder__Encoder_add_section:
 	movaps	%xmm0, -512(%rbp)
 	movaps	%xmm0, -496(%rbp)
 	cmpq	$0, -48(%rbp)
-	je	.L2276
+	je	.L2280
 	leaq	-528(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-48(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2277
-.L2276:
+	jmp	.L2281
+.L2280:
 	movb	$2, -528(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -39829,10 +39842,10 @@ encoder__Encoder_add_section:
 	movq	-696(%rbp), %rdx
 	movq	%rax, -504(%rbp)
 	movq	%rdx, -496(%rbp)
-.L2277:
+.L2281:
 	movzbl	-528(%rbp), %eax
 	testb	%al, %al
-	jne	.L2278
+	jne	.L2282
 	leaq	-528(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -39840,7 +39853,7 @@ encoder__Encoder_add_section:
 	movq	-56(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$110, %eax
-	jne	.L2280
+	jne	.L2284
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -640(%rbp)
 	movaps	%xmm0, -624(%rbp)
@@ -39881,7 +39894,7 @@ encoder__Encoder_add_section:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2278:
+.L2282:
 	movq	-520(%rbp), %rax
 	movq	-512(%rbp), %rdx
 	movq	%rax, -640(%rbp)
@@ -39904,7 +39917,7 @@ encoder__Encoder_add_section:
 	call	map_get_and_set
 	movq	-40(%rbp), %rdx
 	movq	%rdx, (%rax)
-.L2280:
+.L2284:
 	nop
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -39998,8 +40011,8 @@ encoder__Encoder_zero:
 	addq	$32, %rsp
 	movl	%eax, -8(%rbp)
 	movl	$0, -4(%rbp)
-	jmp	.L2283
-.L2284:
+	jmp	.L2287
+.L2288:
 	movb	$0, -33(%rbp)
 	movq	-56(%rbp), %rax
 	movq	120(%rax), %rax
@@ -40009,10 +40022,10 @@ encoder__Encoder_zero:
 	movq	%rdx, %rdi
 	call	array_push
 	addl	$1, -4(%rbp)
-.L2283:
+.L2287:
 	movl	-4(%rbp), %eax
 	cmpl	-8(%rbp), %eax
-	jl	.L2284
+	jl	.L2288
 	nop
 	nop
 	leave
@@ -40112,7 +40125,7 @@ encoder__Encoder_byte:
 	movl	%eax, -36(%rbp)
 	movl	-76(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2287
+	jle	.L2291
 	leaq	.LC229(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -40145,10 +40158,10 @@ encoder__Encoder_byte:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2287:
+.L2291:
 	movl	-76(%rbp), %eax
 	cmpl	$1, %eax
-	jne	.L2288
+	jne	.L2292
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-96(%rbp), %rax
@@ -40216,8 +40229,8 @@ encoder__Encoder_byte:
 	movq	-232(%rbp), %rdx
 	movq	%rax, 24(%rbx)
 	movq	%rdx, 32(%rbx)
-	jmp	.L2290
-.L2288:
+	jmp	.L2294
+.L2292:
 	movl	-36(%rbp), %eax
 	movb	%al, -98(%rbp)
 	movq	-216(%rbp), %rax
@@ -40227,7 +40240,7 @@ encoder__Encoder_byte:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2290:
+.L2294:
 	nop
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -40277,7 +40290,7 @@ encoder__Encoder_word:
 	movl	%eax, -36(%rbp)
 	movl	-76(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2292
+	jle	.L2296
 	leaq	.LC229(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -40310,10 +40323,10 @@ encoder__Encoder_word:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2292:
+.L2296:
 	movl	-76(%rbp), %eax
 	cmpl	$1, %eax
-	jne	.L2293
+	jne	.L2297
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-96(%rbp), %rax
@@ -40382,8 +40395,8 @@ encoder__Encoder_word:
 	movq	-232(%rbp), %rdx
 	movq	%rax, 24(%rbx)
 	movq	%rdx, 32(%rbx)
-	jmp	.L2295
-.L2293:
+	jmp	.L2299
+.L2297:
 	movb	$0, -100(%rbp)
 	movb	$0, -99(%rbp)
 	leaq	-160(%rbp), %rax
@@ -40410,7 +40423,7 @@ encoder__Encoder_word:
 	movq	-136(%rbp), %rdx
 	movq	%rax, 24(%rcx)
 	movq	%rdx, 32(%rcx)
-.L2295:
+.L2299:
 	nop
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -40460,7 +40473,7 @@ encoder__Encoder_long:
 	movl	%eax, -36(%rbp)
 	movl	-76(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2297
+	jle	.L2301
 	leaq	.LC229(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -40493,10 +40506,10 @@ encoder__Encoder_long:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2297:
+.L2301:
 	movl	-76(%rbp), %eax
 	cmpl	$1, %eax
-	jne	.L2298
+	jne	.L2302
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-96(%rbp), %rax
@@ -40567,8 +40580,8 @@ encoder__Encoder_long:
 	movq	-232(%rbp), %rdx
 	movq	%rax, 24(%rbx)
 	movq	%rdx, 32(%rbx)
-	jmp	.L2300
-.L2298:
+	jmp	.L2304
+.L2302:
 	movb	$0, -104(%rbp)
 	movb	$0, -103(%rbp)
 	movb	$0, -102(%rbp)
@@ -40596,7 +40609,7 @@ encoder__Encoder_long:
 	movq	-136(%rbp), %rdx
 	movq	%rax, 24(%rcx)
 	movq	%rdx, 32(%rcx)
-.L2300:
+.L2304:
 	nop
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -40646,7 +40659,7 @@ encoder__Encoder_quad:
 	movl	%eax, -36(%rbp)
 	movl	-92(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2302
+	jle	.L2306
 	leaq	.LC229(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -40679,10 +40692,10 @@ encoder__Encoder_quad:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2302:
+.L2306:
 	movl	-92(%rbp), %eax
 	cmpl	$1, %eax
-	jne	.L2303
+	jne	.L2307
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-112(%rbp), %rax
@@ -40752,8 +40765,8 @@ encoder__Encoder_quad:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2305
-.L2303:
+	jmp	.L2309
+.L2307:
 	movq	$0, -128(%rbp)
 	leaq	-176(%rbp), %rax
 	leaq	-128(%rbp), %rdx
@@ -40779,7 +40792,7 @@ encoder__Encoder_quad:
 	movq	-152(%rbp), %rdx
 	movq	%rax, 24(%rcx)
 	movq	%rdx, 32(%rcx)
-.L2305:
+.L2309:
 	nop
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -41157,7 +41170,7 @@ encoder__Encoder_expect:
 	movq	-104(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	%eax, -108(%rbp)
-	je	.L2311
+	je	.L2315
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -96(%rbp)
 	movaps	%xmm0, -80(%rbp)
@@ -41201,7 +41214,7 @@ encoder__Encoder_expect:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2311:
+.L2315:
 	movq	-104(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
@@ -41242,35 +41255,35 @@ encoder__Encoder_parse_register:
 	movq	-72(%rbp), %rdx
 	movq	%rax, -224(%rbp)
 	movq	%rdx, -216(%rbp)
-	movq	_const_encoder__xmm_registers(%rip), %rax
-	movq	8+_const_encoder__xmm_registers(%rip), %rdx
+	movq	_const_encoder__general_registers(%rip), %rax
+	movq	8+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -208(%rbp)
 	movq	%rdx, -200(%rbp)
-	movq	16+_const_encoder__xmm_registers(%rip), %rax
-	movq	24+_const_encoder__xmm_registers(%rip), %rdx
+	movq	16+_const_encoder__general_registers(%rip), %rax
+	movq	24+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -192(%rbp)
 	movq	%rdx, -184(%rbp)
-	movq	32+_const_encoder__xmm_registers(%rip), %rax
-	movq	40+_const_encoder__xmm_registers(%rip), %rdx
+	movq	32+_const_encoder__general_registers(%rip), %rax
+	movq	40+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -176(%rbp)
 	movq	%rdx, -168(%rbp)
-	movq	48+_const_encoder__xmm_registers(%rip), %rax
-	movq	56+_const_encoder__xmm_registers(%rip), %rdx
+	movq	48+_const_encoder__general_registers(%rip), %rax
+	movq	56+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -160(%rbp)
 	movq	%rdx, -152(%rbp)
-	movq	64+_const_encoder__xmm_registers(%rip), %rax
-	movq	72+_const_encoder__xmm_registers(%rip), %rdx
+	movq	64+_const_encoder__general_registers(%rip), %rax
+	movq	72+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -144(%rbp)
 	movq	%rdx, -136(%rbp)
-	movq	80+_const_encoder__xmm_registers(%rip), %rax
-	movq	88+_const_encoder__xmm_registers(%rip), %rdx
+	movq	80+_const_encoder__general_registers(%rip), %rax
+	movq	88+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -128(%rbp)
 	movq	%rdx, -120(%rbp)
-	movq	96+_const_encoder__xmm_registers(%rip), %rax
-	movq	104+_const_encoder__xmm_registers(%rip), %rdx
+	movq	96+_const_encoder__general_registers(%rip), %rax
+	movq	104+_const_encoder__general_registers(%rip), %rdx
 	movq	%rax, -112(%rbp)
 	movq	%rdx, -104(%rbp)
-	movq	112+_const_encoder__xmm_registers(%rip), %rax
+	movq	112+_const_encoder__general_registers(%rip), %rax
 	movq	%rax, -96(%rbp)
 	leaq	-224(%rbp), %rdx
 	leaq	-208(%rbp), %rax
@@ -41284,7 +41297,7 @@ encoder__Encoder_parse_register:
 	movq	%rdx, %rdi
 	rep stosq
 	cmpq	$0, -56(%rbp)
-	je	.L2313
+	je	.L2317
 	leaq	-320(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-56(%rbp), %rax
@@ -41300,8 +41313,8 @@ encoder__Encoder_parse_register:
 	movq	40(%rax), %rbx
 	movq	%rcx, 32(%rdx)
 	movq	%rbx, 40(%rdx)
-	jmp	.L2314
-.L2313:
+	jmp	.L2318
+.L2317:
 	movb	$2, -320(%rbp)
 	leaq	.LC211(%rip), %r14
 	movq	%r15, %rdx
@@ -41330,10 +41343,10 @@ encoder__Encoder_parse_register:
 	movq	-744(%rbp), %rdx
 	movq	%rax, -296(%rbp)
 	movq	%rdx, -288(%rbp)
-.L2314:
+.L2318:
 	movzbl	-320(%rbp), %eax
 	testb	%al, %al
-	jne	.L2315
+	jne	.L2319
 	leaq	-320(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rcx
@@ -41362,42 +41375,42 @@ encoder__Encoder_parse_register:
 	leaq	-720(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__Expr
-	jmp	.L2316
-.L2315:
+	call	encoder__Register_to_sumtype_encoder__Expr
+	jmp	.L2320
+.L2319:
 	movq	-80(%rbp), %rax
 	movq	-72(%rbp), %rdx
 	movq	%rax, -464(%rbp)
 	movq	%rdx, -456(%rbp)
-	movq	_const_encoder__general_registers(%rip), %rax
-	movq	8+_const_encoder__general_registers(%rip), %rdx
+	movq	_const_encoder__xmm_registers(%rip), %rax
+	movq	8+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -448(%rbp)
 	movq	%rdx, -440(%rbp)
-	movq	16+_const_encoder__general_registers(%rip), %rax
-	movq	24+_const_encoder__general_registers(%rip), %rdx
+	movq	16+_const_encoder__xmm_registers(%rip), %rax
+	movq	24+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -432(%rbp)
 	movq	%rdx, -424(%rbp)
-	movq	32+_const_encoder__general_registers(%rip), %rax
-	movq	40+_const_encoder__general_registers(%rip), %rdx
+	movq	32+_const_encoder__xmm_registers(%rip), %rax
+	movq	40+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -416(%rbp)
 	movq	%rdx, -408(%rbp)
-	movq	48+_const_encoder__general_registers(%rip), %rax
-	movq	56+_const_encoder__general_registers(%rip), %rdx
+	movq	48+_const_encoder__xmm_registers(%rip), %rax
+	movq	56+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -400(%rbp)
 	movq	%rdx, -392(%rbp)
-	movq	64+_const_encoder__general_registers(%rip), %rax
-	movq	72+_const_encoder__general_registers(%rip), %rdx
+	movq	64+_const_encoder__xmm_registers(%rip), %rax
+	movq	72+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -384(%rbp)
 	movq	%rdx, -376(%rbp)
-	movq	80+_const_encoder__general_registers(%rip), %rax
-	movq	88+_const_encoder__general_registers(%rip), %rdx
+	movq	80+_const_encoder__xmm_registers(%rip), %rax
+	movq	88+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -368(%rbp)
 	movq	%rdx, -360(%rbp)
-	movq	96+_const_encoder__general_registers(%rip), %rax
-	movq	104+_const_encoder__general_registers(%rip), %rdx
+	movq	96+_const_encoder__xmm_registers(%rip), %rax
+	movq	104+_const_encoder__xmm_registers(%rip), %rdx
 	movq	%rax, -352(%rbp)
 	movq	%rdx, -344(%rbp)
-	movq	112+_const_encoder__general_registers(%rip), %rax
+	movq	112+_const_encoder__xmm_registers(%rip), %rax
 	movq	%rax, -336(%rbp)
 	leaq	-464(%rbp), %rdx
 	leaq	-448(%rbp), %rax
@@ -41411,7 +41424,7 @@ encoder__Encoder_parse_register:
 	movq	%rdx, %rdi
 	rep stosq
 	cmpq	$0, -64(%rbp)
-	je	.L2317
+	je	.L2321
 	leaq	-560(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-64(%rbp), %rax
@@ -41427,8 +41440,8 @@ encoder__Encoder_parse_register:
 	movq	40(%rax), %rbx
 	movq	%rcx, 32(%rdx)
 	movq	%rbx, 40(%rdx)
-	jmp	.L2318
-.L2317:
+	jmp	.L2322
+.L2321:
 	movb	$2, -560(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -41457,10 +41470,10 @@ encoder__Encoder_parse_register:
 	movq	-744(%rbp), %rdx
 	movq	%rax, -536(%rbp)
 	movq	%rdx, -528(%rbp)
-.L2318:
+.L2322:
 	movzbl	-560(%rbp), %eax
 	testb	%al, %al
-	jne	.L2319
+	jne	.L2323
 	leaq	-560(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rcx
@@ -41489,9 +41502,9 @@ encoder__Encoder_parse_register:
 	leaq	-720(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__Expr
-	jmp	.L2316
-.L2319:
+	call	encoder__Xmm_to_sumtype_encoder__Expr
+	jmp	.L2320
+.L2323:
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -640(%rbp)
 	movaps	%xmm0, -624(%rbp)
@@ -41535,7 +41548,7 @@ encoder__Encoder_parse_register:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2316:
+.L2320:
 	movq	-728(%rbp), %rax
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
@@ -41557,7 +41570,7 @@ encoder__Encoder_parse_factor:
 	movq	-304(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$1, %eax
-	jne	.L2322
+	jne	.L2326
 	movq	-304(%rbp), %rax
 	movq	40(%rax), %rdx
 	movq	32(%rax), %rax
@@ -41589,12 +41602,12 @@ encoder__Encoder_parse_factor:
 	movq	%rdx, 8(%rcx)
 	movq	-80(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2321
-.L2322:
+	jmp	.L2325
+.L2326:
 	movq	-304(%rbp), %rax
 	movl	(%rax), %eax
 	testl	%eax, %eax
-	jne	.L2324
+	jne	.L2328
 	movq	-304(%rbp), %rax
 	movq	40(%rax), %rdx
 	movq	32(%rax), %rax
@@ -41626,12 +41639,12 @@ encoder__Encoder_parse_factor:
 	movq	%rdx, 8(%rcx)
 	movq	-128(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2321
-.L2324:
+	jmp	.L2325
+.L2328:
 	movq	-304(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$8, %eax
-	jne	.L2325
+	jne	.L2329
 	movq	-304(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
@@ -41665,8 +41678,8 @@ encoder__Encoder_parse_factor:
 	movq	%rdx, 8(%rcx)
 	movq	-192(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2321
-.L2325:
+	jmp	.L2325
+.L2329:
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -288(%rbp)
 	movaps	%xmm0, -272(%rbp)
@@ -41710,7 +41723,7 @@ encoder__Encoder_parse_factor:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2321:
+.L2325:
 	movq	-296(%rbp), %rax
 	movq	-8(%rbp), %rbx
 	leave
@@ -41731,20 +41744,20 @@ encoder__Encoder_parse_expr:
 	movq	-224(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$7, %eax
-	je	.L2328
+	je	.L2332
 	movq	-224(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$8, %eax
-	je	.L2328
+	je	.L2332
 	movq	-224(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$9, %eax
-	je	.L2328
+	je	.L2332
 	movq	-224(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$10, %eax
-	jne	.L2329
-.L2328:
+	jne	.L2333
+.L2332:
 	movq	-224(%rbp), %rax
 	movl	(%rax), %eax
 	movl	%eax, -4(%rbp)
@@ -41795,8 +41808,8 @@ encoder__Encoder_parse_expr:
 	movq	%rdx, 8(%rcx)
 	movq	-112(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2327
-.L2329:
+	jmp	.L2331
+.L2333:
 	movq	-216(%rbp), %rcx
 	movq	-32(%rbp), %rax
 	movq	-24(%rbp), %rdx
@@ -41804,7 +41817,7 @@ encoder__Encoder_parse_expr:
 	movq	%rdx, 8(%rcx)
 	movq	-16(%rbp), %rax
 	movq	%rax, 16(%rcx)
-.L2327:
+.L2331:
 	movq	-216(%rbp), %rax
 	leave
 	ret
@@ -41870,7 +41883,7 @@ encoder__Encoder_parse_operand:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$12, %eax
-	jne	.L2335
+	jne	.L2339
 	movq	-912(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
@@ -41897,12 +41910,12 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, 8(%rcx)
 	movq	-320(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2336
-.L2335:
+	jmp	.L2340
+.L2339:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$11, %eax
-	jne	.L2337
+	jne	.L2341
 	leaq	-368(%rbp), %rax
 	movq	-912(%rbp), %rdx
 	movq	%rdx, %rsi
@@ -41915,12 +41928,12 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, 8(%rcx)
 	movq	-352(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2336
-.L2337:
+	jmp	.L2340
+.L2341:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$9, %eax
-	jne	.L2338
+	jne	.L2342
 	movq	-912(%rbp), %rax
 	movl	$9, %esi
 	movq	%rax, %rdi
@@ -41990,12 +42003,12 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, 8(%rcx)
 	movq	-384(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2336
-.L2338:
+	jmp	.L2340
+.L2342:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$5, %eax
-	jne	.L2339
+	jne	.L2343
 	leaq	.LC43(%rip), %rax
 	movq	%rax, -896(%rbp)
 	movl	$1, -888(%rbp)
@@ -42011,18 +42024,18 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	encoder__Number_to_sumtype_encoder__Expr
-	jmp	.L2340
-.L2339:
+	jmp	.L2344
+.L2343:
 	leaq	-464(%rbp), %rax
 	movq	-912(%rbp), %rdx
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	encoder__Encoder_parse_expr
-.L2340:
+.L2344:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$5, %eax
-	je	.L2341
+	je	.L2345
 	movq	-904(%rbp), %rcx
 	movq	-464(%rbp), %rax
 	movq	-456(%rbp), %rdx
@@ -42030,8 +42043,8 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, 8(%rcx)
 	movq	-448(%rbp), %rax
 	movq	%rax, 16(%rcx)
-	jmp	.L2336
-.L2341:
+	jmp	.L2340
+.L2345:
 	movq	-912(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
@@ -42067,7 +42080,7 @@ encoder__Encoder_parse_operand:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	je	.L2343
+	je	.L2347
 	movb	$1, -632(%rbp)
 	leaq	-560(%rbp), %rax
 	movq	-912(%rbp), %rdx
@@ -42104,11 +42117,11 @@ encoder__Encoder_parse_operand:
 	movq	-72(%rbp), %rdx
 	movq	%rax, -744(%rbp)
 	movq	%rdx, -736(%rbp)
-.L2343:
+.L2347:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	jne	.L2344
+	jne	.L2348
 	movb	$1, -631(%rbp)
 	movq	-912(%rbp), %rax
 	movq	%rax, %rdi
@@ -42151,7 +42164,7 @@ encoder__Encoder_parse_operand:
 	movq	-912(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$3, %eax
-	jne	.L2345
+	jne	.L2349
 	movq	-912(%rbp), %rax
 	movl	$3, %esi
 	movq	%rax, %rdi
@@ -42161,8 +42174,8 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	encoder__Encoder_parse_expr
-	jmp	.L2346
-.L2345:
+	jmp	.L2350
+.L2349:
 	leaq	.LC236(%rip), %rax
 	movq	%rax, -848(%rbp)
 	movl	$1, -840(%rbp)
@@ -42184,14 +42197,14 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, -584(%rbp)
 	movq	-928(%rbp), %rax
 	movq	%rax, -576(%rbp)
-.L2346:
+.L2350:
 	movq	-592(%rbp), %rax
 	movq	-584(%rbp), %rdx
 	movq	%rax, -680(%rbp)
 	movq	%rdx, -672(%rbp)
 	movq	-576(%rbp), %rax
 	movq	%rax, -664(%rbp)
-.L2344:
+.L2348:
 	movq	-912(%rbp), %rax
 	movl	$6, %esi
 	movq	%rax, %rdi
@@ -42201,7 +42214,7 @@ encoder__Encoder_parse_operand:
 	movq	%rdx, %rsi
 	movq	%rax, %rdi
 	call	encoder__Indirection_to_sumtype_encoder__Expr
-.L2336:
+.L2340:
 	movq	-904(%rbp), %rax
 	movq	-8(%rbp), %rbx
 	leave
@@ -42227,7 +42240,7 @@ encoder__eval_expr_get_symbol_64:
 	movq	$0, -40(%rbp)
 	movl	24(%rbp), %esi
 	cmpl	$178, %esi
-	jne	.L2349
+	jne	.L2353
 	movq	16(%rbp), %rax
 	leaq	-128(%rbp), %rdi
 	movq	(%rax), %rdx
@@ -42239,7 +42252,7 @@ encoder__eval_expr_get_symbol_64:
 	call	strconv__parse_int
 	movzbl	-128(%rbp), %eax
 	testb	%al, %al
-	je	.L2350
+	je	.L2354
 	movq	-120(%rbp), %rax
 	movq	-112(%rbp), %rdx
 	movq	%rax, -160(%rbp)
@@ -42280,21 +42293,21 @@ encoder__eval_expr_get_symbol_64:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2350:
+.L2354:
 	leaq	-128(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
 	movq	%rax, -40(%rbp)
-	jmp	.L2351
-.L2349:
+	jmp	.L2355
+.L2353:
 	movl	24(%rbp), %esi
 	cmpl	$176, %esi
-	jne	.L2352
+	jne	.L2356
 	movq	$0, -48(%rbp)
 	movq	16(%rbp), %rax
 	movl	48(%rax), %eax
 	cmpl	$7, %eax
-	jne	.L2353
+	jne	.L2357
 	movq	16(%rbp), %rcx
 	movq	-168(%rbp), %rdi
 	subq	$8, %rsp
@@ -42324,12 +42337,12 @@ encoder__eval_expr_get_symbol_64:
 	addq	$32, %rsp
 	addq	%rbx, %rax
 	movq	%rax, -48(%rbp)
-	jmp	.L2354
-.L2353:
+	jmp	.L2358
+.L2357:
 	movq	16(%rbp), %rax
 	movl	48(%rax), %eax
 	cmpl	$8, %eax
-	jne	.L2355
+	jne	.L2359
 	movq	16(%rbp), %rcx
 	movq	-168(%rbp), %rdi
 	subq	$8, %rsp
@@ -42360,12 +42373,12 @@ encoder__eval_expr_get_symbol_64:
 	subq	%rax, %rbx
 	movq	%rbx, %rdx
 	movq	%rdx, -48(%rbp)
-	jmp	.L2354
-.L2355:
+	jmp	.L2358
+.L2359:
 	movq	16(%rbp), %rax
 	movl	48(%rax), %eax
 	cmpl	$9, %eax
-	jne	.L2356
+	jne	.L2360
 	movq	16(%rbp), %rcx
 	movq	-168(%rbp), %rdi
 	subq	$8, %rsp
@@ -42395,12 +42408,12 @@ encoder__eval_expr_get_symbol_64:
 	addq	$32, %rsp
 	imulq	%rbx, %rax
 	movq	%rax, -48(%rbp)
-	jmp	.L2354
-.L2356:
+	jmp	.L2358
+.L2360:
 	movq	16(%rbp), %rax
 	movl	48(%rax), %eax
 	cmpl	$10, %eax
-	jne	.L2357
+	jne	.L2361
 	movq	16(%rbp), %rcx
 	movq	-168(%rbp), %rdi
 	subq	$8, %rsp
@@ -42433,8 +42446,8 @@ encoder__eval_expr_get_symbol_64:
 	cqto
 	idivq	%rdi
 	movq	%rax, -48(%rbp)
-	jmp	.L2354
-.L2357:
+	jmp	.L2358
+.L2361:
 	leaq	.LC238(%rip), %rcx
 	movq	%rbx, %rdx
 	movabsq	$-4294967296, %rax
@@ -42455,14 +42468,14 @@ encoder__eval_expr_get_symbol_64:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2354:
+.L2358:
 	movq	-48(%rbp), %rax
 	movq	%rax, -40(%rbp)
-	jmp	.L2351
-.L2352:
+	jmp	.L2355
+.L2356:
 	movl	24(%rbp), %ecx
 	cmpl	$171, %ecx
-	jne	.L2358
+	jne	.L2362
 	movq	16(%rbp), %rax
 	movq	(%rax), %rdx
 	movq	8(%rax), %rax
@@ -42477,11 +42490,11 @@ encoder__eval_expr_get_symbol_64:
 	movq	%rax, %rdi
 	call	array_push
 	movq	$0, -40(%rbp)
-	jmp	.L2351
-.L2358:
+	jmp	.L2355
+.L2362:
 	movl	24(%rbp), %ecx
 	cmpl	$177, %ecx
-	jne	.L2359
+	jne	.L2363
 	movq	16(%rbp), %rcx
 	movq	-168(%rbp), %rdi
 	subq	$8, %rsp
@@ -42497,11 +42510,11 @@ encoder__eval_expr_get_symbol_64:
 	addq	$32, %rsp
 	negq	%rax
 	movq	%rax, -40(%rbp)
-	jmp	.L2351
-.L2359:
+	jmp	.L2355
+.L2363:
 	movl	24(%rbp), %ecx
 	cmpl	$170, %ecx
-	jne	.L2360
+	jne	.L2364
 	movq	16(%rbp), %rcx
 	movq	-168(%rbp), %rdi
 	subq	$8, %rsp
@@ -42516,8 +42529,8 @@ encoder__eval_expr_get_symbol_64:
 	call	encoder__eval_expr_get_symbol_64
 	addq	$32, %rsp
 	movq	%rax, -40(%rbp)
-	jmp	.L2351
-.L2360:
+	jmp	.L2355
+.L2364:
 	leaq	.LC239(%rip), %rax
 	movq	%rdx, %rsi
 	movabsq	$-4294967296, %rcx
@@ -42535,7 +42548,7 @@ encoder__eval_expr_get_symbol_64:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2351:
+.L2355:
 	movq	-40(%rbp), %rax
 	movq	%rax, -56(%rbp)
 	movq	-56(%rbp), %rax
@@ -42611,25 +42624,25 @@ encoder__get_size_by_suffix:
 	movb	%al, -37(%rbp)
 	movl	$0, -36(%rbp)
 	cmpb	$81, -37(%rbp)
-	jne	.L2365
-	movl	$3, -36(%rbp)
-	jmp	.L2366
-.L2365:
-	cmpb	$76, -37(%rbp)
-	jne	.L2367
-	movl	$2, -36(%rbp)
-	jmp	.L2366
-.L2367:
-	cmpb	$87, -37(%rbp)
-	jne	.L2368
-	movl	$1, -36(%rbp)
-	jmp	.L2366
-.L2368:
-	cmpb	$66, -37(%rbp)
 	jne	.L2369
-	movl	$0, -36(%rbp)
-	jmp	.L2366
+	movl	$3, -36(%rbp)
+	jmp	.L2370
 .L2369:
+	cmpb	$76, -37(%rbp)
+	jne	.L2371
+	movl	$2, -36(%rbp)
+	jmp	.L2370
+.L2371:
+	cmpb	$87, -37(%rbp)
+	jne	.L2372
+	movl	$1, -36(%rbp)
+	jmp	.L2370
+.L2372:
+	cmpb	$66, -37(%rbp)
+	jne	.L2373
+	movl	$0, -36(%rbp)
+	jmp	.L2370
+.L2373:
 	leaq	.LC240(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -42649,7 +42662,7 @@ encoder__get_size_by_suffix:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2366:
+.L2370:
 	movl	-36(%rbp), %eax
 	movl	%eax, -44(%rbp)
 	movl	-44(%rbp), %eax
@@ -42673,7 +42686,7 @@ encoder__Register_check_regi_size:
 	movl	%edi, -20(%rbp)
 	movl	32(%rbp), %ecx
 	cmpl	%ecx, -20(%rbp)
-	je	.L2373
+	je	.L2377
 	leaq	.LC241(%rip), %rax
 	movq	%rdx, %rsi
 	movabsq	$-4294967296, %rcx
@@ -42702,7 +42715,7 @@ encoder__Register_check_regi_size:
 	addq	$32, %rsp
 	movl	$0, %edi
 	call	_v_exit
-.L2373:
+.L2377:
 	nop
 	movq	-8(%rbp), %rbx
 	leave
@@ -42749,21 +42762,21 @@ encoder__Encoder_add_prefix:
 	movq	48(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$7, %al
-	jbe	.L2377
+	jbe	.L2381
 	movb	$1, -2(%rbp)
-.L2377:
+.L2381:
 	movq	96(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$7, %al
-	jbe	.L2378
+	jbe	.L2382
 	movb	$1, -3(%rbp)
-.L2378:
+.L2382:
 	movq	144(%rbp), %rax
 	movzbl	(%rax), %eax
 	cmpb	$7, %al
-	jbe	.L2379
+	jbe	.L2383
 	movb	$1, -4(%rbp)
-.L2379:
+.L2383:
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	160(%rbp), %rax
@@ -42778,7 +42791,7 @@ encoder__Encoder_add_prefix:
 	call	Array_encoder__DataSize_contains
 	addq	$32, %rsp
 	testb	%al, %al
-	je	.L2380
+	je	.L2384
 	movl	$102, %eax
 	movb	%al, -5(%rbp)
 	movq	-24(%rbp), %rax
@@ -42788,7 +42801,7 @@ encoder__Encoder_add_prefix:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2380:
+.L2384:
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	160(%rbp), %rax
@@ -42803,7 +42816,7 @@ encoder__Encoder_add_prefix:
 	call	Array_encoder__DataSize_contains
 	addq	$32, %rsp
 	testb	%al, %al
-	je	.L2381
+	je	.L2385
 	movb	$-13, -6(%rbp)
 	movq	-24(%rbp), %rax
 	movq	120(%rax), %rax
@@ -42812,7 +42825,7 @@ encoder__Encoder_add_prefix:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2381:
+.L2385:
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	160(%rbp), %rax
@@ -42827,7 +42840,7 @@ encoder__Encoder_add_prefix:
 	call	Array_encoder__DataSize_contains
 	addq	$32, %rsp
 	testb	%al, %al
-	je	.L2382
+	je	.L2386
 	movb	$-14, -7(%rbp)
 	movq	-24(%rbp), %rax
 	movq	120(%rax), %rax
@@ -42836,7 +42849,7 @@ encoder__Encoder_add_prefix:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2382:
+.L2386:
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	160(%rbp), %rax
@@ -42851,26 +42864,26 @@ encoder__Encoder_add_prefix:
 	call	Array_encoder__DataSize_contains
 	addq	$32, %rsp
 	testb	%al, %al
-	je	.L2383
+	je	.L2387
 	movb	$1, -1(%rbp)
-.L2383:
+.L2387:
 	cmpb	$0, -1(%rbp)
-	jne	.L2384
+	jne	.L2388
 	cmpb	$0, -2(%rbp)
-	jne	.L2384
+	jne	.L2388
 	cmpb	$0, -4(%rbp)
-	jne	.L2384
+	jne	.L2388
 	cmpb	$0, -3(%rbp)
-	jne	.L2384
+	jne	.L2388
 	movq	56(%rbp), %rax
 	movzbl	(%rax), %eax
 	testb	%al, %al
-	jne	.L2384
+	jne	.L2388
 	movq	152(%rbp), %rax
 	movzbl	(%rax), %eax
 	testb	%al, %al
-	je	.L2386
-.L2384:
+	je	.L2390
+.L2388:
 	movzbl	-4(%rbp), %ecx
 	movzbl	-3(%rbp), %edx
 	movzbl	-2(%rbp), %esi
@@ -42885,7 +42898,7 @@ encoder__Encoder_add_prefix:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2386:
+.L2390:
 	nop
 	leave
 	ret
@@ -42896,14 +42909,14 @@ encoder__is_in_i8_range:
 	movq	%rsp, %rbp
 	movl	%edi, -20(%rbp)
 	cmpl	$-128, -20(%rbp)
-	jl	.L2388
+	jl	.L2392
 	cmpl	$127, -20(%rbp)
-	jg	.L2388
+	jg	.L2392
 	movl	$1, %eax
-	jmp	.L2389
-.L2388:
+	jmp	.L2393
+.L2392:
 	movl	$0, %eax
-.L2389:
+.L2393:
 	movb	%al, -1(%rbp)
 	movzbl	-1(%rbp), %eax
 	popq	%rbp
@@ -43385,7 +43398,7 @@ encoder__Encoder_encode_instr:
 	movq	-3608(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$4, %eax
-	jne	.L2396
+	jne	.L2400
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -43467,7 +43480,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rdi
 	call	map_exists
 	testb	%al, %al
-	je	.L2397
+	je	.L2401
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -3600(%rbp)
 	movaps	%xmm0, -3584(%rbp)
@@ -43508,7 +43521,7 @@ encoder__Encoder_encode_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2397:
+.L2401:
 	movq	$0, -2776(%rbp)
 	movq	-2736(%rbp), %rax
 	movq	-2728(%rbp), %rdx
@@ -43531,8 +43544,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2396:
+	jmp	.L2399
+.L2400:
 	leaq	.LC242(%rip), %rax
 	movq	%rax, -3632(%rbp)
 	movq	-3624(%rbp), %rdx
@@ -43553,12 +43566,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2399
+	je	.L2403
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_section
-	jmp	.L2395
-.L2399:
+	jmp	.L2399
+.L2403:
 	leaq	.LC243(%rip), %rax
 	movq	%rax, -3648(%rbp)
 	movq	-3640(%rbp), %rdx
@@ -43579,7 +43592,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2401
+	je	.L2405
 	leaq	.LC234(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -43629,8 +43642,8 @@ encoder__Encoder_encode_instr:
 	movq	%r9, %rdx
 	call	encoder__Encoder_add_section
 	addq	$32, %rsp
-	jmp	.L2395
-.L2401:
+	jmp	.L2399
+.L2405:
 	leaq	.LC244(%rip), %rax
 	movq	%rax, -3664(%rbp)
 	movq	-3656(%rbp), %rdx
@@ -43651,7 +43664,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2403
+	je	.L2407
 	leaq	.LC245(%rip), %rax
 	movq	%rax, -3696(%rbp)
 	movq	-3688(%rbp), %rdx
@@ -43703,8 +43716,8 @@ encoder__Encoder_encode_instr:
 	movq	%r9, %rdx
 	call	encoder__Encoder_add_section
 	addq	$32, %rsp
-	jmp	.L2395
-.L2403:
+	jmp	.L2399
+.L2407:
 	leaq	.LC246(%rip), %rax
 	movq	%rax, -3712(%rbp)
 	movq	-3704(%rbp), %rdx
@@ -43725,7 +43738,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2405
+	je	.L2409
 	leaq	.LC245(%rip), %rax
 	movq	%rax, -3744(%rbp)
 	movq	-3736(%rbp), %rdx
@@ -43777,8 +43790,8 @@ encoder__Encoder_encode_instr:
 	movq	%r9, %rdx
 	call	encoder__Encoder_add_section
 	addq	$32, %rsp
-	jmp	.L2395
-.L2405:
+	jmp	.L2399
+.L2409:
 	leaq	.LC247(%rip), %rax
 	movq	%rax, -3760(%rbp)
 	movq	-3752(%rbp), %rdx
@@ -43799,7 +43812,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2407
+	jne	.L2411
 	leaq	.LC248(%rip), %rax
 	movq	%rax, -3776(%rbp)
 	movq	-3768(%rbp), %rdx
@@ -43820,8 +43833,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2408
-.L2407:
+	je	.L2412
+.L2411:
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -43868,8 +43881,8 @@ encoder__Encoder_encode_instr:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
-	jmp	.L2395
-.L2408:
+	jmp	.L2399
+.L2412:
 	leaq	.LC249(%rip), %rax
 	movq	%rax, -3792(%rbp)
 	movq	-3784(%rbp), %rdx
@@ -43890,7 +43903,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2410
+	je	.L2414
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -43937,8 +43950,8 @@ encoder__Encoder_encode_instr:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
-	jmp	.L2395
-.L2410:
+	jmp	.L2399
+.L2414:
 	leaq	.LC250(%rip), %rax
 	movq	%rax, -3808(%rbp)
 	movq	-3800(%rbp), %rdx
@@ -43959,7 +43972,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2412
+	je	.L2416
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -44006,8 +44019,8 @@ encoder__Encoder_encode_instr:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
-	jmp	.L2395
-.L2412:
+	jmp	.L2399
+.L2416:
 	leaq	.LC251(%rip), %rax
 	movq	%rax, -3824(%rbp)
 	movq	-3816(%rbp), %rdx
@@ -44028,7 +44041,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2414
+	je	.L2418
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -44075,8 +44088,8 @@ encoder__Encoder_encode_instr:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
-	jmp	.L2395
-.L2414:
+	jmp	.L2399
+.L2418:
 	leaq	.LC252(%rip), %rax
 	movq	%rax, -3840(%rbp)
 	movq	-3832(%rbp), %rdx
@@ -44097,7 +44110,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2416
+	je	.L2420
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -44144,8 +44157,8 @@ encoder__Encoder_encode_instr:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_next
-	jmp	.L2395
-.L2416:
+	jmp	.L2399
+.L2420:
 	leaq	.LC253(%rip), %rax
 	movq	%rax, -3856(%rbp)
 	movq	-3848(%rbp), %rdx
@@ -44166,12 +44179,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2418
+	je	.L2422
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_string
-	jmp	.L2395
-.L2418:
+	jmp	.L2399
+.L2422:
 	leaq	.LC254(%rip), %rax
 	movq	%rax, -3872(%rbp)
 	movq	-3864(%rbp), %rdx
@@ -44192,12 +44205,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2420
+	je	.L2424
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_byte
-	jmp	.L2395
-.L2420:
+	jmp	.L2399
+.L2424:
 	leaq	.LC255(%rip), %rax
 	movq	%rax, -3888(%rbp)
 	movq	-3880(%rbp), %rdx
@@ -44218,12 +44231,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2422
+	je	.L2426
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_word
-	jmp	.L2395
-.L2422:
+	jmp	.L2399
+.L2426:
 	leaq	.LC256(%rip), %rax
 	movq	%rax, -3904(%rbp)
 	movq	-3896(%rbp), %rdx
@@ -44244,12 +44257,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2424
+	je	.L2428
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_long
-	jmp	.L2395
-.L2424:
+	jmp	.L2399
+.L2428:
 	leaq	.LC257(%rip), %rax
 	movq	%rax, -3920(%rbp)
 	movq	-3912(%rbp), %rdx
@@ -44270,12 +44283,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2426
+	je	.L2430
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_quad
-	jmp	.L2395
-.L2426:
+	jmp	.L2399
+.L2430:
 	leaq	.LC258(%rip), %rax
 	movq	%rax, -3936(%rbp)
 	movq	-3928(%rbp), %rdx
@@ -44296,12 +44309,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2428
+	je	.L2432
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_zero
-	jmp	.L2395
-.L2428:
+	jmp	.L2399
+.L2432:
 	leaq	.LC259(%rip), %rax
 	movq	%rax, -3952(%rbp)
 	movq	-3944(%rbp), %rdx
@@ -44322,7 +44335,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2430
+	jne	.L2434
 	leaq	.LC260(%rip), %rax
 	movq	%rax, -3968(%rbp)
 	movq	-3960(%rbp), %rdx
@@ -44343,13 +44356,13 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2431
-.L2430:
+	je	.L2435
+.L2434:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_pop
-	jmp	.L2395
-.L2431:
+	jmp	.L2399
+.L2435:
 	leaq	.LC261(%rip), %rax
 	movq	%rax, -3984(%rbp)
 	movq	-3976(%rbp), %rdx
@@ -44370,7 +44383,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2433
+	jne	.L2437
 	leaq	.LC262(%rip), %rax
 	movq	%rax, -4000(%rbp)
 	movq	-3992(%rbp), %rdx
@@ -44391,13 +44404,13 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2434
-.L2433:
+	je	.L2438
+.L2437:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_push
-	jmp	.L2395
-.L2434:
+	jmp	.L2399
+.L2438:
 	leaq	.LC263(%rip), %rax
 	movq	%rax, -4016(%rbp)
 	movq	-4008(%rbp), %rdx
@@ -44418,7 +44431,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2436
+	jne	.L2440
 	leaq	.LC264(%rip), %rax
 	movq	%rax, -4032(%rbp)
 	movq	-4024(%rbp), %rdx
@@ -44439,13 +44452,13 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2437
-.L2436:
+	je	.L2441
+.L2440:
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_call
-	jmp	.L2395
-.L2437:
+	jmp	.L2399
+.L2441:
 	leaq	.LC265(%rip), %rax
 	movq	%rax, -4048(%rbp)
 	movq	-4040(%rbp), %rdx
@@ -44466,7 +44479,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2439
+	jne	.L2443
 	leaq	.LC266(%rip), %rax
 	movq	%rax, -4064(%rbp)
 	movq	-4056(%rbp), %rdx
@@ -44487,7 +44500,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2439
+	jne	.L2443
 	leaq	.LC267(%rip), %rax
 	movq	%rax, -4080(%rbp)
 	movq	-4072(%rbp), %rdx
@@ -44508,16 +44521,16 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2440
-.L2439:
+	je	.L2444
+.L2443:
 	movq	-2752(%rbp), %rcx
 	movq	-2744(%rbp), %rdx
 	movq	-3608(%rbp), %rax
 	movq	%rcx, %rsi
 	movq	%rax, %rdi
 	call	encoder__Encoder_lea
-	jmp	.L2395
-.L2440:
+	jmp	.L2399
+.L2444:
 	leaq	.LC268(%rip), %rax
 	movq	%rax, -4096(%rbp)
 	movq	-4088(%rbp), %rdx
@@ -44538,7 +44551,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2442
+	jne	.L2446
 	leaq	.LC269(%rip), %rax
 	movq	%rax, -4112(%rbp)
 	movq	-4104(%rbp), %rdx
@@ -44559,7 +44572,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2442
+	jne	.L2446
 	leaq	.LC270(%rip), %rax
 	movq	%rax, -4128(%rbp)
 	movq	-4120(%rbp), %rdx
@@ -44580,7 +44593,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2442
+	jne	.L2446
 	leaq	.LC271(%rip), %rax
 	movq	%rax, -4144(%rbp)
 	movq	-4136(%rbp), %rdx
@@ -44601,8 +44614,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2443
-.L2442:
+	je	.L2447
+.L2446:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -44615,8 +44628,8 @@ encoder__Encoder_encode_instr:
 	movl	$32, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_one_operand_arith
-	jmp	.L2395
-.L2443:
+	jmp	.L2399
+.L2447:
 	leaq	.LC272(%rip), %rax
 	movq	%rax, -4160(%rbp)
 	movq	-4152(%rbp), %rdx
@@ -44637,7 +44650,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2445
+	jne	.L2449
 	leaq	.LC273(%rip), %rax
 	movq	%rax, -4176(%rbp)
 	movq	-4168(%rbp), %rdx
@@ -44658,7 +44671,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2445
+	jne	.L2449
 	leaq	.LC274(%rip), %rax
 	movq	%rax, -4192(%rbp)
 	movq	-4184(%rbp), %rdx
@@ -44679,7 +44692,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2445
+	jne	.L2449
 	leaq	.LC275(%rip), %rax
 	movq	%rax, -4208(%rbp)
 	movq	-4200(%rbp), %rdx
@@ -44700,8 +44713,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2446
-.L2445:
+	je	.L2450
+.L2449:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -44714,8 +44727,8 @@ encoder__Encoder_encode_instr:
 	movl	$23, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_one_operand_arith
-	jmp	.L2395
-.L2446:
+	jmp	.L2399
+.L2450:
 	leaq	.LC276(%rip), %rax
 	movq	%rax, -4224(%rbp)
 	movq	-4216(%rbp), %rdx
@@ -44736,7 +44749,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2448
+	jne	.L2452
 	leaq	.LC277(%rip), %rax
 	movq	%rax, -4240(%rbp)
 	movq	-4232(%rbp), %rdx
@@ -44757,7 +44770,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2448
+	jne	.L2452
 	leaq	.LC278(%rip), %rax
 	movq	%rax, -4256(%rbp)
 	movq	-4248(%rbp), %rdx
@@ -44778,7 +44791,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2448
+	jne	.L2452
 	leaq	.LC279(%rip), %rax
 	movq	%rax, -4272(%rbp)
 	movq	-4264(%rbp), %rdx
@@ -44799,8 +44812,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2449
-.L2448:
+	je	.L2453
+.L2452:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -44813,8 +44826,8 @@ encoder__Encoder_encode_instr:
 	movl	$22, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_one_operand_arith
-	jmp	.L2395
-.L2449:
+	jmp	.L2399
+.L2453:
 	leaq	.LC280(%rip), %rax
 	movq	%rax, -4288(%rbp)
 	movq	-4280(%rbp), %rdx
@@ -44835,7 +44848,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2451
+	jne	.L2455
 	leaq	.LC281(%rip), %rax
 	movq	%rax, -4304(%rbp)
 	movq	-4296(%rbp), %rdx
@@ -44856,7 +44869,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2451
+	jne	.L2455
 	leaq	.LC282(%rip), %rax
 	movq	%rax, -4320(%rbp)
 	movq	-4312(%rbp), %rdx
@@ -44877,7 +44890,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2451
+	jne	.L2455
 	leaq	.LC283(%rip), %rax
 	movq	%rax, -4336(%rbp)
 	movq	-4328(%rbp), %rdx
@@ -44898,8 +44911,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2452
-.L2451:
+	je	.L2456
+.L2455:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -44912,8 +44925,8 @@ encoder__Encoder_encode_instr:
 	movl	$21, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_one_operand_arith
-	jmp	.L2395
-.L2452:
+	jmp	.L2399
+.L2456:
 	leaq	.LC284(%rip), %rax
 	movq	%rax, -4352(%rbp)
 	movq	-4344(%rbp), %rdx
@@ -44934,7 +44947,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2454
+	jne	.L2458
 	leaq	.LC285(%rip), %rax
 	movq	%rax, -4368(%rbp)
 	movq	-4360(%rbp), %rdx
@@ -44955,7 +44968,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2454
+	jne	.L2458
 	leaq	.LC286(%rip), %rax
 	movq	%rax, -4384(%rbp)
 	movq	-4376(%rbp), %rdx
@@ -44976,8 +44989,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2455
-.L2454:
+	je	.L2459
+.L2458:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -44988,8 +45001,8 @@ encoder__Encoder_encode_instr:
 	movl	%edx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_imul
-	jmp	.L2395
-.L2455:
+	jmp	.L2399
+.L2459:
 	leaq	.LC287(%rip), %rax
 	movq	%rax, -4400(%rbp)
 	movq	-4392(%rbp), %rdx
@@ -45010,7 +45023,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2457
+	jne	.L2461
 	leaq	.LC288(%rip), %rax
 	movq	%rax, -4416(%rbp)
 	movq	-4408(%rbp), %rdx
@@ -45031,7 +45044,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2457
+	jne	.L2461
 	leaq	.LC289(%rip), %rax
 	movq	%rax, -4432(%rbp)
 	movq	-4424(%rbp), %rdx
@@ -45052,7 +45065,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2457
+	jne	.L2461
 	leaq	.LC290(%rip), %rax
 	movq	%rax, -4448(%rbp)
 	movq	-4440(%rbp), %rdx
@@ -45073,8 +45086,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2458
-.L2457:
+	je	.L2462
+.L2461:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -45085,8 +45098,8 @@ encoder__Encoder_encode_instr:
 	movl	%edx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_mul
-	jmp	.L2395
-.L2458:
+	jmp	.L2399
+.L2462:
 	leaq	.LC291(%rip), %rax
 	movq	%rax, -4464(%rbp)
 	movq	-4456(%rbp), %rdx
@@ -45107,7 +45120,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2460
+	jne	.L2464
 	leaq	.LC292(%rip), %rax
 	movq	%rax, -4480(%rbp)
 	movq	-4472(%rbp), %rdx
@@ -45128,7 +45141,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2460
+	jne	.L2464
 	leaq	.LC293(%rip), %rax
 	movq	%rax, -4496(%rbp)
 	movq	-4488(%rbp), %rdx
@@ -45149,7 +45162,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2460
+	jne	.L2464
 	leaq	.LC294(%rip), %rax
 	movq	%rax, -4512(%rbp)
 	movq	-4504(%rbp), %rdx
@@ -45170,8 +45183,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2461
-.L2460:
+	je	.L2465
+.L2464:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -45182,8 +45195,8 @@ encoder__Encoder_encode_instr:
 	movl	%edx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_mov
-	jmp	.L2395
-.L2461:
+	jmp	.L2399
+.L2465:
 	leaq	.LC295(%rip), %rax
 	movq	%rax, -4528(%rbp)
 	movq	-4520(%rbp), %rdx
@@ -45204,7 +45217,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2463
+	je	.L2467
 	movb	$15, -2842(%rbp)
 	movb	$-74, -2841(%rbp)
 	leaq	-2688(%rbp), %rax
@@ -45230,8 +45243,8 @@ encoder__Encoder_encode_instr:
 	movl	$0, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2463:
+	jmp	.L2399
+.L2467:
 	leaq	.LC296(%rip), %rax
 	movq	%rax, -4544(%rbp)
 	movq	-4536(%rbp), %rdx
@@ -45252,7 +45265,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2465
+	je	.L2469
 	movb	$15, -2844(%rbp)
 	movb	$-74, -2843(%rbp)
 	leaq	-2656(%rbp), %rax
@@ -45278,8 +45291,8 @@ encoder__Encoder_encode_instr:
 	movl	$0, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2465:
+	jmp	.L2399
+.L2469:
 	leaq	.LC297(%rip), %rax
 	movq	%rax, -4560(%rbp)
 	movq	-4552(%rbp), %rdx
@@ -45300,7 +45313,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2467
+	je	.L2471
 	movb	$15, -2846(%rbp)
 	movb	$-74, -2845(%rbp)
 	leaq	-2624(%rbp), %rax
@@ -45326,8 +45339,8 @@ encoder__Encoder_encode_instr:
 	movl	$0, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2467:
+	jmp	.L2399
+.L2471:
 	leaq	.LC298(%rip), %rax
 	movq	%rax, -4576(%rbp)
 	movq	-4568(%rbp), %rdx
@@ -45348,7 +45361,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2469
+	je	.L2473
 	movb	$15, -2848(%rbp)
 	movb	$-73, -2847(%rbp)
 	leaq	-2592(%rbp), %rax
@@ -45374,8 +45387,8 @@ encoder__Encoder_encode_instr:
 	movl	$1, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2469:
+	jmp	.L2399
+.L2473:
 	leaq	.LC299(%rip), %rax
 	movq	%rax, -4592(%rbp)
 	movq	-4584(%rbp), %rdx
@@ -45396,7 +45409,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2471
+	je	.L2475
 	movb	$15, -2850(%rbp)
 	movb	$-73, -2849(%rbp)
 	leaq	-2560(%rbp), %rax
@@ -45422,8 +45435,8 @@ encoder__Encoder_encode_instr:
 	movl	$1, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2471:
+	jmp	.L2399
+.L2475:
 	leaq	.LC300(%rip), %rax
 	movq	%rax, -4608(%rbp)
 	movq	-4600(%rbp), %rdx
@@ -45444,7 +45457,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2473
+	je	.L2477
 	movb	$15, -2852(%rbp)
 	movb	$-66, -2851(%rbp)
 	leaq	-2528(%rbp), %rax
@@ -45470,8 +45483,8 @@ encoder__Encoder_encode_instr:
 	movl	$0, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2473:
+	jmp	.L2399
+.L2477:
 	leaq	.LC301(%rip), %rax
 	movq	%rax, -4624(%rbp)
 	movq	-4616(%rbp), %rdx
@@ -45492,7 +45505,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2475
+	je	.L2479
 	movb	$15, -2854(%rbp)
 	movb	$-66, -2853(%rbp)
 	leaq	-2496(%rbp), %rax
@@ -45518,8 +45531,8 @@ encoder__Encoder_encode_instr:
 	movl	$0, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2475:
+	jmp	.L2399
+.L2479:
 	leaq	.LC302(%rip), %rax
 	movq	%rax, -4640(%rbp)
 	movq	-4632(%rbp), %rdx
@@ -45540,7 +45553,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2477
+	je	.L2481
 	movb	$15, -2856(%rbp)
 	movb	$-66, -2855(%rbp)
 	leaq	-2464(%rbp), %rax
@@ -45566,8 +45579,8 @@ encoder__Encoder_encode_instr:
 	movl	$0, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2477:
+	jmp	.L2399
+.L2481:
 	leaq	.LC303(%rip), %rax
 	movq	%rax, -4656(%rbp)
 	movq	-4648(%rbp), %rdx
@@ -45588,7 +45601,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2479
+	je	.L2483
 	movb	$15, -2858(%rbp)
 	movb	$-65, -2857(%rbp)
 	leaq	-2432(%rbp), %rax
@@ -45614,8 +45627,8 @@ encoder__Encoder_encode_instr:
 	movl	$1, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2479:
+	jmp	.L2399
+.L2483:
 	leaq	.LC304(%rip), %rax
 	movq	%rax, -4672(%rbp)
 	movq	-4664(%rbp), %rdx
@@ -45636,7 +45649,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2481
+	je	.L2485
 	movb	$15, -2860(%rbp)
 	movb	$-65, -2859(%rbp)
 	leaq	-2400(%rbp), %rax
@@ -45662,8 +45675,8 @@ encoder__Encoder_encode_instr:
 	movl	$1, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2481:
+	jmp	.L2399
+.L2485:
 	leaq	.LC305(%rip), %rax
 	movq	%rax, -4688(%rbp)
 	movq	-4680(%rbp), %rdx
@@ -45684,7 +45697,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2483
+	je	.L2487
 	movb	$99, -2861(%rbp)
 	leaq	-2368(%rbp), %rax
 	leaq	-2861(%rbp), %rdx
@@ -45709,8 +45722,8 @@ encoder__Encoder_encode_instr:
 	movl	$2, %esi
 	call	encoder__Encoder_mov_zero_or_sign_extend
 	addq	$32, %rsp
-	jmp	.L2395
-.L2483:
+	jmp	.L2399
+.L2487:
 	leaq	.LC306(%rip), %rax
 	movq	%rax, -4704(%rbp)
 	movq	-4696(%rbp), %rdx
@@ -45731,12 +45744,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2485
+	je	.L2489
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_movabsq
-	jmp	.L2395
-.L2485:
+	jmp	.L2399
+.L2489:
 	leaq	.LC307(%rip), %rax
 	movq	%rax, -4720(%rbp)
 	movq	-4712(%rbp), %rdx
@@ -45757,7 +45770,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2487
+	jne	.L2491
 	leaq	.LC308(%rip), %rax
 	movq	%rax, -4736(%rbp)
 	movq	-4728(%rbp), %rdx
@@ -45778,7 +45791,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2487
+	jne	.L2491
 	leaq	.LC309(%rip), %rax
 	movq	%rax, -4752(%rbp)
 	movq	-4744(%rbp), %rdx
@@ -45799,7 +45812,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2487
+	jne	.L2491
 	leaq	.LC310(%rip), %rax
 	movq	%rax, -4768(%rbp)
 	movq	-4760(%rbp), %rdx
@@ -45820,8 +45833,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2488
-.L2487:
+	je	.L2492
+.L2491:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -45832,8 +45845,8 @@ encoder__Encoder_encode_instr:
 	movl	%edx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_test
-	jmp	.L2395
-.L2488:
+	jmp	.L2399
+.L2492:
 	leaq	.LC311(%rip), %rax
 	movq	%rax, -4784(%rbp)
 	movq	-4776(%rbp), %rdx
@@ -45854,7 +45867,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2490
+	jne	.L2494
 	leaq	.LC312(%rip), %rax
 	movq	%rax, -4800(%rbp)
 	movq	-4792(%rbp), %rdx
@@ -45875,7 +45888,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2490
+	jne	.L2494
 	leaq	.LC313(%rip), %rax
 	movq	%rax, -4816(%rbp)
 	movq	-4808(%rbp), %rdx
@@ -45896,7 +45909,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2490
+	jne	.L2494
 	leaq	.LC314(%rip), %rax
 	movq	%rax, -4832(%rbp)
 	movq	-4824(%rbp), %rdx
@@ -45917,8 +45930,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2491
-.L2490:
+	je	.L2495
+.L2494:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -45932,8 +45945,8 @@ encoder__Encoder_encode_instr:
 	movl	$13, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2491:
+	jmp	.L2399
+.L2495:
 	leaq	.LC315(%rip), %rax
 	movq	%rax, -4848(%rbp)
 	movq	-4840(%rbp), %rdx
@@ -45954,7 +45967,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2493
+	jne	.L2497
 	leaq	.LC316(%rip), %rax
 	movq	%rax, -4864(%rbp)
 	movq	-4856(%rbp), %rdx
@@ -45975,7 +45988,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2493
+	jne	.L2497
 	leaq	.LC317(%rip), %rax
 	movq	%rax, -4880(%rbp)
 	movq	-4872(%rbp), %rdx
@@ -45996,7 +46009,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2493
+	jne	.L2497
 	leaq	.LC318(%rip), %rax
 	movq	%rax, -4896(%rbp)
 	movq	-4888(%rbp), %rdx
@@ -46017,8 +46030,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2494
-.L2493:
+	je	.L2498
+.L2497:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46032,8 +46045,8 @@ encoder__Encoder_encode_instr:
 	movl	$15, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2494:
+	jmp	.L2399
+.L2498:
 	leaq	.LC319(%rip), %rax
 	movq	%rax, -4912(%rbp)
 	movq	-4904(%rbp), %rdx
@@ -46054,7 +46067,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2496
+	jne	.L2500
 	leaq	.LC320(%rip), %rax
 	movq	%rax, -4928(%rbp)
 	movq	-4920(%rbp), %rdx
@@ -46075,7 +46088,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2496
+	jne	.L2500
 	leaq	.LC321(%rip), %rax
 	movq	%rax, -4944(%rbp)
 	movq	-4936(%rbp), %rdx
@@ -46096,7 +46109,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2496
+	jne	.L2500
 	leaq	.LC322(%rip), %rax
 	movq	%rax, -4960(%rbp)
 	movq	-4952(%rbp), %rdx
@@ -46117,8 +46130,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2497
-.L2496:
+	je	.L2501
+.L2500:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46132,8 +46145,8 @@ encoder__Encoder_encode_instr:
 	movl	$16, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2497:
+	jmp	.L2399
+.L2501:
 	leaq	.LC323(%rip), %rax
 	movq	%rax, -4976(%rbp)
 	movq	-4968(%rbp), %rdx
@@ -46154,7 +46167,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2499
+	jne	.L2503
 	leaq	.LC324(%rip), %rax
 	movq	%rax, -4992(%rbp)
 	movq	-4984(%rbp), %rdx
@@ -46175,7 +46188,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2499
+	jne	.L2503
 	leaq	.LC325(%rip), %rax
 	movq	%rax, -5008(%rbp)
 	movq	-5000(%rbp), %rdx
@@ -46196,7 +46209,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2499
+	jne	.L2503
 	leaq	.LC326(%rip), %rax
 	movq	%rax, -5024(%rbp)
 	movq	-5016(%rbp), %rdx
@@ -46217,8 +46230,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2500
-.L2499:
+	je	.L2504
+.L2503:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46232,8 +46245,8 @@ encoder__Encoder_encode_instr:
 	movl	$17, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2500:
+	jmp	.L2399
+.L2504:
 	leaq	.LC327(%rip), %rax
 	movq	%rax, -5040(%rbp)
 	movq	-5032(%rbp), %rdx
@@ -46254,7 +46267,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2502
+	jne	.L2506
 	leaq	.LC328(%rip), %rax
 	movq	%rax, -5056(%rbp)
 	movq	-5048(%rbp), %rdx
@@ -46275,7 +46288,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2502
+	jne	.L2506
 	leaq	.LC329(%rip), %rax
 	movq	%rax, -5072(%rbp)
 	movq	-5064(%rbp), %rdx
@@ -46296,7 +46309,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2502
+	jne	.L2506
 	leaq	.LC330(%rip), %rax
 	movq	%rax, -5088(%rbp)
 	movq	-5080(%rbp), %rdx
@@ -46317,8 +46330,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2503
-.L2502:
+	je	.L2507
+.L2506:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46332,8 +46345,8 @@ encoder__Encoder_encode_instr:
 	movl	$19, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2503:
+	jmp	.L2399
+.L2507:
 	leaq	.LC331(%rip), %rax
 	movq	%rax, -5104(%rbp)
 	movq	-5096(%rbp), %rdx
@@ -46354,7 +46367,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2505
+	jne	.L2509
 	leaq	.LC332(%rip), %rax
 	movq	%rax, -5120(%rbp)
 	movq	-5112(%rbp), %rdx
@@ -46375,7 +46388,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2505
+	jne	.L2509
 	leaq	.LC333(%rip), %rax
 	movq	%rax, -5136(%rbp)
 	movq	-5128(%rbp), %rdx
@@ -46396,7 +46409,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2505
+	jne	.L2509
 	leaq	.LC334(%rip), %rax
 	movq	%rax, -5152(%rbp)
 	movq	-5144(%rbp), %rdx
@@ -46417,8 +46430,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2506
-.L2505:
+	je	.L2510
+.L2509:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46432,8 +46445,8 @@ encoder__Encoder_encode_instr:
 	movl	$14, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2506:
+	jmp	.L2399
+.L2510:
 	leaq	.LC335(%rip), %rax
 	movq	%rax, -5168(%rbp)
 	movq	-5160(%rbp), %rdx
@@ -46454,7 +46467,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2508
+	jne	.L2512
 	leaq	.LC336(%rip), %rax
 	movq	%rax, -5184(%rbp)
 	movq	-5176(%rbp), %rdx
@@ -46475,7 +46488,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2508
+	jne	.L2512
 	leaq	.LC337(%rip), %rax
 	movq	%rax, -5200(%rbp)
 	movq	-5192(%rbp), %rdx
@@ -46496,7 +46509,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2508
+	jne	.L2512
 	leaq	.LC338(%rip), %rax
 	movq	%rax, -5216(%rbp)
 	movq	-5208(%rbp), %rdx
@@ -46517,8 +46530,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2509
-.L2508:
+	je	.L2513
+.L2512:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46532,8 +46545,8 @@ encoder__Encoder_encode_instr:
 	movl	$18, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2509:
+	jmp	.L2399
+.L2513:
 	leaq	.LC339(%rip), %rax
 	movq	%rax, -5232(%rbp)
 	movq	-5224(%rbp), %rdx
@@ -46554,7 +46567,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2511
+	jne	.L2515
 	leaq	.LC340(%rip), %rax
 	movq	%rax, -5248(%rbp)
 	movq	-5240(%rbp), %rdx
@@ -46575,7 +46588,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2511
+	jne	.L2515
 	leaq	.LC341(%rip), %rax
 	movq	%rax, -5264(%rbp)
 	movq	-5256(%rbp), %rdx
@@ -46596,7 +46609,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2511
+	jne	.L2515
 	leaq	.LC342(%rip), %rax
 	movq	%rax, -5280(%rbp)
 	movq	-5272(%rbp), %rdx
@@ -46617,8 +46630,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2512
-.L2511:
+	je	.L2516
+.L2515:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46632,8 +46645,8 @@ encoder__Encoder_encode_instr:
 	movl	$37, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_arith_instr
-	jmp	.L2395
-.L2512:
+	jmp	.L2399
+.L2516:
 	leaq	.LC343(%rip), %rax
 	movq	%rax, -5296(%rbp)
 	movq	-5288(%rbp), %rdx
@@ -46654,7 +46667,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2514
+	jne	.L2518
 	leaq	.LC344(%rip), %rax
 	movq	%rax, -5312(%rbp)
 	movq	-5304(%rbp), %rdx
@@ -46675,7 +46688,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2514
+	jne	.L2518
 	leaq	.LC345(%rip), %rax
 	movq	%rax, -5328(%rbp)
 	movq	-5320(%rbp), %rdx
@@ -46696,7 +46709,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2514
+	jne	.L2518
 	leaq	.LC346(%rip), %rax
 	movq	%rax, -5344(%rbp)
 	movq	-5336(%rbp), %rdx
@@ -46717,8 +46730,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2515
-.L2514:
+	je	.L2519
+.L2518:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46731,8 +46744,8 @@ encoder__Encoder_encode_instr:
 	movl	$38, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_shift
-	jmp	.L2395
-.L2515:
+	jmp	.L2399
+.L2519:
 	leaq	.LC347(%rip), %rax
 	movq	%rax, -5360(%rbp)
 	movq	-5352(%rbp), %rdx
@@ -46753,7 +46766,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2517
+	jne	.L2521
 	leaq	.LC348(%rip), %rax
 	movq	%rax, -5376(%rbp)
 	movq	-5368(%rbp), %rdx
@@ -46774,7 +46787,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2517
+	jne	.L2521
 	leaq	.LC349(%rip), %rax
 	movq	%rax, -5392(%rbp)
 	movq	-5384(%rbp), %rdx
@@ -46795,7 +46808,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2517
+	jne	.L2521
 	leaq	.LC350(%rip), %rax
 	movq	%rax, -5408(%rbp)
 	movq	-5400(%rbp), %rdx
@@ -46816,8 +46829,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2518
-.L2517:
+	je	.L2522
+.L2521:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46830,8 +46843,8 @@ encoder__Encoder_encode_instr:
 	movl	$39, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_shift
-	jmp	.L2395
-.L2518:
+	jmp	.L2399
+.L2522:
 	leaq	.LC351(%rip), %rax
 	movq	%rax, -5424(%rbp)
 	movq	-5416(%rbp), %rdx
@@ -46852,7 +46865,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2520
+	jne	.L2524
 	leaq	.LC352(%rip), %rax
 	movq	%rax, -5440(%rbp)
 	movq	-5432(%rbp), %rdx
@@ -46873,7 +46886,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2520
+	jne	.L2524
 	leaq	.LC353(%rip), %rax
 	movq	%rax, -5456(%rbp)
 	movq	-5448(%rbp), %rdx
@@ -46894,7 +46907,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2520
+	jne	.L2524
 	leaq	.LC354(%rip), %rax
 	movq	%rax, -5472(%rbp)
 	movq	-5464(%rbp), %rdx
@@ -46915,8 +46928,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2521
-.L2520:
+	je	.L2525
+.L2524:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -46929,8 +46942,8 @@ encoder__Encoder_encode_instr:
 	movl	$40, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_shift
-	jmp	.L2395
-.L2521:
+	jmp	.L2399
+.L2525:
 	leaq	.LC355(%rip), %rax
 	movq	%rax, -5488(%rbp)
 	movq	-5480(%rbp), %rdx
@@ -46951,7 +46964,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2523
+	jne	.L2527
 	leaq	.LC356(%rip), %rax
 	movq	%rax, -5504(%rbp)
 	movq	-5496(%rbp), %rdx
@@ -46972,7 +46985,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2523
+	jne	.L2527
 	leaq	.LC357(%rip), %rax
 	movq	%rax, -5520(%rbp)
 	movq	-5512(%rbp), %rdx
@@ -46993,7 +47006,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2523
+	jne	.L2527
 	leaq	.LC358(%rip), %rax
 	movq	%rax, -5536(%rbp)
 	movq	-5528(%rbp), %rdx
@@ -47014,8 +47027,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2524
-.L2523:
+	je	.L2528
+.L2527:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -47028,8 +47041,8 @@ encoder__Encoder_encode_instr:
 	movl	$41, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_shift
-	jmp	.L2395
-.L2524:
+	jmp	.L2399
+.L2528:
 	leaq	.LC359(%rip), %rax
 	movq	%rax, -5552(%rbp)
 	movq	-5544(%rbp), %rdx
@@ -47050,7 +47063,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2526
+	je	.L2530
 	movb	$15, -2863(%rbp)
 	movb	$-112, -2862(%rbp)
 	leaq	-2336(%rbp), %rax
@@ -47075,8 +47088,8 @@ encoder__Encoder_encode_instr:
 	movl	$45, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2526:
+	jmp	.L2399
+.L2530:
 	leaq	.LC360(%rip), %rax
 	movq	%rax, -5568(%rbp)
 	movq	-5560(%rbp), %rdx
@@ -47097,7 +47110,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2528
+	je	.L2532
 	movb	$15, -2865(%rbp)
 	movb	$-111, -2864(%rbp)
 	leaq	-2304(%rbp), %rax
@@ -47122,8 +47135,8 @@ encoder__Encoder_encode_instr:
 	movl	$46, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2528:
+	jmp	.L2399
+.L2532:
 	leaq	.LC361(%rip), %rax
 	movq	%rax, -5584(%rbp)
 	movq	-5576(%rbp), %rdx
@@ -47144,7 +47157,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2530
+	je	.L2534
 	movb	$15, -2867(%rbp)
 	movb	$-110, -2866(%rbp)
 	leaq	-2272(%rbp), %rax
@@ -47169,8 +47182,8 @@ encoder__Encoder_encode_instr:
 	movl	$47, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2530:
+	jmp	.L2399
+.L2534:
 	leaq	.LC362(%rip), %rax
 	movq	%rax, -5600(%rbp)
 	movq	-5592(%rbp), %rdx
@@ -47191,7 +47204,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2532
+	je	.L2536
 	movb	$15, -2869(%rbp)
 	movb	$-109, -2868(%rbp)
 	leaq	-2240(%rbp), %rax
@@ -47216,8 +47229,8 @@ encoder__Encoder_encode_instr:
 	movl	$49, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2532:
+	jmp	.L2399
+.L2536:
 	leaq	.LC363(%rip), %rax
 	movq	%rax, -5616(%rbp)
 	movq	-5608(%rbp), %rdx
@@ -47238,7 +47251,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2534
+	je	.L2538
 	movb	$15, -2871(%rbp)
 	movb	$-108, -2870(%rbp)
 	leaq	-2208(%rbp), %rax
@@ -47263,8 +47276,8 @@ encoder__Encoder_encode_instr:
 	movl	$57, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2534:
+	jmp	.L2399
+.L2538:
 	leaq	.LC364(%rip), %rax
 	movq	%rax, -5632(%rbp)
 	movq	-5624(%rbp), %rdx
@@ -47285,7 +47298,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2536
+	je	.L2540
 	movb	$15, -2873(%rbp)
 	movb	$-107, -2872(%rbp)
 	leaq	-2176(%rbp), %rax
@@ -47310,8 +47323,8 @@ encoder__Encoder_encode_instr:
 	movl	$58, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2536:
+	jmp	.L2399
+.L2540:
 	leaq	.LC365(%rip), %rax
 	movq	%rax, -5648(%rbp)
 	movq	-5640(%rbp), %rdx
@@ -47332,7 +47345,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2538
+	je	.L2542
 	movb	$15, -2875(%rbp)
 	movb	$-109, -2874(%rbp)
 	leaq	-2144(%rbp), %rax
@@ -47357,8 +47370,8 @@ encoder__Encoder_encode_instr:
 	movl	$48, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2538:
+	jmp	.L2399
+.L2542:
 	leaq	.LC366(%rip), %rax
 	movq	%rax, -5664(%rbp)
 	movq	-5656(%rbp), %rdx
@@ -47379,7 +47392,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2540
+	je	.L2544
 	movb	$15, -2877(%rbp)
 	movb	$-106, -2876(%rbp)
 	leaq	-2112(%rbp), %rax
@@ -47404,8 +47417,8 @@ encoder__Encoder_encode_instr:
 	movl	$50, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2540:
+	jmp	.L2399
+.L2544:
 	leaq	.LC367(%rip), %rax
 	movq	%rax, -5680(%rbp)
 	movq	-5672(%rbp), %rdx
@@ -47426,7 +47439,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2542
+	je	.L2546
 	movb	$15, -2879(%rbp)
 	movb	$-105, -2878(%rbp)
 	leaq	-2080(%rbp), %rax
@@ -47451,8 +47464,8 @@ encoder__Encoder_encode_instr:
 	movl	$51, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2542:
+	jmp	.L2399
+.L2546:
 	leaq	.LC368(%rip), %rax
 	movq	%rax, -5696(%rbp)
 	movq	-5688(%rbp), %rdx
@@ -47473,7 +47486,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2544
+	je	.L2548
 	movb	$15, -2881(%rbp)
 	movb	$-101, -2880(%rbp)
 	leaq	-2048(%rbp), %rax
@@ -47498,8 +47511,8 @@ encoder__Encoder_encode_instr:
 	movl	$52, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2544:
+	jmp	.L2399
+.L2548:
 	leaq	.LC369(%rip), %rax
 	movq	%rax, -5712(%rbp)
 	movq	-5704(%rbp), %rdx
@@ -47520,7 +47533,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2546
+	je	.L2550
 	movb	$15, -2883(%rbp)
 	movb	$-100, -2882(%rbp)
 	leaq	-2016(%rbp), %rax
@@ -47545,8 +47558,8 @@ encoder__Encoder_encode_instr:
 	movl	$53, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2546:
+	jmp	.L2399
+.L2550:
 	leaq	.LC370(%rip), %rax
 	movq	%rax, -5728(%rbp)
 	movq	-5720(%rbp), %rdx
@@ -47567,7 +47580,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2548
+	je	.L2552
 	movb	$15, -2885(%rbp)
 	movb	$-97, -2884(%rbp)
 	leaq	-1984(%rbp), %rax
@@ -47592,8 +47605,8 @@ encoder__Encoder_encode_instr:
 	movl	$54, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2548:
+	jmp	.L2399
+.L2552:
 	leaq	.LC371(%rip), %rax
 	movq	%rax, -5744(%rbp)
 	movq	-5736(%rbp), %rdx
@@ -47614,7 +47627,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2550
+	je	.L2554
 	movb	$15, -2887(%rbp)
 	movb	$-98, -2886(%rbp)
 	leaq	-1952(%rbp), %rax
@@ -47639,8 +47652,8 @@ encoder__Encoder_encode_instr:
 	movl	$55, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2550:
+	jmp	.L2399
+.L2554:
 	leaq	.LC372(%rip), %rax
 	movq	%rax, -5760(%rbp)
 	movq	-5752(%rbp), %rdx
@@ -47661,7 +47674,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2552
+	je	.L2556
 	movb	$15, -2889(%rbp)
 	movb	$-99, -2888(%rbp)
 	leaq	-1920(%rbp), %rax
@@ -47686,8 +47699,8 @@ encoder__Encoder_encode_instr:
 	movl	$56, %esi
 	call	encoder__Encoder_set
 	addq	$32, %rsp
-	jmp	.L2395
-.L2552:
+	jmp	.L2399
+.L2556:
 	leaq	.LC373(%rip), %rax
 	movq	%rax, -5776(%rbp)
 	movq	-5768(%rbp), %rdx
@@ -47708,7 +47721,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2554
+	je	.L2558
 	movb	$-23, -2894(%rbp)
 	movb	$0, -2893(%rbp)
 	movb	$0, -2892(%rbp)
@@ -47737,8 +47750,8 @@ encoder__Encoder_encode_instr:
 	movl	$59, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2554:
+	jmp	.L2399
+.L2558:
 	leaq	.LC374(%rip), %rax
 	movq	%rax, -5792(%rbp)
 	movq	-5784(%rbp), %rdx
@@ -47759,7 +47772,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2556
+	je	.L2560
 	movb	$15, -2900(%rbp)
 	movb	$-123, -2899(%rbp)
 	movb	$0, -2898(%rbp)
@@ -47789,8 +47802,8 @@ encoder__Encoder_encode_instr:
 	movl	$60, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2556:
+	jmp	.L2399
+.L2560:
 	leaq	.LC375(%rip), %rax
 	movq	%rax, -5808(%rbp)
 	movq	-5800(%rbp), %rdx
@@ -47811,7 +47824,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2558
+	je	.L2562
 	movb	$15, -2906(%rbp)
 	movb	$-124, -2905(%rbp)
 	movb	$0, -2904(%rbp)
@@ -47841,8 +47854,8 @@ encoder__Encoder_encode_instr:
 	movl	$61, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2558:
+	jmp	.L2399
+.L2562:
 	leaq	.LC376(%rip), %rax
 	movq	%rax, -5824(%rbp)
 	movq	-5816(%rbp), %rdx
@@ -47863,7 +47876,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2560
+	je	.L2564
 	movb	$15, -2912(%rbp)
 	movb	$-116, -2911(%rbp)
 	movb	$0, -2910(%rbp)
@@ -47893,8 +47906,8 @@ encoder__Encoder_encode_instr:
 	movl	$62, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2560:
+	jmp	.L2399
+.L2564:
 	leaq	.LC377(%rip), %rax
 	movq	%rax, -5840(%rbp)
 	movq	-5832(%rbp), %rdx
@@ -47915,7 +47928,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2562
+	je	.L2566
 	movb	$15, -2918(%rbp)
 	movb	$-113, -2917(%rbp)
 	movb	$0, -2916(%rbp)
@@ -47945,8 +47958,8 @@ encoder__Encoder_encode_instr:
 	movl	$63, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2562:
+	jmp	.L2399
+.L2566:
 	leaq	.LC378(%rip), %rax
 	movq	%rax, -5856(%rbp)
 	movq	-5848(%rbp), %rdx
@@ -47967,7 +47980,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2564
+	je	.L2568
 	movb	$15, -2924(%rbp)
 	movb	$-114, -2923(%rbp)
 	movb	$0, -2922(%rbp)
@@ -47997,8 +48010,8 @@ encoder__Encoder_encode_instr:
 	movl	$64, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2564:
+	jmp	.L2399
+.L2568:
 	leaq	.LC379(%rip), %rax
 	movq	%rax, -5872(%rbp)
 	movq	-5864(%rbp), %rdx
@@ -48019,7 +48032,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2566
+	je	.L2570
 	movb	$15, -2930(%rbp)
 	movb	$-115, -2929(%rbp)
 	movb	$0, -2928(%rbp)
@@ -48049,8 +48062,8 @@ encoder__Encoder_encode_instr:
 	movl	$65, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2566:
+	jmp	.L2399
+.L2570:
 	leaq	.LC380(%rip), %rax
 	movq	%rax, -5888(%rbp)
 	movq	-5880(%rbp), %rdx
@@ -48071,7 +48084,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2568
+	je	.L2572
 	movb	$15, -2936(%rbp)
 	movb	$-125, -2935(%rbp)
 	movb	$0, -2934(%rbp)
@@ -48101,8 +48114,8 @@ encoder__Encoder_encode_instr:
 	movl	$67, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2568:
+	jmp	.L2399
+.L2572:
 	leaq	.LC381(%rip), %rax
 	movq	%rax, -5904(%rbp)
 	movq	-5896(%rbp), %rdx
@@ -48123,7 +48136,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2570
+	je	.L2574
 	movb	$15, -2942(%rbp)
 	movb	$-122, -2941(%rbp)
 	movb	$0, -2940(%rbp)
@@ -48153,8 +48166,8 @@ encoder__Encoder_encode_instr:
 	movl	$66, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2570:
+	jmp	.L2399
+.L2574:
 	leaq	.LC382(%rip), %rax
 	movq	%rax, -5920(%rbp)
 	movq	-5912(%rbp), %rdx
@@ -48175,7 +48188,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2572
+	je	.L2576
 	movb	$15, -2948(%rbp)
 	movb	$-121, -2947(%rbp)
 	movb	$0, -2946(%rbp)
@@ -48205,8 +48218,8 @@ encoder__Encoder_encode_instr:
 	movl	$68, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2572:
+	jmp	.L2399
+.L2576:
 	leaq	.LC383(%rip), %rax
 	movq	%rax, -5936(%rbp)
 	movq	-5928(%rbp), %rdx
@@ -48227,7 +48240,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2574
+	je	.L2578
 	movb	$15, -2954(%rbp)
 	movb	$-118, -2953(%rbp)
 	movb	$0, -2952(%rbp)
@@ -48257,8 +48270,8 @@ encoder__Encoder_encode_instr:
 	movl	$69, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2574:
+	jmp	.L2399
+.L2578:
 	leaq	.LC384(%rip), %rax
 	movq	%rax, -5952(%rbp)
 	movq	-5944(%rbp), %rdx
@@ -48279,7 +48292,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2576
+	je	.L2580
 	movb	$15, -2960(%rbp)
 	movb	$-121, -2959(%rbp)
 	movb	$0, -2958(%rbp)
@@ -48309,8 +48322,8 @@ encoder__Encoder_encode_instr:
 	movl	$70, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2576:
+	jmp	.L2399
+.L2580:
 	leaq	.LC385(%rip), %rax
 	movq	%rax, -5968(%rbp)
 	movq	-5960(%rbp), %rdx
@@ -48331,7 +48344,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2578
+	je	.L2582
 	movb	$15, -2966(%rbp)
 	movb	$-126, -2965(%rbp)
 	movb	$0, -2964(%rbp)
@@ -48361,8 +48374,8 @@ encoder__Encoder_encode_instr:
 	movl	$72, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2578:
+	jmp	.L2399
+.L2582:
 	leaq	.LC386(%rip), %rax
 	movq	%rax, -5984(%rbp)
 	movq	-5976(%rbp), %rdx
@@ -48383,7 +48396,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2580
+	je	.L2584
 	movb	$15, -2972(%rbp)
 	movb	$-120, -2971(%rbp)
 	movb	$0, -2970(%rbp)
@@ -48413,8 +48426,8 @@ encoder__Encoder_encode_instr:
 	movl	$71, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2580:
+	jmp	.L2399
+.L2584:
 	leaq	.LC387(%rip), %rax
 	movq	%rax, -6000(%rbp)
 	movq	-5992(%rbp), %rdx
@@ -48435,7 +48448,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2582
+	je	.L2586
 	movb	$15, -2978(%rbp)
 	movb	$-119, -2977(%rbp)
 	movb	$0, -2976(%rbp)
@@ -48465,8 +48478,8 @@ encoder__Encoder_encode_instr:
 	movl	$73, %esi
 	call	encoder__Encoder_jmp_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2582:
+	jmp	.L2399
+.L2586:
 	leaq	.LC388(%rip), %rax
 	movq	%rax, -6016(%rbp)
 	movq	-6008(%rbp), %rdx
@@ -48487,12 +48500,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2584
+	je	.L2588
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_rep
-	jmp	.L2395
-.L2584:
+	jmp	.L2399
+.L2588:
 	leaq	.LC389(%rip), %rax
 	movq	%rax, -6032(%rbp)
 	movq	-6024(%rbp), %rdx
@@ -48513,12 +48526,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2586
+	je	.L2590
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_cvttss2sil
-	jmp	.L2395
-.L2586:
+	jmp	.L2399
+.L2590:
 	leaq	.LC390(%rip), %rax
 	movq	%rax, -6048(%rbp)
 	movq	-6040(%rbp), %rdx
@@ -48539,12 +48552,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2588
+	je	.L2592
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_cvtsi2ssq
-	jmp	.L2395
-.L2588:
+	jmp	.L2399
+.L2592:
 	leaq	.LC391(%rip), %rax
 	movq	%rax, -6064(%rbp)
 	movq	-6056(%rbp), %rdx
@@ -48565,12 +48578,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2590
+	je	.L2594
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_cvtsi2sdq
-	jmp	.L2395
-.L2590:
+	jmp	.L2399
+.L2594:
 	leaq	.LC392(%rip), %rax
 	movq	%rax, -6080(%rbp)
 	movq	-6072(%rbp), %rdx
@@ -48591,12 +48604,12 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2592
+	je	.L2596
 	movq	-3608(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_movd
-	jmp	.L2395
-.L2592:
+	jmp	.L2399
+.L2596:
 	leaq	.LC393(%rip), %rax
 	movq	%rax, -6096(%rbp)
 	movq	-6088(%rbp), %rdx
@@ -48617,7 +48630,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2594
+	je	.L2598
 	movl	$1, -2984(%rbp)
 	leaq	-1408(%rbp), %rax
 	leaq	-2984(%rbp), %rdx
@@ -48641,8 +48654,8 @@ encoder__Encoder_encode_instr:
 	movl	$107, %esi
 	call	encoder__Encoder_xorp
 	addq	$32, %rsp
-	jmp	.L2395
-.L2594:
+	jmp	.L2399
+.L2598:
 	leaq	.LC394(%rip), %rax
 	movq	%rax, -6112(%rbp)
 	movq	-6104(%rbp), %rdx
@@ -48663,7 +48676,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2596
+	je	.L2600
 	leaq	-1376(%rbp), %rax
 	movl	$0, %r8d
 	movl	$4, %ecx
@@ -48685,8 +48698,8 @@ encoder__Encoder_encode_instr:
 	movl	$108, %esi
 	call	encoder__Encoder_xorp
 	addq	$32, %rsp
-	jmp	.L2395
-.L2596:
+	jmp	.L2399
+.L2600:
 	leaq	.LC395(%rip), %rax
 	movq	%rax, -6128(%rbp)
 	movq	-6120(%rbp), %rdx
@@ -48707,7 +48720,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2598
+	je	.L2602
 	movl	$4, -2988(%rbp)
 	leaq	-1344(%rbp), %rax
 	leaq	-2988(%rbp), %rdx
@@ -48732,8 +48745,8 @@ encoder__Encoder_encode_instr:
 	movl	$90, %esi
 	call	encoder__Encoder_sse_data_transfer_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2598:
+	jmp	.L2399
+.L2602:
 	leaq	.LC396(%rip), %rax
 	movq	%rax, -6144(%rbp)
 	movq	-6136(%rbp), %rdx
@@ -48754,7 +48767,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2600
+	je	.L2604
 	movl	$5, -2992(%rbp)
 	leaq	-1312(%rbp), %rax
 	leaq	-2992(%rbp), %rdx
@@ -48779,8 +48792,8 @@ encoder__Encoder_encode_instr:
 	movl	$90, %esi
 	call	encoder__Encoder_sse_data_transfer_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2600:
+	jmp	.L2399
+.L2604:
 	leaq	.LC397(%rip), %rax
 	movq	%rax, -6160(%rbp)
 	movq	-6152(%rbp), %rdx
@@ -48801,7 +48814,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2602
+	je	.L2606
 	leaq	-1280(%rbp), %rax
 	movl	$0, %r8d
 	movl	$4, %ecx
@@ -48824,8 +48837,8 @@ encoder__Encoder_encode_instr:
 	movl	$105, %esi
 	call	encoder__Encoder_sse_data_transfer_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2602:
+	jmp	.L2399
+.L2606:
 	leaq	.LC398(%rip), %rax
 	movq	%rax, -6176(%rbp)
 	movq	-6168(%rbp), %rdx
@@ -48846,7 +48859,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2604
+	je	.L2608
 	leaq	-1248(%rbp), %rax
 	movl	$0, %r8d
 	movl	$4, %ecx
@@ -48869,8 +48882,8 @@ encoder__Encoder_encode_instr:
 	movl	$106, %esi
 	call	encoder__Encoder_sse_data_transfer_instr
 	addq	$32, %rsp
-	jmp	.L2395
-.L2604:
+	jmp	.L2399
+.L2608:
 	leaq	.LC399(%rip), %rax
 	movq	%rax, -6192(%rbp)
 	movq	-6184(%rbp), %rdx
@@ -48891,7 +48904,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2606
+	je	.L2610
 	movl	$1, -3000(%rbp)
 	leaq	-1216(%rbp), %rax
 	leaq	-3000(%rbp), %rdx
@@ -48935,8 +48948,8 @@ encoder__Encoder_encode_instr:
 	movl	$109, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2606:
+	jmp	.L2399
+.L2610:
 	leaq	.LC400(%rip), %rax
 	movq	%rax, -6208(%rbp)
 	movq	-6200(%rbp), %rdx
@@ -48957,7 +48970,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2608
+	je	.L2612
 	movl	$5, -3008(%rbp)
 	leaq	-1152(%rbp), %rax
 	leaq	-3008(%rbp), %rdx
@@ -49001,8 +49014,8 @@ encoder__Encoder_encode_instr:
 	movl	$88, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2608:
+	jmp	.L2399
+.L2612:
 	leaq	.LC401(%rip), %rax
 	movq	%rax, -6224(%rbp)
 	movq	-6216(%rbp), %rdx
@@ -49023,7 +49036,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2610
+	je	.L2614
 	movl	$4, -3016(%rbp)
 	leaq	-1088(%rbp), %rax
 	leaq	-3016(%rbp), %rdx
@@ -49067,8 +49080,8 @@ encoder__Encoder_encode_instr:
 	movl	$89, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2610:
+	jmp	.L2399
+.L2614:
 	leaq	.LC402(%rip), %rax
 	movq	%rax, -6240(%rbp)
 	movq	-6232(%rbp), %rdx
@@ -49089,7 +49102,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2612
+	je	.L2616
 	leaq	-1024(%rbp), %rax
 	movl	$0, %r8d
 	movl	$4, %ecx
@@ -49131,8 +49144,8 @@ encoder__Encoder_encode_instr:
 	movl	$93, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2612:
+	jmp	.L2399
+.L2616:
 	leaq	.LC403(%rip), %rax
 	movq	%rax, -6256(%rbp)
 	movq	-6248(%rbp), %rdx
@@ -49153,7 +49166,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2614
+	je	.L2618
 	movl	$1, -3024(%rbp)
 	leaq	-960(%rbp), %rax
 	leaq	-3024(%rbp), %rdx
@@ -49197,8 +49210,8 @@ encoder__Encoder_encode_instr:
 	movl	$94, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2614:
+	jmp	.L2399
+.L2618:
 	leaq	.LC404(%rip), %rax
 	movq	%rax, -6272(%rbp)
 	movq	-6264(%rbp), %rdx
@@ -49219,7 +49232,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2616
+	je	.L2620
 	leaq	-896(%rbp), %rax
 	movl	$0, %r8d
 	movl	$4, %ecx
@@ -49261,8 +49274,8 @@ encoder__Encoder_encode_instr:
 	movl	$96, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2616:
+	jmp	.L2399
+.L2620:
 	leaq	.LC405(%rip), %rax
 	movq	%rax, -6288(%rbp)
 	movq	-6280(%rbp), %rdx
@@ -49283,7 +49296,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2618
+	je	.L2622
 	movl	$1, -3032(%rbp)
 	leaq	-832(%rbp), %rax
 	leaq	-3032(%rbp), %rdx
@@ -49327,8 +49340,8 @@ encoder__Encoder_encode_instr:
 	movl	$94, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2618:
+	jmp	.L2399
+.L2622:
 	leaq	.LC406(%rip), %rax
 	movq	%rax, -6304(%rbp)
 	movq	-6296(%rbp), %rdx
@@ -49349,7 +49362,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2620
+	je	.L2624
 	movl	$4, -3040(%rbp)
 	leaq	-768(%rbp), %rax
 	leaq	-3040(%rbp), %rdx
@@ -49393,8 +49406,8 @@ encoder__Encoder_encode_instr:
 	movl	$97, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2620:
+	jmp	.L2399
+.L2624:
 	leaq	.LC407(%rip), %rax
 	movq	%rax, -6320(%rbp)
 	movq	-6312(%rbp), %rdx
@@ -49415,7 +49428,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2622
+	je	.L2626
 	movl	$5, -3048(%rbp)
 	leaq	-704(%rbp), %rax
 	leaq	-3048(%rbp), %rdx
@@ -49459,8 +49472,8 @@ encoder__Encoder_encode_instr:
 	movl	$97, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2622:
+	jmp	.L2399
+.L2626:
 	leaq	.LC408(%rip), %rax
 	movq	%rax, -6336(%rbp)
 	movq	-6328(%rbp), %rdx
@@ -49481,7 +49494,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2624
+	je	.L2628
 	movl	$4, -3056(%rbp)
 	leaq	-640(%rbp), %rax
 	leaq	-3056(%rbp), %rdx
@@ -49525,8 +49538,8 @@ encoder__Encoder_encode_instr:
 	movl	$99, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2624:
+	jmp	.L2399
+.L2628:
 	leaq	.LC409(%rip), %rax
 	movq	%rax, -6352(%rbp)
 	movq	-6344(%rbp), %rdx
@@ -49547,7 +49560,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2626
+	je	.L2630
 	movl	$5, -3064(%rbp)
 	leaq	-576(%rbp), %rax
 	leaq	-3064(%rbp), %rdx
@@ -49591,8 +49604,8 @@ encoder__Encoder_encode_instr:
 	movl	$100, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2626:
+	jmp	.L2399
+.L2630:
 	leaq	.LC410(%rip), %rax
 	movq	%rax, -6368(%rbp)
 	movq	-6360(%rbp), %rdx
@@ -49613,7 +49626,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2628
+	je	.L2632
 	movl	$4, -3072(%rbp)
 	leaq	-512(%rbp), %rax
 	leaq	-3072(%rbp), %rdx
@@ -49657,8 +49670,8 @@ encoder__Encoder_encode_instr:
 	movl	$101, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2628:
+	jmp	.L2399
+.L2632:
 	leaq	.LC411(%rip), %rax
 	movq	%rax, -6384(%rbp)
 	movq	-6376(%rbp), %rdx
@@ -49679,7 +49692,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2630
+	je	.L2634
 	movl	$5, -3080(%rbp)
 	leaq	-448(%rbp), %rax
 	leaq	-3080(%rbp), %rdx
@@ -49723,8 +49736,8 @@ encoder__Encoder_encode_instr:
 	movl	$102, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2630:
+	jmp	.L2399
+.L2634:
 	leaq	.LC412(%rip), %rax
 	movq	%rax, -6400(%rbp)
 	movq	-6392(%rbp), %rdx
@@ -49745,7 +49758,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2632
+	je	.L2636
 	movl	$4, -3088(%rbp)
 	leaq	-384(%rbp), %rax
 	leaq	-3088(%rbp), %rdx
@@ -49789,8 +49802,8 @@ encoder__Encoder_encode_instr:
 	movl	$103, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2632:
+	jmp	.L2399
+.L2636:
 	leaq	.LC413(%rip), %rax
 	movq	%rax, -6416(%rbp)
 	movq	-6408(%rbp), %rdx
@@ -49811,7 +49824,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2634
+	je	.L2638
 	movl	$5, -3096(%rbp)
 	leaq	-320(%rbp), %rax
 	leaq	-3096(%rbp), %rdx
@@ -49855,8 +49868,8 @@ encoder__Encoder_encode_instr:
 	movl	$104, %esi
 	call	encoder__Encoder_sse_arith_instr
 	addq	$64, %rsp
-	jmp	.L2395
-.L2634:
+	jmp	.L2399
+.L2638:
 	leaq	.LC414(%rip), %rax
 	movq	%rax, -6432(%rbp)
 	movq	-6424(%rbp), %rdx
@@ -49877,7 +49890,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2636
+	jne	.L2640
 	leaq	.LC415(%rip), %rax
 	movq	%rax, -6448(%rbp)
 	movq	-6440(%rbp), %rdx
@@ -49898,7 +49911,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2636
+	jne	.L2640
 	leaq	.LC416(%rip), %rax
 	movq	%rax, -6464(%rbp)
 	movq	-6456(%rbp), %rdx
@@ -49919,8 +49932,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2637
-.L2636:
+	je	.L2641
+.L2640:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -49952,8 +49965,8 @@ encoder__Encoder_encode_instr:
 	movl	$79, %esi
 	call	encoder__Encoder_cmov
 	addq	$32, %rsp
-	jmp	.L2395
-.L2637:
+	jmp	.L2399
+.L2641:
 	leaq	.LC417(%rip), %rax
 	movq	%rax, -6480(%rbp)
 	movq	-6472(%rbp), %rdx
@@ -49974,7 +49987,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2639
+	jne	.L2643
 	leaq	.LC418(%rip), %rax
 	movq	%rax, -6496(%rbp)
 	movq	-6488(%rbp), %rdx
@@ -49995,7 +50008,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2639
+	jne	.L2643
 	leaq	.LC419(%rip), %rax
 	movq	%rax, -6512(%rbp)
 	movq	-6504(%rbp), %rdx
@@ -50016,8 +50029,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2640
-.L2639:
+	je	.L2644
+.L2643:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -50049,8 +50062,8 @@ encoder__Encoder_encode_instr:
 	movl	$80, %esi
 	call	encoder__Encoder_cmov
 	addq	$32, %rsp
-	jmp	.L2395
-.L2640:
+	jmp	.L2399
+.L2644:
 	leaq	.LC420(%rip), %rax
 	movq	%rax, -6528(%rbp)
 	movq	-6520(%rbp), %rdx
@@ -50071,7 +50084,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2642
+	jne	.L2646
 	leaq	.LC421(%rip), %rax
 	movq	%rax, -6544(%rbp)
 	movq	-6536(%rbp), %rdx
@@ -50092,7 +50105,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2642
+	jne	.L2646
 	leaq	.LC422(%rip), %rax
 	movq	%rax, -6560(%rbp)
 	movq	-6552(%rbp), %rdx
@@ -50113,8 +50126,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2643
-.L2642:
+	je	.L2647
+.L2646:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -50146,8 +50159,8 @@ encoder__Encoder_encode_instr:
 	movl	$83, %esi
 	call	encoder__Encoder_cmov
 	addq	$32, %rsp
-	jmp	.L2395
-.L2643:
+	jmp	.L2399
+.L2647:
 	leaq	.LC423(%rip), %rax
 	movq	%rax, -6576(%rbp)
 	movq	-6568(%rbp), %rdx
@@ -50168,7 +50181,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2645
+	jne	.L2649
 	leaq	.LC424(%rip), %rax
 	movq	%rax, -6592(%rbp)
 	movq	-6584(%rbp), %rdx
@@ -50189,7 +50202,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2645
+	jne	.L2649
 	leaq	.LC425(%rip), %rax
 	movq	%rax, -6608(%rbp)
 	movq	-6600(%rbp), %rdx
@@ -50210,8 +50223,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2646
-.L2645:
+	je	.L2650
+.L2649:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -50243,8 +50256,8 @@ encoder__Encoder_encode_instr:
 	movl	$82, %esi
 	call	encoder__Encoder_cmov
 	addq	$32, %rsp
-	jmp	.L2395
-.L2646:
+	jmp	.L2399
+.L2650:
 	leaq	.LC426(%rip), %rax
 	movq	%rax, -6624(%rbp)
 	movq	-6616(%rbp), %rdx
@@ -50265,7 +50278,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2648
+	jne	.L2652
 	leaq	.LC427(%rip), %rax
 	movq	%rax, -6640(%rbp)
 	movq	-6632(%rbp), %rdx
@@ -50286,7 +50299,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2648
+	jne	.L2652
 	leaq	.LC428(%rip), %rax
 	movq	%rax, -6656(%rbp)
 	movq	-6648(%rbp), %rdx
@@ -50307,8 +50320,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2649
-.L2648:
+	je	.L2653
+.L2652:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -50340,8 +50353,8 @@ encoder__Encoder_encode_instr:
 	movl	$84, %esi
 	call	encoder__Encoder_cmov
 	addq	$32, %rsp
-	jmp	.L2395
-.L2649:
+	jmp	.L2399
+.L2653:
 	leaq	.LC429(%rip), %rax
 	movq	%rax, -6672(%rbp)
 	movq	-6664(%rbp), %rdx
@@ -50362,7 +50375,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2651
+	jne	.L2655
 	leaq	.LC430(%rip), %rax
 	movq	%rax, -6688(%rbp)
 	movq	-6680(%rbp), %rdx
@@ -50383,7 +50396,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2651
+	jne	.L2655
 	leaq	.LC431(%rip), %rax
 	movq	%rax, -6704(%rbp)
 	movq	-6696(%rbp), %rdx
@@ -50404,8 +50417,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2652
-.L2651:
+	je	.L2656
+.L2655:
 	movq	-2752(%rbp), %rdx
 	movq	-2744(%rbp), %rax
 	movq	%rdx, %rdi
@@ -50437,8 +50450,8 @@ encoder__Encoder_encode_instr:
 	movl	$81, %esi
 	call	encoder__Encoder_cmov
 	addq	$32, %rsp
-	jmp	.L2395
-.L2652:
+	jmp	.L2399
+.L2656:
 	leaq	.LC432(%rip), %rax
 	movq	%rax, -6720(%rbp)
 	movq	-6712(%rbp), %rdx
@@ -50459,7 +50472,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2654
+	jne	.L2658
 	leaq	.LC433(%rip), %rax
 	movq	%rax, -6736(%rbp)
 	movq	-6728(%rbp), %rdx
@@ -50480,8 +50493,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2655
-.L2654:
+	je	.L2659
+.L2658:
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50525,8 +50538,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2655:
+	jmp	.L2399
+.L2659:
 	leaq	.LC434(%rip), %rax
 	movq	%rax, -6752(%rbp)
 	movq	-6744(%rbp), %rdx
@@ -50547,7 +50560,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2657
+	je	.L2661
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50592,8 +50605,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2657:
+	jmp	.L2399
+.L2661:
 	leaq	.LC435(%rip), %rax
 	movq	%rax, -6768(%rbp)
 	movq	-6760(%rbp), %rdx
@@ -50614,7 +50627,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2659
+	jne	.L2663
 	leaq	.LC436(%rip), %rax
 	movq	%rax, -6784(%rbp)
 	movq	-6776(%rbp), %rdx
@@ -50635,8 +50648,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2660
-.L2659:
+	je	.L2664
+.L2663:
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50680,8 +50693,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2660:
+	jmp	.L2399
+.L2664:
 	leaq	.LC437(%rip), %rax
 	movq	%rax, -6800(%rbp)
 	movq	-6792(%rbp), %rdx
@@ -50702,7 +50715,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2662
+	je	.L2666
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50746,8 +50759,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2662:
+	jmp	.L2399
+.L2666:
 	leaq	.LC438(%rip), %rax
 	movq	%rax, -6816(%rbp)
 	movq	-6808(%rbp), %rdx
@@ -50768,7 +50781,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2664
+	je	.L2668
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50812,8 +50825,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2664:
+	jmp	.L2399
+.L2668:
 	leaq	.LC439(%rip), %rax
 	movq	%rax, -6832(%rbp)
 	movq	-6824(%rbp), %rdx
@@ -50834,7 +50847,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2666
+	je	.L2670
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50879,8 +50892,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2666:
+	jmp	.L2399
+.L2670:
 	leaq	.LC440(%rip), %rax
 	movq	%rax, -6848(%rbp)
 	movq	-6840(%rbp), %rdx
@@ -50901,7 +50914,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2668
+	je	.L2672
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -50945,8 +50958,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2668:
+	jmp	.L2399
+.L2672:
 	leaq	.LC441(%rip), %rax
 	movq	%rax, -6864(%rbp)
 	movq	-6856(%rbp), %rdx
@@ -50967,7 +50980,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2670
+	je	.L2674
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -51012,8 +51025,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2670:
+	jmp	.L2399
+.L2674:
 	leaq	.LC442(%rip), %rax
 	movq	%rax, -6880(%rbp)
 	movq	-6872(%rbp), %rdx
@@ -51034,7 +51047,7 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2672
+	je	.L2676
 	leaq	-3392(%rbp), %rdx
 	movl	$0, %eax
 	movl	$17, %ecx
@@ -51078,8 +51091,8 @@ encoder__Encoder_encode_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2395
-.L2672:
+	jmp	.L2399
+.L2676:
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -3392(%rbp)
 	movaps	%xmm0, -3376(%rbp)
@@ -51120,7 +51133,7 @@ encoder__Encoder_encode_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2395:
+.L2399:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -51135,16 +51148,16 @@ encoder__Encoder_encode:
 	movq	%rsp, %rbp
 	subq	$16, %rsp
 	movq	%rdi, -8(%rbp)
-.L2676:
+.L2680:
 	movq	-8(%rbp), %rax
 	movl	(%rax), %eax
 	cmpl	$14, %eax
-	je	.L2678
+	je	.L2682
 	movq	-8(%rbp), %rax
 	movq	%rax, %rdi
 	call	encoder__Encoder_encode_instr
-	jmp	.L2676
-.L2678:
+	jmp	.L2680
+.L2682:
 	nop
 	nop
 	leave
@@ -51158,11 +51171,11 @@ encoder__Encoder_add_segment_override_prefix:
 	movq	%rdi, -24(%rbp)
 	movl	56(%rbp), %eax
 	cmpl	$2, %eax
-	je	.L2680
+	je	.L2684
 	movl	104(%rbp), %eax
 	cmpl	$2, %eax
-	jne	.L2682
-.L2680:
+	jne	.L2686
+.L2684:
 	movb	$103, -1(%rbp)
 	movq	-24(%rbp), %rax
 	movq	120(%rax), %rax
@@ -51171,7 +51184,7 @@ encoder__Encoder_add_segment_override_prefix:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2682:
+.L2686:
 	nop
 	leave
 	ret
@@ -51190,35 +51203,35 @@ encoder__scale:
 	movb	%cl, -36(%rbp)
 	movzbl	-36(%rbp), %ecx
 	cmpl	$8, %ecx
-	je	.L2684
-	cmpl	$8, %ecx
-	jg	.L2685
-	cmpl	$4, %ecx
-	je	.L2686
-	cmpl	$4, %ecx
-	jg	.L2685
-	cmpl	$1, %ecx
-	je	.L2687
-	cmpl	$2, %ecx
 	je	.L2688
-	jmp	.L2685
-.L2687:
+	cmpl	$8, %ecx
+	jg	.L2689
+	cmpl	$4, %ecx
+	je	.L2690
+	cmpl	$4, %ecx
+	jg	.L2689
+	cmpl	$1, %ecx
+	je	.L2691
+	cmpl	$2, %ecx
+	je	.L2692
+	jmp	.L2689
+.L2691:
 	movb	$0, -20(%rbp)
 	movzbl	-20(%rbp), %eax
-	jmp	.L2689
-.L2688:
+	jmp	.L2693
+.L2692:
 	movb	$1, -19(%rbp)
 	movzbl	-19(%rbp), %eax
-	jmp	.L2689
-.L2686:
+	jmp	.L2693
+.L2690:
 	movb	$2, -18(%rbp)
 	movzbl	-18(%rbp), %eax
-	jmp	.L2689
-.L2684:
+	jmp	.L2693
+.L2688:
 	movb	$3, -17(%rbp)
 	movzbl	-17(%rbp), %eax
-	jmp	.L2689
-.L2685:
+	jmp	.L2693
+.L2689:
 	leaq	.LC444(%rip), %rax
 	movq	%rdx, %rsi
 	movabsq	$-4294967296, %rcx
@@ -51236,7 +51249,7 @@ encoder__scale:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2689:
+.L2693:
 	movq	-8(%rbp), %rbx
 	leave
 	ret
@@ -51267,12 +51280,12 @@ encoder__Indirection_check_base_register:
 	subq	$88, %rsp
 	movzbl	184(%rbp), %ecx
 	testb	%cl, %cl
-	jne	.L2691
+	jne	.L2695
 	movb	$0, -52(%rbp)
 	movb	$0, -51(%rbp)
 	movb	$0, -50(%rbp)
-	jmp	.L2708
-.L2691:
+	jmp	.L2712
+.L2695:
 	movb	$1, -49(%rbp)
 	movzbl	-49(%rbp), %ebx
 	leaq	.LC445(%rip), %rax
@@ -51294,7 +51307,7 @@ encoder__Indirection_check_base_register:
 	movq	%r8, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2693
+	jne	.L2697
 	leaq	.LC446(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -51314,20 +51327,20 @@ encoder__Indirection_check_base_register:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2694
-.L2693:
+	je	.L2698
+.L2697:
 	movl	$1, %eax
-	jmp	.L2695
-.L2694:
+	jmp	.L2699
+.L2698:
 	movl	$0, %eax
-.L2695:
+.L2699:
 	cmpl	%ebx, %eax
-	jne	.L2696
+	jne	.L2700
 	movb	$1, -52(%rbp)
 	movb	$0, -51(%rbp)
 	movb	$0, -50(%rbp)
-	jmp	.L2708
-.L2696:
+	jmp	.L2712
+.L2700:
 	movzbl	-49(%rbp), %ebx
 	leaq	.LC447(%rip), %rax
 	movq	%rax, -96(%rbp)
@@ -51349,7 +51362,7 @@ encoder__Indirection_check_base_register:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2698
+	jne	.L2702
 	leaq	.LC448(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -51369,20 +51382,20 @@ encoder__Indirection_check_base_register:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2699
-.L2698:
+	je	.L2703
+.L2702:
 	movl	$1, %eax
-	jmp	.L2700
-.L2699:
+	jmp	.L2704
+.L2703:
 	movl	$0, %eax
-.L2700:
+.L2704:
 	cmpl	%ebx, %eax
-	jne	.L2701
+	jne	.L2705
 	movb	$0, -52(%rbp)
 	movb	$1, -51(%rbp)
 	movb	$0, -50(%rbp)
-	jmp	.L2708
-.L2701:
+	jmp	.L2712
+.L2705:
 	movzbl	-49(%rbp), %ebx
 	leaq	.LC449(%rip), %rax
 	movq	%rax, -112(%rbp)
@@ -51404,7 +51417,7 @@ encoder__Indirection_check_base_register:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	jne	.L2703
+	jne	.L2707
 	leaq	.LC450(%rip), %rax
 	movq	%rax, -128(%rbp)
 	movq	-120(%rbp), %rdx
@@ -51425,24 +51438,24 @@ encoder__Indirection_check_base_register:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2704
-.L2703:
+	je	.L2708
+.L2707:
 	movl	$1, %eax
-	jmp	.L2705
-.L2704:
+	jmp	.L2709
+.L2708:
 	movl	$0, %eax
-.L2705:
+.L2709:
 	cmpl	%ebx, %eax
-	jne	.L2706
+	jne	.L2710
 	movb	$0, -52(%rbp)
 	movb	$0, -51(%rbp)
 	movb	$1, -50(%rbp)
-	jmp	.L2708
-.L2706:
+	jmp	.L2712
+.L2710:
 	movb	$0, -52(%rbp)
 	movb	$0, -51(%rbp)
 	movb	$0, -50(%rbp)
-.L2708:
+.L2712:
 	movl	$0, %eax
 	movzwl	-52(%rbp), %edx
 	movzwl	%dx, %edx
@@ -51491,10 +51504,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	movb	%cl, -316(%rbp)
 	movzbl	184(%rbp), %ecx
 	testb	%cl, %cl
-	jne	.L2710
+	jne	.L2714
 	movzbl	185(%rbp), %ecx
 	testb	%cl, %cl
-	jne	.L2710
+	jne	.L2714
 	leaq	.LC451(%rip), %rax
 	movq	%rdx, %rsi
 	movabsq	$-4294967296, %rcx
@@ -51523,7 +51536,7 @@ encoder__Encoder_add_modrm_sib_disp:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2710:
+.L2714:
 	subq	$176, %rsp
 	movq	%rsp, %rax
 	movq	16(%rbp), %rcx
@@ -51608,7 +51621,7 @@ encoder__Encoder_add_modrm_sib_disp:
 	movl	%eax, -56(%rbp)
 	movl	-92(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2711
+	jle	.L2715
 	leaq	.LC229(%rip), %rax
 	movq	%rax, -336(%rbp)
 	movq	-328(%rbp), %rdx
@@ -51642,16 +51655,16 @@ encoder__Encoder_add_modrm_sib_disp:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2711:
+.L2715:
 	movl	-92(%rbp), %eax
 	cmpl	$1, %eax
 	sete	%al
 	movb	%al, -57(%rbp)
 	movzbl	185(%rbp), %eax
 	testb	%al, %al
-	je	.L2712
+	je	.L2716
 	cmpb	$0, -49(%rbp)
-	je	.L2713
+	je	.L2717
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -224(%rbp)
 	movaps	%xmm0, -208(%rbp)
@@ -51695,14 +51708,14 @@ encoder__Encoder_add_modrm_sib_disp:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2713:
+.L2717:
 	movl	56(%rbp), %edx
 	movl	104(%rbp), %eax
 	cmpl	%eax, %edx
-	je	.L2714
+	je	.L2718
 	movzbl	184(%rbp), %eax
 	testb	%al, %al
-	je	.L2714
+	je	.L2718
 	pxor	%xmm0, %xmm0
 	movaps	%xmm0, -224(%rbp)
 	movaps	%xmm0, -208(%rbp)
@@ -51744,10 +51757,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2714:
+.L2718:
 	movzbl	184(%rbp), %eax
 	testb	%al, %al
-	jne	.L2715
+	jne	.L2719
 	movzbl	-316(%rbp), %ecx
 	movl	$0, %eax
 	movzbl	%al, %eax
@@ -51763,10 +51776,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2715:
+	jmp	.L2725
+.L2719:
 	cmpb	$0, -57(%rbp)
-	je	.L2717
+	je	.L2721
 	movzbl	-316(%rbp), %ecx
 	movl	$2, %eax
 	movzbl	%al, %eax
@@ -51782,12 +51795,12 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2717:
+	jmp	.L2725
+.L2721:
 	cmpl	$0, -56(%rbp)
-	jne	.L2718
+	jne	.L2722
 	cmpb	$0, -51(%rbp)
-	jne	.L2718
+	jne	.L2722
 	movzbl	-316(%rbp), %ecx
 	movl	$0, %eax
 	movzbl	%al, %eax
@@ -51803,13 +51816,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2718:
+	jmp	.L2725
+.L2722:
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	je	.L2719
+	je	.L2723
 	movzbl	-316(%rbp), %ecx
 	movl	$1, %eax
 	movzbl	%al, %eax
@@ -51825,13 +51838,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2719:
+	jmp	.L2725
+.L2723:
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i32_range
 	testb	%al, %al
-	je	.L2720
+	je	.L2724
 	movzbl	-316(%rbp), %ecx
 	movl	$2, %eax
 	movzbl	%al, %eax
@@ -51847,8 +51860,8 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2720:
+	jmp	.L2725
+.L2724:
 	leaq	.LC455(%rip), %rax
 	movq	%rax, -352(%rbp)
 	movq	-344(%rbp), %rdx
@@ -51869,9 +51882,9 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2712:
+.L2716:
 	cmpb	$0, -49(%rbp)
-	je	.L2722
+	je	.L2726
 	movzbl	-316(%rbp), %ecx
 	movl	$0, %eax
 	movzbl	%al, %eax
@@ -51887,10 +51900,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2722:
+	jmp	.L2725
+.L2726:
 	cmpb	$0, -57(%rbp)
-	je	.L2723
+	je	.L2727
 	movzbl	60(%rbp), %eax
 	movzbl	%al, %eax
 	andl	$7, %eax
@@ -51909,12 +51922,12 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2723:
+	jmp	.L2725
+.L2727:
 	cmpl	$0, -56(%rbp)
-	jne	.L2724
+	jne	.L2728
 	cmpb	$0, -51(%rbp)
-	jne	.L2724
+	jne	.L2728
 	movzbl	60(%rbp), %eax
 	movzbl	%al, %eax
 	andl	$7, %eax
@@ -51933,13 +51946,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2724:
+	jmp	.L2725
+.L2728:
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	je	.L2725
+	je	.L2729
 	movzbl	60(%rbp), %eax
 	movzbl	%al, %eax
 	andl	$7, %eax
@@ -51958,13 +51971,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2725:
+	jmp	.L2725
+.L2729:
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i32_range
 	testb	%al, %al
-	je	.L2726
+	je	.L2730
 	movzbl	60(%rbp), %eax
 	movzbl	%al, %eax
 	andl	$7, %eax
@@ -51983,8 +51996,8 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2721
-.L2726:
+	jmp	.L2725
+.L2730:
 	leaq	.LC455(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -52004,10 +52017,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2721:
+.L2725:
 	movzbl	185(%rbp), %eax
 	testb	%al, %al
-	je	.L2727
+	je	.L2731
 	subq	$8, %rsp
 	subq	$24, %rsp
 	movq	%rsp, %rcx
@@ -52021,13 +52034,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	addq	$32, %rsp
 	movb	%al, -58(%rbp)
 	cmpb	$1, -58(%rbp)
-	je	.L2728
+	je	.L2732
 	cmpb	$2, -58(%rbp)
-	je	.L2728
+	je	.L2732
 	cmpb	$4, -58(%rbp)
-	je	.L2728
+	je	.L2732
 	cmpb	$8, -58(%rbp)
-	je	.L2728
+	je	.L2732
 	leaq	.LC456(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -52060,10 +52073,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	addq	$32, %rsp
 	movl	$0, %edi
 	call	_v_exit
-.L2728:
+.L2732:
 	movzbl	184(%rbp), %eax
 	testb	%al, %al
-	je	.L2729
+	je	.L2733
 	movzbl	60(%rbp), %eax
 	andl	$7, %eax
 	movl	%eax, %edx
@@ -52086,8 +52099,8 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2730
-.L2729:
+	jmp	.L2734
+.L2733:
 	movzbl	108(%rbp), %eax
 	movzbl	%al, %eax
 	sall	$3, %eax
@@ -52107,10 +52120,10 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2730
-.L2727:
+	jmp	.L2734
+.L2731:
 	cmpb	$0, -50(%rbp)
-	je	.L2730
+	je	.L2734
 	movb	$36, -125(%rbp)
 	movq	-312(%rbp), %rax
 	movq	120(%rax), %rax
@@ -52119,22 +52132,22 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2730:
+.L2734:
 	cmpb	$0, -57(%rbp)
-	je	.L2731
+	je	.L2735
 	cmpb	$0, -49(%rbp)
-	jne	.L2732
+	jne	.L2736
 	movl	56(%rbp), %eax
 	cmpl	$3, %eax
-	jne	.L2733
+	jne	.L2737
 	movl	$11, %eax
-	jmp	.L2735
-.L2733:
+	jmp	.L2739
+.L2737:
 	movl	$10, %eax
-	jmp	.L2735
-.L2732:
+	jmp	.L2739
+.L2736:
 	movl	$2, %eax
-.L2735:
+.L2739:
 	movq	%rax, -72(%rbp)
 	subq	$32, %rsp
 	movq	%rsp, %rcx
@@ -52214,11 +52227,11 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2741
-.L2731:
+	jmp	.L2745
+.L2735:
 	movzbl	184(%rbp), %eax
 	testb	%al, %al
-	jne	.L2737
+	jne	.L2741
 	movb	$0, -133(%rbp)
 	movb	$0, -132(%rbp)
 	movb	$0, -131(%rbp)
@@ -52252,17 +52265,17 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2741
-.L2737:
+	jmp	.L2745
+.L2741:
 	cmpl	$0, -56(%rbp)
-	jne	.L2738
+	jne	.L2742
 	cmpb	$0, -49(%rbp)
-	jne	.L2738
+	jne	.L2742
 	cmpb	$0, -51(%rbp)
-	je	.L2741
-.L2738:
+	je	.L2745
+.L2742:
 	cmpb	$0, -49(%rbp)
-	je	.L2739
+	je	.L2743
 	movb	$0, -137(%rbp)
 	movb	$0, -136(%rbp)
 	movb	$0, -135(%rbp)
@@ -52296,13 +52309,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2741
-.L2739:
+	jmp	.L2745
+.L2743:
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	je	.L2740
+	je	.L2744
 	movl	-56(%rbp), %eax
 	movb	%al, -138(%rbp)
 	movq	-312(%rbp), %rax
@@ -52312,13 +52325,13 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2741
-.L2740:
+	jmp	.L2745
+.L2744:
 	movl	-56(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i32_range
 	testb	%al, %al
-	je	.L2741
+	je	.L2745
 	movb	$0, -142(%rbp)
 	movb	$0, -141(%rbp)
 	movb	$0, -140(%rbp)
@@ -52352,7 +52365,7 @@ encoder__Encoder_add_modrm_sib_disp:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-.L2741:
+.L2745:
 	nop
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
@@ -52395,10 +52408,10 @@ encoder__Encoder_cvttss2sil:
 	movq	%rax, -304(%rbp)
 	movl	-280(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2743
+	jne	.L2747
 	movl	-312(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2743
+	jne	.L2747
 	movq	-320(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -52544,230 +52557,6 @@ encoder__Encoder_cvttss2sil:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2745
-.L2743:
-	leaq	.LC216(%rip), %r12
-	movq	%r13, %rdx
-	movabsq	$-4294967296, %rax
-	andq	%rdx, %rax
-	orq	$31, %rax
-	movq	%rax, %r13
-	movq	%r13, %rax
-	movl	%eax, %edx
-	movabsq	$4294967296, %rax
-	orq	%rdx, %rax
-	movq	%rax, %r13
-	movq	-272(%rbp), %rcx
-	movq	%r12, %rsi
-	movq	%r13, %rdi
-	movq	%r12, %rax
-	movq	%r13, %rdx
-	movq	%rsi, %rdi
-	movq	%rdx, %r8
-	subq	$8, %rsp
-	subq	$24, %rsp
-	movq	%rsp, %rsi
-	movq	(%rcx), %rax
-	movq	8(%rcx), %rdx
-	movq	%rax, (%rsi)
-	movq	%rdx, 8(%rsi)
-	movq	16(%rcx), %rax
-	movq	%rax, 16(%rsi)
-	movq	%r8, %rsi
-	call	error__print
-	addq	$32, %rsp
-	movl	$1, %edi
-	call	_v_exit
-.L2745:
-	leaq	-24(%rbp), %rsp
-	popq	%rbx
-	popq	%r12
-	popq	%r13
-	popq	%rbp
-	ret
-	.globl	encoder__Encoder_cvtsi2ssq
-	.hidden	encoder__Encoder_cvtsi2ssq
-encoder__Encoder_cvtsi2ssq:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	pushq	%r13
-	pushq	%r12
-	pushq	%rbx
-	subq	$424, %rsp
-	movq	%rdi, -440(%rbp)
-	movq	-440(%rbp), %rax
-	movl	$86, %esi
-	movq	%rax, %rdi
-	call	encoder__Encoder_set_current_instr
-	leaq	-256(%rbp), %rax
-	movq	-440(%rbp), %rdx
-	movq	%rdx, %rsi
-	movq	%rax, %rdi
-	call	encoder__Encoder_parse_two_operand
-	movq	-256(%rbp), %rax
-	movq	-248(%rbp), %rdx
-	movq	%rax, -288(%rbp)
-	movq	%rdx, -280(%rbp)
-	movq	-240(%rbp), %rax
-	movq	%rax, -272(%rbp)
-	movq	-232(%rbp), %rax
-	movq	-224(%rbp), %rdx
-	movq	%rax, -320(%rbp)
-	movq	%rdx, -312(%rbp)
-	movq	-216(%rbp), %rax
-	movq	%rax, -304(%rbp)
-	movl	-280(%rbp), %eax
-	cmpl	$166, %eax
-	jne	.L2747
-	movl	-312(%rbp), %eax
-	cmpl	$168, %eax
-	jne	.L2747
-	movq	-288(%rbp), %rax
-	subq	$48, %rsp
-	movq	%rsp, %rdx
-	movq	(%rax), %rcx
-	movq	8(%rax), %rbx
-	movq	%rcx, (%rdx)
-	movq	%rbx, 8(%rdx)
-	movq	16(%rax), %rcx
-	movq	24(%rax), %rbx
-	movq	%rcx, 16(%rdx)
-	movq	%rbx, 24(%rdx)
-	movq	32(%rax), %rcx
-	movq	40(%rax), %rbx
-	movq	%rcx, 32(%rdx)
-	movq	%rbx, 40(%rdx)
-	movl	$3, %edi
-	call	encoder__Register_check_regi_size
-	addq	$48, %rsp
-	movl	$4, -392(%rbp)
-	movl	$3, -388(%rbp)
-	leaq	-208(%rbp), %rax
-	leaq	-392(%rbp), %rdx
-	movq	%rdx, %r8
-	movl	$4, %ecx
-	movl	$2, %edx
-	movl	$2, %esi
-	movq	%rax, %rdi
-	call	new_array_from_c_array
-	movq	-288(%rbp), %rdx
-	leaq	-176(%rbp), %rax
-	movq	%rdx, %rsi
-	movq	%rax, %rdi
-	call	encoder__Register_to_sumtype_encoder__RegiAll
-	pxor	%xmm0, %xmm0
-	movaps	%xmm0, -384(%rbp)
-	movq	%xmm0, -368(%rbp)
-	leaq	.LC34(%rip), %rax
-	movq	%rax, -384(%rbp)
-	movl	$1, -372(%rbp)
-	leaq	-128(%rbp), %rax
-	leaq	-384(%rbp), %rdx
-	movq	%rdx, %rsi
-	movq	%rax, %rdi
-	call	encoder__Empty_to_sumtype_encoder__RegiAll
-	movq	-320(%rbp), %rdx
-	leaq	-80(%rbp), %rax
-	movq	%rdx, %rsi
-	movq	%rax, %rdi
-	call	encoder__Xmm_to_sumtype_encoder__RegiAll
-	movq	-440(%rbp), %rsi
-	subq	$32, %rsp
-	movq	%rsp, %rcx
-	movq	-208(%rbp), %rax
-	movq	-200(%rbp), %rdx
-	movq	%rax, (%rcx)
-	movq	%rdx, 8(%rcx)
-	movq	-192(%rbp), %rax
-	movq	-184(%rbp), %rdx
-	movq	%rax, 16(%rcx)
-	movq	%rdx, 24(%rcx)
-	subq	$48, %rsp
-	movq	%rsp, %rax
-	movq	-176(%rbp), %rcx
-	movq	-168(%rbp), %rbx
-	movq	%rcx, (%rax)
-	movq	%rbx, 8(%rax)
-	movq	-160(%rbp), %rcx
-	movq	-152(%rbp), %rbx
-	movq	%rcx, 16(%rax)
-	movq	%rbx, 24(%rax)
-	movq	-144(%rbp), %rcx
-	movq	-136(%rbp), %rbx
-	movq	%rcx, 32(%rax)
-	movq	%rbx, 40(%rax)
-	subq	$48, %rsp
-	movq	%rsp, %rax
-	movq	-128(%rbp), %rcx
-	movq	-120(%rbp), %rbx
-	movq	%rcx, (%rax)
-	movq	%rbx, 8(%rax)
-	movq	-112(%rbp), %rcx
-	movq	-104(%rbp), %rbx
-	movq	%rcx, 16(%rax)
-	movq	%rbx, 24(%rax)
-	movq	-96(%rbp), %rcx
-	movq	-88(%rbp), %rbx
-	movq	%rcx, 32(%rax)
-	movq	%rbx, 40(%rax)
-	subq	$48, %rsp
-	movq	%rsp, %rax
-	movq	-80(%rbp), %rcx
-	movq	-72(%rbp), %rbx
-	movq	%rcx, (%rax)
-	movq	%rbx, 8(%rax)
-	movq	-64(%rbp), %rcx
-	movq	-56(%rbp), %rbx
-	movq	%rcx, 16(%rax)
-	movq	%rbx, 24(%rax)
-	movq	-48(%rbp), %rcx
-	movq	-40(%rbp), %rbx
-	movq	%rcx, 32(%rax)
-	movq	%rbx, 40(%rax)
-	movq	%rsi, %rdi
-	call	encoder__Encoder_add_prefix
-	addq	$176, %rsp
-	movb	$15, -395(%rbp)
-	movb	$42, -394(%rbp)
-	leaq	-432(%rbp), %rax
-	leaq	-395(%rbp), %rdx
-	movq	%rdx, %r8
-	movl	$1, %ecx
-	movl	$2, %edx
-	movl	$2, %esi
-	movq	%rax, %rdi
-	call	new_array_from_c_array
-	movl	-412(%rbp), %edx
-	movq	-424(%rbp), %rax
-	movq	-440(%rbp), %rcx
-	movq	120(%rcx), %rcx
-	addq	$8, %rcx
-	movq	%rax, %rsi
-	movq	%rcx, %rdi
-	call	array_push_many
-	movq	-288(%rbp), %rax
-	movzbl	20(%rax), %eax
-	movzbl	%al, %eax
-	andl	$7, %eax
-	movl	%eax, %edx
-	movq	-320(%rbp), %rax
-	movzbl	20(%rax), %eax
-	movzbl	%al, %eax
-	andl	$7, %eax
-	movl	%eax, %ecx
-	movl	$3, %eax
-	movzbl	%al, %eax
-	movl	%ecx, %esi
-	movl	%eax, %edi
-	call	encoder__compose_mod_rm
-	movb	%al, -393(%rbp)
-	movq	-440(%rbp), %rax
-	movq	120(%rax), %rax
-	leaq	8(%rax), %rdx
-	leaq	-393(%rbp), %rax
-	movq	%rax, %rsi
-	movq	%rdx, %rdi
-	call	array_push
 	jmp	.L2749
 .L2747:
 	leaq	.LC216(%rip), %r12
@@ -52809,9 +52598,9 @@ encoder__Encoder_cvtsi2ssq:
 	popq	%r13
 	popq	%rbp
 	ret
-	.globl	encoder__Encoder_cvtsi2sdq
-	.hidden	encoder__Encoder_cvtsi2sdq
-encoder__Encoder_cvtsi2sdq:
+	.globl	encoder__Encoder_cvtsi2ssq
+	.hidden	encoder__Encoder_cvtsi2ssq
+encoder__Encoder_cvtsi2ssq:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	pushq	%r13
@@ -52820,7 +52609,7 @@ encoder__Encoder_cvtsi2sdq:
 	subq	$424, %rsp
 	movq	%rdi, -440(%rbp)
 	movq	-440(%rbp), %rax
-	movl	$87, %esi
+	movl	$86, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_set_current_instr
 	leaq	-256(%rbp), %rax
@@ -52864,7 +52653,7 @@ encoder__Encoder_cvtsi2sdq:
 	movl	$3, %edi
 	call	encoder__Register_check_regi_size
 	addq	$48, %rsp
-	movl	$5, -392(%rbp)
+	movl	$4, -392(%rbp)
 	movl	$3, -388(%rbp)
 	leaq	-208(%rbp), %rax
 	leaq	-392(%rbp), %rdx
@@ -53033,6 +52822,230 @@ encoder__Encoder_cvtsi2sdq:
 	popq	%r13
 	popq	%rbp
 	ret
+	.globl	encoder__Encoder_cvtsi2sdq
+	.hidden	encoder__Encoder_cvtsi2sdq
+encoder__Encoder_cvtsi2sdq:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	pushq	%r13
+	pushq	%r12
+	pushq	%rbx
+	subq	$424, %rsp
+	movq	%rdi, -440(%rbp)
+	movq	-440(%rbp), %rax
+	movl	$87, %esi
+	movq	%rax, %rdi
+	call	encoder__Encoder_set_current_instr
+	leaq	-256(%rbp), %rax
+	movq	-440(%rbp), %rdx
+	movq	%rdx, %rsi
+	movq	%rax, %rdi
+	call	encoder__Encoder_parse_two_operand
+	movq	-256(%rbp), %rax
+	movq	-248(%rbp), %rdx
+	movq	%rax, -288(%rbp)
+	movq	%rdx, -280(%rbp)
+	movq	-240(%rbp), %rax
+	movq	%rax, -272(%rbp)
+	movq	-232(%rbp), %rax
+	movq	-224(%rbp), %rdx
+	movq	%rax, -320(%rbp)
+	movq	%rdx, -312(%rbp)
+	movq	-216(%rbp), %rax
+	movq	%rax, -304(%rbp)
+	movl	-280(%rbp), %eax
+	cmpl	$166, %eax
+	jne	.L2755
+	movl	-312(%rbp), %eax
+	cmpl	$168, %eax
+	jne	.L2755
+	movq	-288(%rbp), %rax
+	subq	$48, %rsp
+	movq	%rsp, %rdx
+	movq	(%rax), %rcx
+	movq	8(%rax), %rbx
+	movq	%rcx, (%rdx)
+	movq	%rbx, 8(%rdx)
+	movq	16(%rax), %rcx
+	movq	24(%rax), %rbx
+	movq	%rcx, 16(%rdx)
+	movq	%rbx, 24(%rdx)
+	movq	32(%rax), %rcx
+	movq	40(%rax), %rbx
+	movq	%rcx, 32(%rdx)
+	movq	%rbx, 40(%rdx)
+	movl	$3, %edi
+	call	encoder__Register_check_regi_size
+	addq	$48, %rsp
+	movl	$5, -392(%rbp)
+	movl	$3, -388(%rbp)
+	leaq	-208(%rbp), %rax
+	leaq	-392(%rbp), %rdx
+	movq	%rdx, %r8
+	movl	$4, %ecx
+	movl	$2, %edx
+	movl	$2, %esi
+	movq	%rax, %rdi
+	call	new_array_from_c_array
+	movq	-288(%rbp), %rdx
+	leaq	-176(%rbp), %rax
+	movq	%rdx, %rsi
+	movq	%rax, %rdi
+	call	encoder__Register_to_sumtype_encoder__RegiAll
+	pxor	%xmm0, %xmm0
+	movaps	%xmm0, -384(%rbp)
+	movq	%xmm0, -368(%rbp)
+	leaq	.LC34(%rip), %rax
+	movq	%rax, -384(%rbp)
+	movl	$1, -372(%rbp)
+	leaq	-128(%rbp), %rax
+	leaq	-384(%rbp), %rdx
+	movq	%rdx, %rsi
+	movq	%rax, %rdi
+	call	encoder__Empty_to_sumtype_encoder__RegiAll
+	movq	-320(%rbp), %rdx
+	leaq	-80(%rbp), %rax
+	movq	%rdx, %rsi
+	movq	%rax, %rdi
+	call	encoder__Xmm_to_sumtype_encoder__RegiAll
+	movq	-440(%rbp), %rsi
+	subq	$32, %rsp
+	movq	%rsp, %rcx
+	movq	-208(%rbp), %rax
+	movq	-200(%rbp), %rdx
+	movq	%rax, (%rcx)
+	movq	%rdx, 8(%rcx)
+	movq	-192(%rbp), %rax
+	movq	-184(%rbp), %rdx
+	movq	%rax, 16(%rcx)
+	movq	%rdx, 24(%rcx)
+	subq	$48, %rsp
+	movq	%rsp, %rax
+	movq	-176(%rbp), %rcx
+	movq	-168(%rbp), %rbx
+	movq	%rcx, (%rax)
+	movq	%rbx, 8(%rax)
+	movq	-160(%rbp), %rcx
+	movq	-152(%rbp), %rbx
+	movq	%rcx, 16(%rax)
+	movq	%rbx, 24(%rax)
+	movq	-144(%rbp), %rcx
+	movq	-136(%rbp), %rbx
+	movq	%rcx, 32(%rax)
+	movq	%rbx, 40(%rax)
+	subq	$48, %rsp
+	movq	%rsp, %rax
+	movq	-128(%rbp), %rcx
+	movq	-120(%rbp), %rbx
+	movq	%rcx, (%rax)
+	movq	%rbx, 8(%rax)
+	movq	-112(%rbp), %rcx
+	movq	-104(%rbp), %rbx
+	movq	%rcx, 16(%rax)
+	movq	%rbx, 24(%rax)
+	movq	-96(%rbp), %rcx
+	movq	-88(%rbp), %rbx
+	movq	%rcx, 32(%rax)
+	movq	%rbx, 40(%rax)
+	subq	$48, %rsp
+	movq	%rsp, %rax
+	movq	-80(%rbp), %rcx
+	movq	-72(%rbp), %rbx
+	movq	%rcx, (%rax)
+	movq	%rbx, 8(%rax)
+	movq	-64(%rbp), %rcx
+	movq	-56(%rbp), %rbx
+	movq	%rcx, 16(%rax)
+	movq	%rbx, 24(%rax)
+	movq	-48(%rbp), %rcx
+	movq	-40(%rbp), %rbx
+	movq	%rcx, 32(%rax)
+	movq	%rbx, 40(%rax)
+	movq	%rsi, %rdi
+	call	encoder__Encoder_add_prefix
+	addq	$176, %rsp
+	movb	$15, -395(%rbp)
+	movb	$42, -394(%rbp)
+	leaq	-432(%rbp), %rax
+	leaq	-395(%rbp), %rdx
+	movq	%rdx, %r8
+	movl	$1, %ecx
+	movl	$2, %edx
+	movl	$2, %esi
+	movq	%rax, %rdi
+	call	new_array_from_c_array
+	movl	-412(%rbp), %edx
+	movq	-424(%rbp), %rax
+	movq	-440(%rbp), %rcx
+	movq	120(%rcx), %rcx
+	addq	$8, %rcx
+	movq	%rax, %rsi
+	movq	%rcx, %rdi
+	call	array_push_many
+	movq	-288(%rbp), %rax
+	movzbl	20(%rax), %eax
+	movzbl	%al, %eax
+	andl	$7, %eax
+	movl	%eax, %edx
+	movq	-320(%rbp), %rax
+	movzbl	20(%rax), %eax
+	movzbl	%al, %eax
+	andl	$7, %eax
+	movl	%eax, %ecx
+	movl	$3, %eax
+	movzbl	%al, %eax
+	movl	%ecx, %esi
+	movl	%eax, %edi
+	call	encoder__compose_mod_rm
+	movb	%al, -393(%rbp)
+	movq	-440(%rbp), %rax
+	movq	120(%rax), %rax
+	leaq	8(%rax), %rdx
+	leaq	-393(%rbp), %rax
+	movq	%rax, %rsi
+	movq	%rdx, %rdi
+	call	array_push
+	jmp	.L2757
+.L2755:
+	leaq	.LC216(%rip), %r12
+	movq	%r13, %rdx
+	movabsq	$-4294967296, %rax
+	andq	%rdx, %rax
+	orq	$31, %rax
+	movq	%rax, %r13
+	movq	%r13, %rax
+	movl	%eax, %edx
+	movabsq	$4294967296, %rax
+	orq	%rdx, %rax
+	movq	%rax, %r13
+	movq	-272(%rbp), %rcx
+	movq	%r12, %rsi
+	movq	%r13, %rdi
+	movq	%r12, %rax
+	movq	%r13, %rdx
+	movq	%rsi, %rdi
+	movq	%rdx, %r8
+	subq	$8, %rsp
+	subq	$24, %rsp
+	movq	%rsp, %rsi
+	movq	(%rcx), %rax
+	movq	8(%rcx), %rdx
+	movq	%rax, (%rsi)
+	movq	%rdx, 8(%rsi)
+	movq	16(%rcx), %rax
+	movq	%rax, 16(%rsi)
+	movq	%r8, %rsi
+	call	error__print
+	addq	$32, %rsp
+	movl	$1, %edi
+	call	_v_exit
+.L2757:
+	leaq	-24(%rbp), %rsp
+	popq	%rbx
+	popq	%r12
+	popq	%r13
+	popq	%rbp
+	ret
 	.globl	encoder__Encoder_xorp
 	.hidden	encoder__Encoder_xorp
 encoder__Encoder_xorp:
@@ -53068,10 +53081,10 @@ encoder__Encoder_xorp:
 	movq	%rax, -272(%rbp)
 	movl	-248(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2755
+	jne	.L2759
 	movl	-280(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2755
+	jne	.L2759
 	movq	-256(%rbp), %rdx
 	leaq	-176(%rbp), %rax
 	movq	%rdx, %rsi
@@ -53190,8 +53203,8 @@ encoder__Encoder_xorp:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2757
-.L2755:
+	jmp	.L2761
+.L2759:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -53224,7 +53237,7 @@ encoder__Encoder_xorp:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2757:
+.L2761:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -53266,10 +53279,10 @@ encoder__Encoder_sse_arith_instr:
 	movq	%rax, -416(%rbp)
 	movl	-392(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2759
+	jne	.L2763
 	movl	-424(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2759
+	jne	.L2763
 	movq	-400(%rbp), %rdx
 	leaq	-320(%rbp), %rax
 	movq	%rdx, %rsi
@@ -53386,14 +53399,14 @@ encoder__Encoder_sse_arith_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2760
-.L2759:
+	jmp	.L2764
+.L2763:
 	movl	-392(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2761
+	jne	.L2765
 	movl	-424(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2761
+	jne	.L2765
 	movq	-400(%rbp), %rax
 	movq	-552(%rbp), %rsi
 	subq	$176, %rsp
@@ -53589,8 +53602,8 @@ encoder__Encoder_sse_arith_instr:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2760
-.L2761:
+	jmp	.L2764
+.L2765:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -53623,7 +53636,7 @@ encoder__Encoder_sse_arith_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2760:
+.L2764:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -53667,10 +53680,10 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%rax, -576(%rbp)
 	movl	-552(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2764
+	jne	.L2768
 	movl	-584(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2764
+	jne	.L2768
 	movq	-560(%rbp), %rdx
 	leaq	-480(%rbp), %rax
 	movq	%rdx, %rsi
@@ -53790,14 +53803,14 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2765
-.L2764:
+	jmp	.L2769
+.L2768:
 	movl	-552(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2766
+	jne	.L2770
 	movl	-584(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2766
+	jne	.L2770
 	movq	-560(%rbp), %rax
 	movq	-680(%rbp), %rsi
 	subq	$176, %rsp
@@ -53994,14 +54007,14 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2765
-.L2766:
+	jmp	.L2769
+.L2770:
 	movl	-552(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2767
+	jne	.L2771
 	movl	-584(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2767
+	jne	.L2771
 	movq	-592(%rbp), %rax
 	movq	-680(%rbp), %rsi
 	subq	$176, %rsp
@@ -54199,8 +54212,8 @@ encoder__Encoder_sse_data_transfer_instr:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2765
-.L2767:
+	jmp	.L2769
+.L2771:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -54233,7 +54246,7 @@ encoder__Encoder_sse_data_transfer_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2765:
+.L2769:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -54273,10 +54286,10 @@ encoder__Encoder_movd:
 	movq	%rax, -848(%rbp)
 	movl	-824(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2770
+	jne	.L2774
 	movl	-856(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2770
+	jne	.L2774
 	movq	-832(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -54424,14 +54437,14 @@ encoder__Encoder_movd:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2771
-.L2770:
+	jmp	.L2775
+.L2774:
 	movl	-824(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2772
+	jne	.L2776
 	movl	-856(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2772
+	jne	.L2776
 	movq	-864(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -54579,14 +54592,14 @@ encoder__Encoder_movd:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2771
-.L2772:
+	jmp	.L2775
+.L2776:
 	movl	-824(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2773
+	jne	.L2777
 	movl	-856(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2773
+	jne	.L2777
 	movq	-832(%rbp), %rax
 	movq	-1064(%rbp), %rsi
 	subq	$176, %rsp
@@ -54793,14 +54806,14 @@ encoder__Encoder_movd:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2771
-.L2773:
+	jmp	.L2775
+.L2777:
 	movl	-824(%rbp), %eax
 	cmpl	$168, %eax
-	jne	.L2774
+	jne	.L2778
 	movl	-856(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2774
+	jne	.L2778
 	movq	-864(%rbp), %rax
 	movq	-1064(%rbp), %rsi
 	subq	$176, %rsp
@@ -55007,8 +55020,8 @@ encoder__Encoder_movd:
 	movq	%rbx, 168(%rdx)
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2771
-.L2774:
+	jmp	.L2775
+.L2778:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -55041,7 +55054,7 @@ encoder__Encoder_movd:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2771:
+.L2775:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -55069,7 +55082,7 @@ encoder__Encoder_pop:
 	call	encoder__Encoder_parse_operand
 	movl	-408(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2777
+	jne	.L2781
 	movq	-416(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -55199,11 +55212,11 @@ encoder__Encoder_pop:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2778
-.L2777:
+	jmp	.L2782
+.L2781:
 	movl	-408(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2779
+	jne	.L2783
 	movq	-416(%rbp), %rax
 	movq	-664(%rbp), %rsi
 	subq	$176, %rsp
@@ -55400,8 +55413,8 @@ encoder__Encoder_pop:
 	movl	$0, %esi
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2778
-.L2779:
+	jmp	.L2782
+.L2783:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -55434,7 +55447,7 @@ encoder__Encoder_pop:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2778:
+.L2782:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -55464,7 +55477,7 @@ encoder__Encoder_push:
 	call	encoder__Encoder_parse_operand
 	movl	-440(%rbp), %eax
 	cmpl	$166, %eax
-	jne	.L2782
+	jne	.L2786
 	movq	-448(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -55612,11 +55625,11 @@ encoder__Encoder_push:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2783
-.L2782:
+	jmp	.L2787
+.L2786:
 	movl	-440(%rbp), %eax
 	cmpl	$169, %eax
-	jne	.L2784
+	jne	.L2788
 	movq	-448(%rbp), %rax
 	movq	-696(%rbp), %rsi
 	subq	$176, %rsp
@@ -55813,11 +55826,11 @@ encoder__Encoder_push:
 	movl	$6, %esi
 	call	encoder__Encoder_add_modrm_sib_disp
 	addq	$176, %rsp
-	jmp	.L2783
-.L2784:
+	jmp	.L2787
+.L2788:
 	movl	-440(%rbp), %eax
 	cmpl	$170, %eax
-	jne	.L2785
+	jne	.L2789
 	leaq	-688(%rbp), %rax
 	movl	$0, %r8d
 	movl	$16, %ecx
@@ -55841,7 +55854,7 @@ encoder__Encoder_push:
 	movl	%eax, -52(%rbp)
 	movl	-668(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2786
+	jle	.L2790
 	leaq	.LC217(%rip), %r14
 	movq	%r15, %rdx
 	movabsq	$-4294967296, %rax
@@ -55874,17 +55887,17 @@ encoder__Encoder_push:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2786:
+.L2790:
 	movl	-52(%rbp), %eax
 	movl	%eax, %edi
 	call	encoder__is_in_i8_range
 	testb	%al, %al
-	je	.L2787
+	je	.L2791
 	movl	$106, %eax
-	jmp	.L2788
-.L2787:
+	jmp	.L2792
+.L2791:
 	movl	$104, %eax
-.L2788:
+.L2792:
 	movb	%al, -642(%rbp)
 	movq	-696(%rbp), %rax
 	movq	120(%rax), %rax
@@ -55898,7 +55911,7 @@ encoder__Encoder_push:
 	sete	%al
 	movb	%al, -53(%rbp)
 	cmpb	$0, -53(%rbp)
-	je	.L2789
+	je	.L2793
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-688(%rbp), %rax
@@ -55919,16 +55932,16 @@ encoder__Encoder_push:
 	movl	$3, %r8d
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_rela
-	jmp	.L2783
-.L2789:
+	jmp	.L2787
+.L2793:
 	movl	-52(%rbp), %ecx
 	movq	-696(%rbp), %rax
 	movl	$3, %edx
 	movl	%ecx, %esi
 	movq	%rax, %rdi
 	call	encoder__Encoder_add_imm_value
-	jmp	.L2783
-.L2785:
+	jmp	.L2787
+.L2789:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -55961,7 +55974,7 @@ encoder__Encoder_push:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2783:
+.L2787:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -55997,7 +56010,7 @@ encoder__Encoder_jmp_instr:
 	call	encoder__Encoder_parse_operand
 	movl	-232(%rbp), %eax
 	cmpl	$171, %eax
-	jne	.L2793
+	jne	.L2797
 	movq	16(%rbp), %rax
 	movq	24(%rbp), %rdx
 	movq	%rax, -432(%rbp)
@@ -56050,11 +56063,11 @@ encoder__Encoder_jmp_instr:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-	jmp	.L2794
-.L2793:
+	jmp	.L2798
+.L2797:
 	movl	-232(%rbp), %eax
 	cmpl	$179, %eax
-	jne	.L2795
+	jne	.L2799
 	movq	-240(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -56186,8 +56199,8 @@ encoder__Encoder_jmp_instr:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2794
-.L2795:
+	jmp	.L2798
+.L2799:
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -56220,7 +56233,7 @@ encoder__Encoder_jmp_instr:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2794:
+.L2798:
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -56251,7 +56264,7 @@ encoder__Encoder_call:
 	call	encoder__Encoder_parse_operand
 	movl	-248(%rbp), %eax
 	cmpl	$179, %eax
-	jne	.L2798
+	jne	.L2802
 	movq	-256(%rbp), %rax
 	subq	$48, %rsp
 	movq	%rsp, %rdx
@@ -56383,8 +56396,8 @@ encoder__Encoder_call:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	array_push_many
-	jmp	.L2801
-.L2798:
+	jmp	.L2805
+.L2802:
 	movb	$-24, -391(%rbp)
 	movb	$0, -390(%rbp)
 	movb	$0, -389(%rbp)
@@ -56429,7 +56442,7 @@ encoder__Encoder_call:
 	movl	%eax, -36(%rbp)
 	movl	-460(%rbp), %eax
 	cmpl	$1, %eax
-	jle	.L2800
+	jle	.L2804
 	leaq	.LC216(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -56462,7 +56475,7 @@ encoder__Encoder_call:
 	addq	$32, %rsp
 	movl	$1, %edi
 	call	_v_exit
-.L2800:
+.L2804:
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-480(%rbp), %rax
@@ -56495,7 +56508,7 @@ encoder__Encoder_call:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2801:
+.L2805:
 	nop
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -56728,18 +56741,18 @@ elf__new:
 	movl	-1284(%rbp), %eax
 	movl	%eax, -20(%rbp)
 	movl	$0, -24(%rbp)
-	jmp	.L2803
-.L2808:
+	jmp	.L2807
+.L2812:
 	movl	-1284(%rbp), %eax
 	subl	-20(%rbp), %eax
 	movl	%eax, -36(%rbp)
 	movl	-1284(%rbp), %eax
 	movl	%eax, -20(%rbp)
 	cmpl	$0, -36(%rbp)
-	jns	.L2804
+	jns	.L2808
 	movl	$-1, -24(%rbp)
-	jmp	.L2807
-.L2804:
+	jmp	.L2811
+.L2808:
 	movl	-24(%rbp), %eax
 	leaq	-1312(%rbp), %rdx
 	addq	$16, %rdx
@@ -56747,7 +56760,7 @@ elf__new:
 	movq	%rdx, %rdi
 	call	DenseArray_has_index
 	testb	%al, %al
-	je	.L2810
+	je	.L2814
 	movl	-24(%rbp), %eax
 	leaq	-1312(%rbp), %rdx
 	addq	$16, %rdx
@@ -56793,15 +56806,15 @@ elf__new:
 	movq	%rax, %rsi
 	movq	%rcx, %rdi
 	call	map_set
-	jmp	.L2807
-.L2810:
+	jmp	.L2811
+.L2814:
 	nop
-.L2807:
+.L2811:
 	addl	$1, -24(%rbp)
-.L2803:
+.L2807:
 	movl	-24(%rbp), %eax
 	cmpl	-20(%rbp), %eax
-	jl	.L2808
+	jl	.L2812
 	movq	-32(%rbp), %rax
 	movq	-8(%rbp), %rbx
 	leave
@@ -56843,8 +56856,8 @@ elf__add_padding:
 	subl	%eax, %edx
 	movl	%edx, -8(%rbp)
 	movl	$0, -4(%rbp)
-	jmp	.L2814
-.L2815:
+	jmp	.L2818
+.L2819:
 	movb	$0, -9(%rbp)
 	leaq	-9(%rbp), %rdx
 	movq	-24(%rbp), %rax
@@ -56852,10 +56865,10 @@ elf__add_padding:
 	movq	%rax, %rdi
 	call	array_push
 	addl	$1, -4(%rbp)
-.L2814:
+.L2818:
 	movl	-4(%rbp), %eax
 	cmpl	-8(%rbp), %eax
-	jl	.L2815
+	jl	.L2819
 	nop
 	nop
 	leave
@@ -56911,18 +56924,18 @@ elf__Elf_elf_symbol:
 	movl	-164(%rbp), %eax
 	movl	%eax, -36(%rbp)
 	movl	$0, -40(%rbp)
-	jmp	.L2817
-.L2827:
+	jmp	.L2821
+.L2831:
 	movl	-164(%rbp), %eax
 	subl	-36(%rbp), %eax
 	movl	%eax, -48(%rbp)
 	movl	-164(%rbp), %eax
 	movl	%eax, -36(%rbp)
 	cmpl	$0, -48(%rbp)
-	jns	.L2818
+	jns	.L2822
 	movl	$-1, -40(%rbp)
-	jmp	.L2826
-.L2818:
+	jmp	.L2830
+.L2822:
 	movl	-40(%rbp), %eax
 	leaq	-192(%rbp), %rdx
 	addq	$16, %rdx
@@ -56930,7 +56943,7 @@ elf__Elf_elf_symbol:
 	movq	%rdx, %rdi
 	call	DenseArray_has_index
 	testb	%al, %al
-	je	.L2828
+	je	.L2832
 	movl	-40(%rbp), %eax
 	leaq	-192(%rbp), %rdx
 	addq	$16, %rdx
@@ -56960,19 +56973,19 @@ elf__Elf_elf_symbol:
 	movzbl	80(%rax), %eax
 	movzbl	%al, %eax
 	cmpl	%eax, -492(%rbp)
-	jne	.L2829
+	jne	.L2833
 	movq	-56(%rbp), %rax
 	movzbl	80(%rax), %eax
 	testb	%al, %al
-	jne	.L2822
+	jne	.L2826
 	movq	-488(%rbp), %rax
 	movzbl	288(%rax), %eax
 	testb	%al, %al
-	jne	.L2823
+	jne	.L2827
 	movq	-56(%rbp), %rax
 	movzbl	80(%rax), %eax
 	testb	%al, %al
-	jne	.L2823
+	jne	.L2827
 	leaq	.LC457(%rip), %r12
 	movq	%r13, %rdx
 	movabsq	$-4294967296, %rax
@@ -56999,15 +57012,15 @@ elf__Elf_elf_symbol:
 	movq	%rax, %rsi
 	call	string_starts_with
 	testb	%al, %al
-	je	.L2823
-	jmp	.L2826
-.L2823:
+	je	.L2827
+	jmp	.L2830
+.L2827:
 	movq	-488(%rbp), %rax
 	movl	480(%rax), %eax
 	leal	1(%rax), %edx
 	movq	-488(%rbp), %rax
 	movl	%edx, 480(%rax)
-.L2822:
+.L2826:
 	movq	-488(%rbp), %rax
 	movl	472(%rax), %eax
 	movl	%eax, -228(%rbp)
@@ -57079,14 +57092,14 @@ elf__Elf_elf_symbol:
 	movq	-56(%rbp), %rax
 	movzbl	82(%rax), %eax
 	cmpb	$3, %al
-	jne	.L2824
+	jne	.L2828
 	movl	$0, -44(%rbp)
-	jmp	.L2825
-.L2824:
+	jmp	.L2829
+.L2828:
 	movq	-504(%rbp), %rax
 	movl	(%rax), %eax
 	movl	%eax, -44(%rbp)
-.L2825:
+.L2829:
 	movl	-44(%rbp), %eax
 	movl	%eax, -320(%rbp)
 	movq	-56(%rbp), %rax
@@ -57138,18 +57151,18 @@ elf__Elf_elf_symbol:
 	movq	-200(%rbp), %rdx
 	movq	%rax, (%rcx)
 	movq	%rdx, 8(%rcx)
-	jmp	.L2826
-.L2828:
+	jmp	.L2830
+.L2832:
 	nop
-	jmp	.L2826
-.L2829:
+	jmp	.L2830
+.L2833:
 	nop
-.L2826:
+.L2830:
 	addl	$1, -40(%rbp)
-.L2817:
+.L2821:
 	movl	-40(%rbp), %eax
 	cmpl	-36(%rbp), %eax
-	jl	.L2827
+	jl	.L2831
 	nop
 	nop
 	addq	$488, %rsp
@@ -57168,8 +57181,8 @@ elf__Elf_elf_rela_symbol:
 	movq	%rsi, -176(%rbp)
 	movq	%rdx, -184(%rbp)
 	movl	$0, -4(%rbp)
-	jmp	.L2831
-.L2832:
+	jmp	.L2835
+.L2836:
 	movq	-168(%rbp), %rax
 	movq	496(%rax), %rax
 	movl	-4(%rbp), %edx
@@ -57242,11 +57255,11 @@ elf__Elf_elf_rela_symbol:
 	movq	%rax, (%rcx)
 	movq	%rdx, 8(%rcx)
 	addl	$1, -4(%rbp)
-.L2831:
+.L2835:
 	movq	-168(%rbp), %rax
 	movl	508(%rax), %eax
 	cmpl	%eax, -4(%rbp)
-	jl	.L2832
+	jl	.L2836
 	nop
 	nop
 	leave
@@ -57267,8 +57280,8 @@ elf__Elf_rela_text_users:
 	subq	$696, %rsp
 	movq	%rdi, -696(%rbp)
 	movl	$0, -52(%rbp)
-	jmp	.L2834
-.L2847:
+	jmp	.L2838
+.L2851:
 	movq	-696(%rbp), %rax
 	movq	24(%rax), %rcx
 	movl	-52(%rbp), %eax
@@ -57294,50 +57307,50 @@ elf__Elf_rela_text_users:
 	movq	-624(%rbp), %rax
 	movl	$11, %edx
 	cmpq	%rdx, %rax
-	je	.L2835
+	je	.L2839
 	movq	-624(%rbp), %rax
 	movl	$10, %edx
 	cmpq	%rdx, %rax
-	je	.L2835
+	je	.L2839
 	movq	-624(%rbp), %rax
 	movl	$1, %edx
 	cmpq	%rdx, %rax
-	je	.L2835
+	je	.L2839
 	movq	-624(%rbp), %rax
 	movl	$10, %edx
 	cmpq	%rdx, %rax
-	je	.L2835
+	je	.L2839
 	movq	-624(%rbp), %rax
 	movl	$12, %edx
 	cmpq	%rdx, %rax
-	je	.L2835
+	je	.L2839
 	movq	-624(%rbp), %rax
 	movl	$14, %edx
 	cmpq	%rdx, %rax
-	je	.L2835
+	je	.L2839
 	movq	-624(%rbp), %rax
 	movl	$2, %edx
 	cmpq	%rdx, %rax
-	jne	.L2836
+	jne	.L2840
 	movq	-632(%rbp), %rcx
 	movq	-640(%rbp), %rax
 	movl	28(%rax), %eax
 	movslq	%eax, %rdx
 	movq	%rcx, %rax
 	subq	%rdx, %rax
-	jmp	.L2838
-.L2836:
+	jmp	.L2842
+.L2840:
 	movq	$-4, %rax
-	jmp	.L2838
-.L2835:
+	jmp	.L2842
+.L2839:
 	movl	$0, %eax
-.L2838:
+.L2842:
 	movq	%rax, -64(%rbp)
 	movzbl	-612(%rbp), %eax
 	testb	%al, %al
-	je	.L2839
-	jmp	.L2840
-.L2839:
+	je	.L2843
+	jmp	.L2844
+.L2843:
 	movq	-656(%rbp), %rax
 	movq	-648(%rbp), %rdx
 	movq	%rax, -96(%rbp)
@@ -57384,14 +57397,14 @@ elf__Elf_rela_text_users:
 	movaps	%xmm0, -592(%rbp)
 	movaps	%xmm0, -576(%rbp)
 	cmpq	$0, -72(%rbp)
-	je	.L2841
+	je	.L2845
 	leaq	-608(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-72(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2842
-.L2841:
+	jmp	.L2846
+.L2845:
 	movb	$2, -608(%rbp)
 	leaq	.LC211(%rip), %r14
 	movq	%r15, %rdx
@@ -57420,10 +57433,10 @@ elf__Elf_rela_text_users:
 	movq	-712(%rbp), %rdx
 	movq	%rax, -584(%rbp)
 	movq	%rdx, -576(%rbp)
-.L2842:
+.L2846:
 	movzbl	-608(%rbp), %eax
 	testb	%al, %al
-	jne	.L2843
+	jne	.L2847
 	leaq	-608(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -57431,7 +57444,7 @@ elf__Elf_rela_text_users:
 	movq	-80(%rbp), %rax
 	movzbl	80(%rax), %eax
 	cmpb	$1, %al
-	jne	.L2844
+	jne	.L2848
 	movl	$0, -212(%rbp)
 	movq	-656(%rbp), %rax
 	movq	-648(%rbp), %rdx
@@ -57476,8 +57489,8 @@ elf__Elf_rela_text_users:
 	call	map_get
 	movl	(%rax), %eax
 	movl	%eax, -56(%rbp)
-	jmp	.L2845
-.L2844:
+	jmp	.L2849
+.L2848:
 	movq	-80(%rbp), %rax
 	movq	72(%rax), %rax
 	addq	%rax, -64(%rbp)
@@ -57526,8 +57539,8 @@ elf__Elf_rela_text_users:
 	call	map_get
 	movl	(%rax), %eax
 	movl	%eax, -56(%rbp)
-	jmp	.L2845
-.L2843:
+	jmp	.L2849
+.L2847:
 	movq	-600(%rbp), %rax
 	movq	-592(%rbp), %rdx
 	movq	%rax, -688(%rbp)
@@ -57580,7 +57593,7 @@ elf__Elf_rela_text_users:
 	call	map_get
 	movl	(%rax), %eax
 	movl	%eax, -56(%rbp)
-.L2845:
+.L2849:
 	movq	-640(%rbp), %rax
 	leaq	.LC458(%rip), %r12
 	movq	%r13, %rcx
@@ -57662,7 +57675,7 @@ elf__Elf_rela_text_users:
 	call	Array_string_contains
 	addq	$32, %rsp
 	testb	%al, %al
-	jne	.L2840
+	jne	.L2844
 	movq	-112(%rbp), %rdx
 	movq	-104(%rbp), %rax
 	movq	%rdx, %rdi
@@ -57676,13 +57689,13 @@ elf__Elf_rela_text_users:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2840:
+.L2844:
 	addl	$1, -52(%rbp)
-.L2834:
+.L2838:
 	movq	-696(%rbp), %rax
 	movl	36(%rax), %eax
 	cmpl	%eax, -52(%rbp)
-	jl	.L2847
+	jl	.L2851
 	nop
 	nop
 	leaq	-40(%rbp), %rsp
@@ -57701,8 +57714,8 @@ elf__Elf_collect_rela_symbols:
 	subq	$248, %rsp
 	movq	%rdi, -248(%rbp)
 	movl	$0, -20(%rbp)
-	jmp	.L2849
-.L2853:
+	jmp	.L2853
+.L2857:
 	movq	-248(%rbp), %rax
 	movq	24(%rax), %rcx
 	movl	-20(%rbp), %eax
@@ -57741,7 +57754,7 @@ elf__Elf_collect_rela_symbols:
 	call	Array_string_contains
 	addq	$32, %rsp
 	testb	%al, %al
-	jne	.L2852
+	jne	.L2856
 	movq	-240(%rbp), %rax
 	movq	-232(%rbp), %rdx
 	movq	%rax, -64(%rbp)
@@ -57783,7 +57796,7 @@ elf__Elf_collect_rela_symbols:
 	movq	%rax, %rdi
 	call	map_exists
 	testb	%al, %al
-	jne	.L2852
+	jne	.L2856
 	movq	-240(%rbp), %rdx
 	movq	-232(%rbp), %rax
 	movq	%rdx, %rdi
@@ -57797,13 +57810,13 @@ elf__Elf_collect_rela_symbols:
 	movq	%rax, %rsi
 	movq	%rdx, %rdi
 	call	array_push
-.L2852:
+.L2856:
 	addl	$1, -20(%rbp)
-.L2849:
+.L2853:
 	movq	-248(%rbp), %rax
 	movl	36(%rax), %eax
 	cmpl	%eax, -20(%rbp)
-	jl	.L2853
+	jl	.L2857
 	nop
 	nop
 	movq	-8(%rbp), %rbx
@@ -57936,8 +57949,8 @@ elf__Elf_build_shstrtab:
 	call	map_set
 	movl	$1, -4(%rbp)
 	movl	$0, -8(%rbp)
-	jmp	.L2856
-.L2857:
+	jmp	.L2860
+.L2861:
 	movq	-360(%rbp), %rax
 	movq	528(%rax), %rax
 	movl	-8(%rbp), %edx
@@ -57985,11 +57998,11 @@ elf__Elf_build_shstrtab:
 	movq	%rdx, %rdi
 	call	array_push
 	addl	$1, -8(%rbp)
-.L2856:
+.L2860:
 	movq	-360(%rbp), %rax
 	movl	540(%rax), %eax
 	cmpl	%eax, -8(%rbp)
-	jl	.L2857
+	jl	.L2861
 	leaq	.LC459(%rip), %rax
 	movq	%rax, -128(%rbp)
 	movl	$7, -120(%rbp)
@@ -58011,8 +58024,8 @@ elf__Elf_build_shstrtab:
 	movq	%rax, %rdi
 	call	new_array_from_c_array
 	movl	$0, -12(%rbp)
-	jmp	.L2858
-.L2859:
+	jmp	.L2862
+.L2863:
 	movq	-72(%rbp), %rax
 	movl	-12(%rbp), %edx
 	movslq	%edx, %rdx
@@ -58059,10 +58072,10 @@ elf__Elf_build_shstrtab:
 	movq	%rdx, %rdi
 	call	array_push
 	addl	$1, -12(%rbp)
-.L2858:
+.L2862:
 	movl	-60(%rbp), %eax
 	cmpl	%eax, -12(%rbp)
-	jl	.L2859
+	jl	.L2863
 	movq	-360(%rbp), %rax
 	leaq	888(%rax), %rdx
 	leaq	-160(%rbp), %rax
@@ -58070,8 +58083,8 @@ elf__Elf_build_shstrtab:
 	movq	%rax, %rdi
 	call	map_keys
 	movl	$0, -16(%rbp)
-	jmp	.L2860
-.L2861:
+	jmp	.L2864
+.L2865:
 	movq	-152(%rbp), %rax
 	movl	-16(%rbp), %edx
 	movslq	%edx, %rdx
@@ -58118,10 +58131,10 @@ elf__Elf_build_shstrtab:
 	movq	%rdx, %rdi
 	call	array_push
 	addl	$1, -16(%rbp)
-.L2860:
+.L2864:
 	movl	-140(%rbp), %eax
 	cmpl	%eax, -16(%rbp)
-	jl	.L2861
+	jl	.L2865
 	movq	-360(%rbp), %rax
 	addq	$1008, %rax
 	movq	%rax, %rdi
@@ -58190,8 +58203,8 @@ elf__Elf_build_headers:
 	movq	%rdx, %rdi
 	call	array_push
 	movl	$0, -40(%rbp)
-	jmp	.L2863
-.L2867:
+	jmp	.L2867
+.L2871:
 	movq	-1304(%rbp), %rax
 	movq	528(%rax), %rax
 	movl	-40(%rbp), %edx
@@ -58248,14 +58261,14 @@ elf__Elf_build_headers:
 	movaps	%xmm0, -1248(%rbp)
 	movaps	%xmm0, -1232(%rbp)
 	cmpq	$0, -80(%rbp)
-	je	.L2864
+	je	.L2868
 	leaq	-1264(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-80(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2865
-.L2864:
+	jmp	.L2869
+.L2868:
 	movb	$2, -1264(%rbp)
 	leaq	.LC211(%rip), %r12
 	movq	%r13, %rdx
@@ -58284,10 +58297,10 @@ elf__Elf_build_headers:
 	movq	-1320(%rbp), %rdx
 	movq	%rax, -1240(%rbp)
 	movq	%rdx, -1232(%rbp)
-.L2865:
+.L2869:
 	movzbl	-1264(%rbp), %eax
 	testb	%al, %al
-	je	.L2866
+	je	.L2870
 	movq	-1256(%rbp), %rax
 	movq	-1248(%rbp), %rdx
 	movq	%rax, -1296(%rbp)
@@ -58325,7 +58338,7 @@ elf__Elf_build_headers:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2866:
+.L2870:
 	leaq	-1264(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -58382,11 +58395,11 @@ elf__Elf_build_headers:
 	movq	%rax, %rdi
 	call	map_set
 	addl	$1, -40(%rbp)
-.L2863:
+.L2867:
 	movq	-1304(%rbp), %rax
 	movl	540(%rax), %eax
 	cmpl	%eax, -40(%rbp)
-	jl	.L2867
+	jl	.L2871
 	movl	-36(%rbp), %eax
 	movl	%eax, -48(%rbp)
 	movq	-1304(%rbp), %rax
@@ -58512,8 +58525,8 @@ elf__Elf_build_headers:
 	addl	%edx, %eax
 	movl	%eax, -36(%rbp)
 	movl	$0, -44(%rbp)
-	jmp	.L2868
-.L2869:
+	jmp	.L2872
+.L2873:
 	movq	-1304(%rbp), %rax
 	movq	864(%rax), %rax
 	movl	-44(%rbp), %edx
@@ -58642,11 +58655,11 @@ elf__Elf_build_headers:
 	movl	-68(%rbp), %eax
 	addl	%eax, -36(%rbp)
 	addl	$1, -44(%rbp)
-.L2868:
+.L2872:
 	movq	-1304(%rbp), %rax
 	movl	876(%rax), %eax
 	cmpl	%eax, -44(%rbp)
-	jl	.L2869
+	jl	.L2873
 	movl	$0, -484(%rbp)
 	leaq	.LC461(%rip), %rax
 	movq	%rax, -480(%rbp)
@@ -58838,7 +58851,7 @@ elf__Elf_write_elf:
 	addq	$32, %rsp
 	movzbl	-208(%rbp), %eax
 	testb	%al, %al
-	je	.L2871
+	je	.L2875
 	movq	-200(%rbp), %rax
 	movq	-192(%rbp), %rdx
 	movq	%rax, -688(%rbp)
@@ -58877,7 +58890,7 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2871:
+.L2875:
 	leaq	-208(%rbp), %rax
 	addq	$40, %rax
 	movq	8(%rax), %rdx
@@ -58894,7 +58907,7 @@ elf__Elf_write_elf:
 	call	os__File_write_struct_T_elf__Elf64_Ehdr
 	movzbl	-256(%rbp), %eax
 	testb	%al, %al
-	je	.L2872
+	je	.L2876
 	movq	-248(%rbp), %rax
 	movq	-240(%rbp), %rdx
 	movq	%rax, -608(%rbp)
@@ -58923,10 +58936,10 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2872:
+.L2876:
 	movl	$0, -52(%rbp)
-	jmp	.L2873
-.L2878:
+	jmp	.L2877
+.L2882:
 	movq	-824(%rbp), %rax
 	movq	528(%rax), %rax
 	movl	-52(%rbp), %edx
@@ -58983,14 +58996,14 @@ elf__Elf_write_elf:
 	movaps	%xmm0, -768(%rbp)
 	movaps	%xmm0, -752(%rbp)
 	cmpq	$0, -80(%rbp)
-	je	.L2874
+	je	.L2878
 	leaq	-784(%rbp), %rax
 	leaq	40(%rax), %rdx
 	movq	-80(%rbp), %rax
 	movq	(%rax), %rax
 	movq	%rax, (%rdx)
-	jmp	.L2875
-.L2874:
+	jmp	.L2879
+.L2878:
 	movb	$2, -784(%rbp)
 	leaq	.LC211(%rip), %r14
 	movq	%r15, %rdx
@@ -59019,10 +59032,10 @@ elf__Elf_write_elf:
 	movq	-840(%rbp), %rdx
 	movq	%rax, -760(%rbp)
 	movq	%rdx, -752(%rbp)
-.L2875:
+.L2879:
 	movzbl	-784(%rbp), %eax
 	testb	%al, %al
-	je	.L2876
+	je	.L2880
 	movq	-776(%rbp), %rax
 	movq	-768(%rbp), %rdx
 	movq	%rax, -736(%rbp)
@@ -59059,7 +59072,7 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2876:
+.L2880:
 	leaq	-784(%rbp), %rax
 	addq	$40, %rax
 	movq	(%rax), %rax
@@ -59082,7 +59095,7 @@ elf__Elf_write_elf:
 	addq	$32, %rsp
 	movzbl	-736(%rbp), %eax
 	testb	%al, %al
-	je	.L2877
+	je	.L2881
 	movq	-728(%rbp), %rax
 	movq	-720(%rbp), %rdx
 	movq	%rax, -816(%rbp)
@@ -59120,13 +59133,13 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2877:
+.L2881:
 	addl	$1, -52(%rbp)
-.L2873:
+.L2877:
 	movq	-824(%rbp), %rax
 	movl	540(%rax), %eax
 	cmpl	%eax, -52(%rbp)
-	jl	.L2878
+	jl	.L2882
 	leaq	-304(%rbp), %rdi
 	leaq	-144(%rbp), %r8
 	movq	-824(%rbp), %rcx
@@ -59145,7 +59158,7 @@ elf__Elf_write_elf:
 	addq	$32, %rsp
 	movzbl	-304(%rbp), %eax
 	testb	%al, %al
-	je	.L2879
+	je	.L2883
 	movq	-296(%rbp), %rax
 	movq	-288(%rbp), %rdx
 	movq	%rax, -608(%rbp)
@@ -59174,10 +59187,10 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2879:
+.L2883:
 	movl	$0, -56(%rbp)
-	jmp	.L2880
-.L2882:
+	jmp	.L2884
+.L2886:
 	movq	-824(%rbp), %rax
 	movq	832(%rax), %rcx
 	movl	-56(%rbp), %eax
@@ -59201,7 +59214,7 @@ elf__Elf_write_elf:
 	call	os__File_write_struct_T_elf__Elf64_Sym
 	movzbl	-608(%rbp), %eax
 	testb	%al, %al
-	je	.L2881
+	je	.L2885
 	movq	-600(%rbp), %rax
 	movq	-592(%rbp), %rdx
 	movq	%rax, -688(%rbp)
@@ -59230,16 +59243,16 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2881:
+.L2885:
 	addl	$1, -56(%rbp)
-.L2880:
+.L2884:
 	movq	-824(%rbp), %rax
 	movl	844(%rax), %eax
 	cmpl	%eax, -56(%rbp)
-	jl	.L2882
+	jl	.L2886
 	movl	$0, -60(%rbp)
-	jmp	.L2883
-.L2887:
+	jmp	.L2887
+.L2891:
 	movq	-824(%rbp), %rax
 	movq	864(%rax), %rax
 	movl	-60(%rbp), %edx
@@ -59307,8 +59320,8 @@ elf__Elf_write_elf:
 	movq	%rax, -800(%rbp)
 	movq	%rdx, -792(%rbp)
 	movl	$0, -64(%rbp)
-	jmp	.L2884
-.L2886:
+	jmp	.L2888
+.L2890:
 	movq	-808(%rbp), %rcx
 	movl	-64(%rbp), %eax
 	movslq	%eax, %rdx
@@ -59331,7 +59344,7 @@ elf__Elf_write_elf:
 	call	os__File_write_struct_T_elf__Elf64_Rela
 	movzbl	-688(%rbp), %eax
 	testb	%al, %al
-	je	.L2885
+	je	.L2889
 	movq	-680(%rbp), %rax
 	movq	-672(%rbp), %rdx
 	movq	%rax, -736(%rbp)
@@ -59360,18 +59373,18 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2885:
+.L2889:
 	addl	$1, -64(%rbp)
-.L2884:
+.L2888:
 	movl	-796(%rbp), %eax
 	cmpl	%eax, -64(%rbp)
-	jl	.L2886
+	jl	.L2890
 	addl	$1, -60(%rbp)
-.L2883:
+.L2887:
 	movq	-824(%rbp), %rax
 	movl	876(%rax), %eax
 	cmpl	%eax, -60(%rbp)
-	jl	.L2887
+	jl	.L2891
 	leaq	-352(%rbp), %rdi
 	leaq	-144(%rbp), %r8
 	movq	-824(%rbp), %rcx
@@ -59390,7 +59403,7 @@ elf__Elf_write_elf:
 	addq	$32, %rsp
 	movzbl	-352(%rbp), %eax
 	testb	%al, %al
-	je	.L2888
+	je	.L2892
 	movq	-344(%rbp), %rax
 	movq	-336(%rbp), %rdx
 	movq	%rax, -608(%rbp)
@@ -59419,10 +59432,10 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2888:
+.L2892:
 	movl	$0, -68(%rbp)
-	jmp	.L2889
-.L2891:
+	jmp	.L2893
+.L2895:
 	movq	-824(%rbp), %rax
 	movq	1048(%rax), %rax
 	movl	-68(%rbp), %edx
@@ -59453,7 +59466,7 @@ elf__Elf_write_elf:
 	call	os__File_write_struct_T_elf__Elf64_Shdr
 	movzbl	-688(%rbp), %eax
 	testb	%al, %al
-	je	.L2890
+	je	.L2894
 	movq	-680(%rbp), %rax
 	movq	-672(%rbp), %rdx
 	movq	%rax, -736(%rbp)
@@ -59482,19 +59495,19 @@ elf__Elf_write_elf:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	_v_panic
-.L2890:
+.L2894:
 	addl	$1, -68(%rbp)
-.L2889:
+.L2893:
 	movq	-824(%rbp), %rax
 	movl	1060(%rax), %eax
 	cmpl	%eax, -68(%rbp)
-	jl	.L2891
+	jl	.L2895
 	cmpb	$0, -69(%rbp)
-	je	.L2893
+	je	.L2897
 	leaq	-144(%rbp), %rax
 	movq	%rax, %rdi
 	call	os__File_close
-.L2893:
+.L2897:
 	nop
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
@@ -59552,13 +59565,13 @@ main__file_name_without_ext:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2895
+	je	.L2899
 	leaq	.LC473(%rip), %rax
 	movq	%rax, -112(%rbp)
 	movl	$4, -104(%rbp)
 	movl	$1, -100(%rbp)
-	jmp	.L2896
-.L2895:
+	jmp	.L2900
+.L2899:
 	movl	-76(%rbp), %eax
 	subl	-20(%rbp), %eax
 	movl	%eax, %esi
@@ -59591,7 +59604,7 @@ main__file_name_without_ext:
 	addq	$32, %rsp
 	movq	%rax, -112(%rbp)
 	movq	%rdx, -104(%rbp)
-.L2896:
+.L2900:
 	movq	-112(%rbp), %rax
 	movq	-104(%rbp), %rdx
 	movq	%rax, -128(%rbp)
@@ -59785,7 +59798,7 @@ main__main:
 	call	flag__FlagParser_finalize
 	movzbl	-192(%rbp), %eax
 	testb	%al, %al
-	je	.L2899
+	je	.L2903
 	movq	-184(%rbp), %rax
 	movq	-176(%rbp), %rdx
 	movq	%rax, -352(%rbp)
@@ -59803,8 +59816,8 @@ main__main:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	println
-	jmp	.L2898
-.L2899:
+	jmp	.L2902
+.L2903:
 	leaq	-192(%rbp), %rax
 	leaq	40(%rax), %rcx
 	movq	(%rcx), %rax
@@ -59817,7 +59830,7 @@ main__main:
 	movq	%rdx, -200(%rbp)
 	movl	-204(%rbp), %eax
 	testl	%eax, %eax
-	jg	.L2901
+	jg	.L2905
 	movq	-56(%rbp), %rax
 	movq	%rax, %rdi
 	call	flag__FlagParser_usage
@@ -59827,8 +59840,8 @@ main__main:
 	movq	%rcx, %rdi
 	movq	%rax, %rsi
 	call	println
-	jmp	.L2898
-.L2901:
+	jmp	.L2902
+.L2905:
 	subq	$32, %rsp
 	movq	%rsp, %rcx
 	movq	-224(%rbp), %rax
@@ -59866,7 +59879,7 @@ main__main:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2902
+	je	.L2906
 	leaq	.LC481(%rip), %rax
 	movq	%rax, -560(%rbp)
 	movq	-552(%rbp), %rdx
@@ -59895,7 +59908,7 @@ main__main:
 	call	string__plus
 	movq	%rax, -112(%rbp)
 	movq	%rdx, -104(%rbp)
-.L2902:
+.L2906:
 	leaq	.LC44(%rip), %rax
 	movq	%rax, -576(%rbp)
 	movq	-568(%rbp), %rdx
@@ -59916,12 +59929,12 @@ main__main:
 	movq	%rax, %rsi
 	call	string__eq
 	testb	%al, %al
-	je	.L2903
+	je	.L2907
 	call	os__get_raw_lines_joined
 	movq	%rax, -256(%rbp)
 	movq	%rdx, -248(%rbp)
-	jmp	.L2904
-.L2903:
+	jmp	.L2908
+.L2907:
 	leaq	-416(%rbp), %rax
 	movq	-240(%rbp), %rcx
 	movq	-232(%rbp), %rdx
@@ -59930,7 +59943,7 @@ main__main:
 	call	os__read_file
 	movzbl	-416(%rbp), %eax
 	testb	%al, %al
-	je	.L2905
+	je	.L2909
 	movq	-408(%rbp), %rax
 	movq	-400(%rbp), %rdx
 	movq	%rax, -448(%rbp)
@@ -59970,14 +59983,14 @@ main__main:
 	call	eprintln
 	movl	$1, %edi
 	call	_v_exit
-.L2905:
+.L2909:
 	leaq	-416(%rbp), %rax
 	addq	$40, %rax
 	movq	8(%rax), %rdx
 	movq	(%rax), %rax
 	movq	%rax, -256(%rbp)
 	movq	%rdx, -248(%rbp)
-.L2904:
+.L2908:
 	movq	-256(%rbp), %rax
 	movq	-248(%rbp), %rdx
 	movq	%rax, -272(%rbp)
@@ -60106,7 +60119,7 @@ main__main:
 	movq	-88(%rbp), %rax
 	movq	%rax, %rdi
 	call	elf__Elf_write_elf
-.L2898:
+.L2902:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
