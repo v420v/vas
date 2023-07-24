@@ -116,7 +116,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 		} else {
 			e.current_instr.code << 0x5 + (indir.index.base_offset%8 << 3) + (scale(scale_num) << 6)
 		}
-	} else if base_is_sp {
+	} else if base_is_sp || indir.base.base_offset == 12 {
 		e.current_instr.code << 0x24
 	}
 

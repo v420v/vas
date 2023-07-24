@@ -1018,6 +1018,9 @@ fn (mut e Encoder) encode_instr() {
 		'DIVSD' {
 			e.sse_arith_instr(.divsd, [u8(0x0F), 0x5E], [DataSize.suffix_double])
 		}
+		'CMOVNEQ', 'CMOVNEL', 'CMOVNEW' {
+			e.cmov(.cmovs, [u8(0x0F), 0x45], get_size_by_suffix(instr_name_upper))
+		}
 		'CMOVSQ', 'CMOVSL', 'CMOVSW' {
 			e.cmov(.cmovs, [u8(0x0F), 0x48], get_size_by_suffix(instr_name_upper))
 		}
