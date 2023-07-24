@@ -65,14 +65,6 @@ fn (mut l Lexer) skip_comment() {
 	}
 }
 
-fn (mut l Lexer) is_hex() bool {
-	if l.text.len == l.idx+1 {
-		return false
-	} else {
-		return (l.c == `0`) && (l.text[l.idx+1] in [`x`, `X`])
-	}
-}
-
 fn (mut l Lexer) read_number() token.Token {
 	pos := l.current_pos()
 	start := l.idx
