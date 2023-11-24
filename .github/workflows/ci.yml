@@ -23,6 +23,6 @@ jobs:
         run: v . -enable-globals
 
       - name: Run Tests
-        run: sh ./test-selfhost.sh
+        run: ./vas main.s -o main.o && ld -o main main.o && ./main
         
 

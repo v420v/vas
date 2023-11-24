@@ -36,7 +36,21 @@ _start:
 
 ```
 
-[If V is not installed](https://github.com/vlang/v)
+```sh
+$ docker build ./ -t ibulang
+
+
+# Linux or MacOS:
+$ docker run --rm -it -v "$(pwd)":/root/env ibulang
+
+# Windows (CMD):
+$ docker run --rm -it -v "%cd%":/root/env ibulang
+
+# Windows (PowerShell):
+$ docker run --rm -it -v "${pwd}:/root/env" ibulang
+
+# To leave the environment, enter `exit`.
+```
 
 ## Build
 
@@ -54,40 +68,5 @@ $ ./a.out
 
 ```
 
-## How to do self hosting
-
-```
-# build
-$ v . -prod
-
-$ cd selfhost
-$ ../vas -o v2.o vas.s
-$ cc -o v2 v2.o
-
-$ ./v2 -o v3.o vas.s
-$ cc -o v3 v3.o
-
-$ ./v3 --version
-```
-![image1](https://github.com/v420v/vas/assets/106643445/d95f1629-6f57-4ea2-a5d2-dce2cc82955a)
-
-## Screens
-
-### Game of Life
-
-![gameoflife](https://github.com/v420v/vas/assets/106643445/af3e0d89-b796-4fd8-8603-31e926c776ea)
-
-[https://github.com/v420v/vas/blob/main/examples/gol.s](https://github.com/v420v/vas/blob/main/examples/gol.s)
-
 ## License
 MIT
-
-## Contributing
-Welcome!
-
-## References
-- https://github.com/DQNEO/goas port of GNU Assembler written in go
-- https://github.com/skx/assembler Basic X86-64 assembler, written in golang
-- https://web.mit.edu/rhel-doc/3/rhel-as-en-3/
-- https://docs.oracle.com/cd/E19683-01/817-4912/6mkdg542u/index.html オブジェクトファイル形式
-
