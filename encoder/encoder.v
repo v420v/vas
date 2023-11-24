@@ -193,7 +193,7 @@ const (
 
 pub struct Instr {
 pub mut:
-	kind           InstrKind      [required]
+	kind           InstrKind     @[required]
 	code           []u8 = []u8{cap: 16}
 	symbol_name    string
 	flags          string
@@ -201,9 +201,9 @@ pub mut:
 	binding        u8
 	visibility     u8 // STV_DEFAULT, STV_INTERNAL, STV_HIDDEN, STV_PROTECTED
 	symbol_type    u8
-	section_name   string         [required]
+	section_name   string         @[required]
 	is_jmp_or_call bool
-	pos            token.Position [required]
+	pos            token.Position @[required]
 }
 
 pub struct Rela {
