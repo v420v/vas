@@ -107,11 +107,19 @@ fn (mut l Lexer) read_number() token.Token {
 	}
 }
 
+fn is_alpha(c u8) bool {
+	return (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`)
+}
+
+fn is_digit(c u8) bool {
+	return (c >= `0` && c <= `9`)
+}
+
 fn (mut l Lexer) read_ident() token.Token {
 	pos := l.current_pos()
 	start := l.idx
 	for {
-		if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`) || (l.c >= `0` && l.c <= `9`) || l.c in [`_`, `.`, `-`, `$`] {
+		if is_alpha(l.c) || is_digit(l.c) || l.c in [`_`, `.`, `-`, `$`] {
 			l.advance()
 		} else {
 			break
@@ -125,53 +133,81 @@ fn (mut l Lexer) read_ident() token.Token {
 	}
 }
 
+fn is_hex_digit(c u8) bool {
+	return (`0` <= c && c <= `9`) || (`A` <= c && c <= `F`) || (`a` <= c && c <= `f`)
+}
+
+fn from_hex(c u8) u8 {
+	if `0` <= c && c <= `9` {
+		return c - `0`
+	}
+	if `a` <= c && c <= `f` {
+		return c - `a` + 10
+	}
+	return c - `A` + 10
+}
+
+fn (mut l Lexer) read_escaped_char() u8 {
+	mut c := u8(0)
+	l.advance() // skip '\\'
+	if `0` <= l.c && l.c <= `7` {
+		c = l.c - `0`
+		if `0` <= l.peak(1) && l.peak(1) <= `7` {
+			l.advance()
+			c = (c << 3) + (l.c - `0`)
+			if `0` <= l.peak(1) && l.peak(1) <= `7` {
+				l.advance()
+        		c = (c << 3) + (l.c - `0`)
+			}
+		}
+		return c
+	}
+
+	if l.c == `x` {
+		l.advance()
+		if !is_hex_digit(l.c) {
+			eprintln('error: invalid hex escape sequence');
+			exit(1)
+		}
+
+		for is_hex_digit(l.c) {
+			c = (c << 4) + from_hex(l.c)
+			l.advance()
+		}
+	}
+
+	if l.c == `a` {
+		return `\a`
+	}
+	if l.c == `b` {
+		return `\b`
+	}
+	if l.c == `t` {
+		return `\t`
+	}
+	if l.c == `n` {
+		return `\n`
+	}
+	if l.c == `v` {
+		return `\v`
+	}
+	if l.c == `f` {
+		return `\f`
+	}
+	if l.c == `r` {
+		return `\r`
+	}
+
+	return l.c
+}
+
 fn (mut l Lexer) read_string() token.Token {
 	pos := l.current_pos()
 	l.advance()
 	mut lit := []u8{}
 	for l.c != `"` {
 		if l.c == `\\` {
-			l.advance()
-			match l.c {
-				`n` {
-					lit << `\n`
-				}
-				`t` {
-					lit << `\t`
-				}
-				`a` {
-					lit << `\a`
-				}
-				`b` {
-					lit << `\b`
-				}
-				`f` {
-					lit << `\f`
-				}
-				`v` {
-					lit << `\v`
-				}
-				`0` {
-					if l.peak(1) == `3` && l.peak(2) == `3` {
-						l.advance()
-						l.advance()
-						lit << `\033`
-					} else if l.peak(1) == `1` && l.peak(2) == `1` {
-						l.advance()
-						l.advance()
-						lit << `\011`
-					} else if l.peak(1) == `2` && l.peak(2) == `2` {
-						l.advance()
-						l.advance()
-						lit << `\022`
-					} else {
-						lit << `\0`
-					}
-				} else {
-					lit << `\\`
-					lit << l.c
-				}
-			}
+			lit << l.read_escaped_char()
 			l.advance()
 		} else {
 			lit << l.c
@@ -199,12 +235,11 @@ fn (mut l Lexer) single_letter_token(c string, kind token.TokenKind) token.Token
 pub fn (mut l Lexer) lex() token.Token {
 	for l.c != `\0` {
 		mut pos := l.current_pos()
-		if l.c == ` ` || l.c == `\t` {
+		if l.c in [` `, `\t`, `\n`] {
 			l.advance()
-		} else if l.c >= `0` && l.c <= `9` {
+		} else if is_digit(l.c) {
 			return l.read_number()
-		} else if (l.c >= `a` && l.c <= `z`) || (l.c >= `A` && l.c <= `Z`)
-			|| l.c == `_` || l.c == `.` {
+		} else if is_alpha(l.c) || l.c == `_` || l.c == `.` {
 			return l.read_ident()
 		} else if l.c == `"` {
 			return l.read_string()
@@ -212,9 +247,6 @@ pub fn (mut l Lexer) lex() token.Token {
 			match l.c {
 				`#` { // skip comment
 					l.skip_comment()
-				}
-				`\n` {
-					l.advance()
 				}
 				`:` {
 					return l.single_letter_token(':', .colon)
