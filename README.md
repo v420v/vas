@@ -37,17 +37,16 @@ _start:
 ```
 
 ```sh
-$ docker build ./ -t ibulang
-
+$ docker build ./ -t vas
 
 # Linux or MacOS:
-$ docker run --rm -it -v "$(pwd)":/root/env ibulang
+$ docker run --rm -it -v "$(pwd)":/root/env vas
 
 # Windows (CMD):
-$ docker run --rm -it -v "%cd%":/root/env ibulang
+$ docker run --rm -it -v "%cd%":/root/env vas
 
 # Windows (PowerShell):
-$ docker run --rm -it -v "${pwd}:/root/env" ibulang
+$ docker run --rm -it -v "${pwd}:/root/env" vas
 
 # To leave the environment, enter `exit`.
 ```
