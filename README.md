@@ -3,9 +3,6 @@
 
 [![CI](https://github.com/v420v/vas/actions/workflows/ci.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci.yml)
 
-[Docs](https://github.com/v420v/vas/blob/main/doc/docs.md) | 
-[日本語](https://github.com/v420v/vas/blob/main/doc/ドキュメント.md)
-
 Supports Linux x86-64 AT&T syntax only.
 
 ## Hello world!
