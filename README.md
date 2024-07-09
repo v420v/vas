@@ -3,6 +3,10 @@
 
 [![CI](https://github.com/v420v/vas/actions/workflows/ci.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci.yml)
 
+<a href="https://x.com/ibuki42O/status/1607026393518604290">開発過程を載せたツイート 1</a>
+<br/>
+<a href="https://x.com/ibuki42O/status/1670080123369058304">開発過程を載せたツイート 2</a>
+
 Supports Linux x86-64 AT&T syntax only.
 
 ## Hello world!
