@@ -1,17 +1,60 @@
-
-# vas: Assembler written in V
+# vas - An x86-64 Assembler Written in V
 
 [![CI](https://github.com/v420v/vas/actions/workflows/ci.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci.yml)
 
-<a href="https://x.com/ibuki42O/status/1607026393518604290">開発過程を載せたツイート 1</a>
-<br/>
-<a href="https://x.com/ibuki42O/status/1670080123369058304">開発過程を載せたツイート 2</a>
+`vas` is a lightweight assembler written in the V programming language that supports Linux x86-64 assembly with AT&T syntax. It compiles assembly source files into object files that can be linked with `ld`.
 
-Supports Linux x86-64 AT&T syntax only.
+## Features
 
-## Hello world!
+- x86-64 instruction set support
+- AT&T syntax
+- ELF object file generation
+- Support for common assembler directives
+- Standard input support via `-` argument
+
+## Installation
+
+### Docker setup
+
+```sh
+# Build the Docker image
+docker build ./ -t vas
+
+# Run the container
+# Linux/MacOS:
+docker run --rm -it -v "$(pwd)":/root/env vas
+
+# Windows (CMD):
+docker run --rm -it -v "%cd%":/root/env vas
+
+# Windows (PowerShell):
+docker run --rm -it -v "${pwd}:/root/env" vas
+```
+
+### Build
+
+Requires the V compiler to be installed.
+
+```sh
+v . -prod
+```
+
+## Usage
+
+Basic usage:
+```sh
+vas [options] <input_file>.s
+```
+
+Options:
+- `-o <filename>`: Set output file name (default: input_file.o)
+- `--keep-locals`: Keep local symbols (e.g., those starting with `.L`)
+
+### Example
+
+1. Create an assembly file (hello.s):
 ```asm
-# Hello world!
+# Hello world example
 
 .global _start
 
@@ -25,48 +68,45 @@ _start:
   movq %rsp, %rbp
   subq $16, %rsp
 
-  movq $1, %rax
-  movq $1, %rdi
-  movq $msg, %rsi
-  movq $14, %rdx
+  movq $1, %rax    # write syscall
+  movq $1, %rdi    # stdout
+  movq $msg, %rsi  # message
+  movq $14, %rdx   # length
   syscall
 
-  movq $60, %rax
-  movq $0, %rdi
+  movq $60, %rax   # exit syscall
+  movq $0, %rdi    # status code 0
   syscall
-
 ```
 
+2. Assemble the file:
 ```sh
-$ docker build ./ -t vas
-
-# Linux or MacOS:
-$ docker run --rm -it -v "$(pwd)":/root/env vas
-
-# Windows (CMD):
-$ docker run --rm -it -v "%cd%":/root/env vas
-
-# Windows (PowerShell):
-$ docker run --rm -it -v "${pwd}:/root/env" vas
-
-# To leave the environment, enter `exit`.
+vas hello.s
 ```
 
-## Build
-
+3. Link the object file:
 ```sh
-$ v . -prod
+ld hello.o
 ```
 
-## Run
+4. Run the executable:
+```sh
+./a.out
 ```
-$ vas <filename>.s
-$ ld <filename>.o
-$ ./a.out
 
-> Hello world!!
-
+Output:
 ```
+Hello, world!
+```
+
+## Posts on X
+
+- https://x.com/v_language/status/1643642842214957061
+
+- https://x.com/ibuki42O/status/1607026393518604290
+
+- https://x.com/ibuki42O/status/1670080123369058304
 
 ## License
-MIT
+
+This project is licensed under the MIT License - see the LICENSE file for details.
