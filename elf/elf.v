@@ -81,64 +81,57 @@ pub struct Elf64_Phdr {
 	ph_align  u64
 }
 
-const (
-    stb_local            = 0
-    stb_global           = 1
-	//-------------------------------
-    stt_notype           = 0
-    stt_object           = 1
-    stt_func             = 2
-    stt_section          = 3
-    stt_file             = 4
-    stt_common           = 5
-    stt_tls              = 6
-    stt_relc             = 8
-    stt_srelc            = 9
-    stt_loos             = 10
-    stt_hios             = 12
-    stt_loproc           = 13
-    stt_hiproc           = 14
-	//-------------------------------
-    sht_null             = 0
-    sht_progbits         = 1
-    sht_symtab           = 2
-    sht_strtab           = 3
-    sht_rela             = 4
-	//-------------------------------
-    shf_write            = 0x1
-    shf_alloc            = 0x2
-    shf_execinstr        = 0x4
-    shf_merge            = 0x10
-    shf_strings          = 0x20
-    shf_info_link        = 0x40
-    shf_link_order       = 0x80
-    shf_os_nonconforming = 0x100
-    shf_group            = 0x200
-    shf_tls              = 0x400
-	//-------------------------------
-	r_x86_64_none	  	 = u64(0)
-	r_x86_64_64		  	 = u64(1)
-	r_x86_64_pc32	  	 = u64(2)
-	r_x86_64_got32	  	 = u64(3)
-	r_x86_64_plt32	  	 = u64(4)
-	r_x86_64_copy	  	 = u64(5)
-	r_x86_64_glob_dat 	 = u64(6)
-	r_x86_64_jump_slot	 = u64(7)
-	r_x86_64_relative 	 = u64(8)
-	r_x86_64_gotpcrel 	 = u64(9)
-	r_x86_64_32		  	 = u64(10)
-	r_x86_64_32s	  	 = u64(11)
-	r_x86_64_16		  	 = u64(12)
-	r_x86_64_pc16	  	 = u64(13)
-	r_x86_64_8		  	 = u64(14)
-	r_x86_64_pc8	  	 = u64(15)
-	r_x86_64_pc64	  	 = u64(24)
-	//-------------------------------
-	stv_default			 = 0
-	stv_internal		 = 1
-	stv_hidden			 = 2
-	stv_protected		 = 3
-)
+const stb_local            = 0
+const stb_global           = 1
+const stt_notype           = 0
+const stt_object           = 1
+const stt_func             = 2
+const stt_section          = 3
+const stt_file             = 4
+const stt_common           = 5
+const stt_tls              = 6
+const stt_relc             = 8
+const stt_srelc            = 9
+const stt_loos             = 10
+const stt_hios             = 12
+const stt_loproc           = 13
+const stt_hiproc           = 14
+const sht_null             = 0
+const sht_progbits         = 1
+const sht_symtab           = 2
+const sht_strtab           = 3
+const sht_rela             = 4
+const shf_write            = 0x1
+const shf_alloc            = 0x2
+const shf_execinstr        = 0x4
+const shf_merge            = 0x10
+const shf_strings          = 0x20
+const shf_info_link        = 0x40
+const shf_link_order       = 0x80
+const shf_os_nonconforming = 0x100
+const shf_group            = 0x200
+const shf_tls              = 0x400
+const r_x86_64_none	  	= u64(0)
+const r_x86_64_64		  	= u64(1)
+const r_x86_64_pc32	  	= u64(2)
+const r_x86_64_got32	  	= u64(3)
+const r_x86_64_plt32	  	= u64(4)
+const r_x86_64_copy	  	= u64(5)
+const r_x86_64_glob_dat 	= u64(6)
+const r_x86_64_jump_slot	= u64(7)
+const r_x86_64_relative 	= u64(8)
+const r_x86_64_gotpcrel 	= u64(9)
+const r_x86_64_32		  	= u64(10)
+const r_x86_64_32s	  	    = u64(11)
+const r_x86_64_16		  	= u64(12)
+const r_x86_64_pc16	  	= u64(13)
+const r_x86_64_8		  	= u64(14)
+const r_x86_64_pc8	  	    = u64(15)
+const r_x86_64_pc64	  	= u64(24)
+const stv_default			= 0
+const stv_internal		    = 1
+const stv_hidden			= 2
+const stv_protected		= 3
 
 pub fn new(out_file string, keep_locals bool, rela_text_users []encoder.Rela, user_defined_sections map[string]&encoder.UserDefinedSection, user_defined_symbols map[string]&encoder.Instr) &Elf {
 	mut e := &Elf{
@@ -234,7 +227,7 @@ pub fn (mut e Elf) rela_text_users() {
 	for r in e.rela_text_users {
 		mut index := 0
 
-		mut r_addend := if r.rtype in [r_x86_64_32s, r_x86_64_32, r_x86_64_64, r_x86_64_32, r_x86_64_16, r_x86_64_8] {
+		mut r_addend := if r.rtype in [r_x86_64_32s, r_x86_64_32, r_x86_64_64, r_x86_64_16, r_x86_64_8] {
 			i64(0)
 		} else if r.rtype in [r_x86_64_pc32] {
 			i64(r.offset - r.instr.code.len)
