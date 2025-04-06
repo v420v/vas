@@ -99,6 +99,15 @@ Output:
 Hello, world!
 ```
 
+## Star History
+<a href="https://www.star-history.com/#v420v/vas&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=v420v/vas&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=v420v/vas&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=v420v/vas&type=Date" />
+ </picture>
+</a>
+
 ## Posts on X
 
 - https://x.com/v_language/status/1643642842214957061
