@@ -1,16 +1,6 @@
-# vas - An x86-64 Assembler Written in V
+# vas - x86-64 Assembler written in V
 
 [![CI](https://github.com/v420v/vas/actions/workflows/ci.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci.yml)
-
-`vas` is a lightweight assembler written in the V programming language that supports Linux x86-64 assembly with AT&T syntax. It compiles assembly source files into object files that can be linked with `ld`.
-
-## Features
-
-- x86-64 instruction set support
-- AT&T syntax
-- ELF object file generation
-- Support for common assembler directives
-- Standard input support via `-` argument
 
 ## Installation
 
@@ -108,13 +98,7 @@ Hello, world!
  </picture>
 </a>
 
-## Posts on X
-
 - https://x.com/v_language/status/1643642842214957061
-
-- https://x.com/ibuki42O/status/1607026393518604290
-
-- https://x.com/ibuki42O/status/1670080123369058304
 
 ## License
 
