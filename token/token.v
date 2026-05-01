@@ -14,6 +14,8 @@ pub enum TokenKind {
 	colon
 	lpar
 	rpar
+	lbrace // `{` — AVX-512 operand decorator open
+	rbrace // `}` — AVX-512 operand decorator close
 	plus
 	minus
 	mul

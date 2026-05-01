@@ -78,21 +78,132 @@ const general_registers = {
 	'IP': Register{lit: 'IP', base_offset: 0, size: .suffix_word}
 }
 
+// XMM and YMM registers are stored in the same map. Their `size` field
+// distinguishes them so the classifier can return xmmreg vs ymmreg.
 const xmm_registers = {
-	'XMM0': Xmm{lit: 'XMM0', base_offset: 0, size: .suffix_unkown}
-	'XMM1': Xmm{lit: 'XMM1', base_offset: 1, size: .suffix_unkown}
-	'XMM2': Xmm{lit: 'XMM2', base_offset: 2, size: .suffix_unkown}
-	'XMM3': Xmm{lit: 'XMM3', base_offset: 3, size: .suffix_unkown}
-	'XMM4': Xmm{lit: 'XMM4', base_offset: 4, size: .suffix_unkown}
-	'XMM5': Xmm{lit: 'XMM5', base_offset: 5, size: .suffix_unkown}
-	'XMM6': Xmm{lit: 'XMM6', base_offset: 6, size: .suffix_unkown}
-	'XMM7': Xmm{lit: 'XMM7', base_offset: 7, size: .suffix_unkown}
-	'XMM8': Xmm{lit: 'XMM8', base_offset: 8, size: .suffix_unkown}
-	'XMM9': Xmm{lit: 'XMM9', base_offset: 9, size: .suffix_unkown}
-	'XMM10': Xmm{lit: 'XMM10', base_offset: 10, size: .suffix_unkown}
-	'XMM11': Xmm{lit: 'XMM11', base_offset: 11, size: .suffix_unkown}
-	'XMM12': Xmm{lit: 'XMM12', base_offset: 12, size: .suffix_unkown}
-	'XMM13': Xmm{lit: 'XMM13', base_offset: 13, size: .suffix_unkown}
-	'XMM14': Xmm{lit: 'XMM14', base_offset: 14, size: .suffix_unkown}
-	'XMM15': Xmm{lit: 'XMM15', base_offset: 15, size: .suffix_unkown}
+	'XMM0':  Xmm{lit: 'XMM0',  base_offset: 0,  size: .suffix_xmm128}
+	'XMM1':  Xmm{lit: 'XMM1',  base_offset: 1,  size: .suffix_xmm128}
+	'XMM2':  Xmm{lit: 'XMM2',  base_offset: 2,  size: .suffix_xmm128}
+	'XMM3':  Xmm{lit: 'XMM3',  base_offset: 3,  size: .suffix_xmm128}
+	'XMM4':  Xmm{lit: 'XMM4',  base_offset: 4,  size: .suffix_xmm128}
+	'XMM5':  Xmm{lit: 'XMM5',  base_offset: 5,  size: .suffix_xmm128}
+	'XMM6':  Xmm{lit: 'XMM6',  base_offset: 6,  size: .suffix_xmm128}
+	'XMM7':  Xmm{lit: 'XMM7',  base_offset: 7,  size: .suffix_xmm128}
+	'XMM8':  Xmm{lit: 'XMM8',  base_offset: 8,  size: .suffix_xmm128}
+	'XMM9':  Xmm{lit: 'XMM9',  base_offset: 9,  size: .suffix_xmm128}
+	'XMM10': Xmm{lit: 'XMM10', base_offset: 10, size: .suffix_xmm128}
+	'XMM11': Xmm{lit: 'XMM11', base_offset: 11, size: .suffix_xmm128}
+	'XMM12': Xmm{lit: 'XMM12', base_offset: 12, size: .suffix_xmm128}
+	'XMM13': Xmm{lit: 'XMM13', base_offset: 13, size: .suffix_xmm128}
+	'XMM14': Xmm{lit: 'XMM14', base_offset: 14, size: .suffix_xmm128}
+	'XMM15': Xmm{lit: 'XMM15', base_offset: 15, size: .suffix_xmm128}
+
+	'YMM0':  Xmm{lit: 'YMM0',  base_offset: 0,  size: .suffix_ymm256}
+	'YMM1':  Xmm{lit: 'YMM1',  base_offset: 1,  size: .suffix_ymm256}
+	'YMM2':  Xmm{lit: 'YMM2',  base_offset: 2,  size: .suffix_ymm256}
+	'YMM3':  Xmm{lit: 'YMM3',  base_offset: 3,  size: .suffix_ymm256}
+	'YMM4':  Xmm{lit: 'YMM4',  base_offset: 4,  size: .suffix_ymm256}
+	'YMM5':  Xmm{lit: 'YMM5',  base_offset: 5,  size: .suffix_ymm256}
+	'YMM6':  Xmm{lit: 'YMM6',  base_offset: 6,  size: .suffix_ymm256}
+	'YMM7':  Xmm{lit: 'YMM7',  base_offset: 7,  size: .suffix_ymm256}
+	'YMM8':  Xmm{lit: 'YMM8',  base_offset: 8,  size: .suffix_ymm256}
+	'YMM9':  Xmm{lit: 'YMM9',  base_offset: 9,  size: .suffix_ymm256}
+	'YMM10': Xmm{lit: 'YMM10', base_offset: 10, size: .suffix_ymm256}
+	'YMM11': Xmm{lit: 'YMM11', base_offset: 11, size: .suffix_ymm256}
+	'YMM12': Xmm{lit: 'YMM12', base_offset: 12, size: .suffix_ymm256}
+	'YMM13': Xmm{lit: 'YMM13', base_offset: 13, size: .suffix_ymm256}
+	'YMM14': Xmm{lit: 'YMM14', base_offset: 14, size: .suffix_ymm256}
+	'YMM15': Xmm{lit: 'YMM15', base_offset: 15, size: .suffix_ymm256}
+
+	// AVX-512 extended XMM/YMM (16-31). EVEX needed; no VEX form.
+	'XMM16': Xmm{lit: 'XMM16', base_offset: 16, size: .suffix_xmm128}
+	'XMM17': Xmm{lit: 'XMM17', base_offset: 17, size: .suffix_xmm128}
+	'XMM18': Xmm{lit: 'XMM18', base_offset: 18, size: .suffix_xmm128}
+	'XMM19': Xmm{lit: 'XMM19', base_offset: 19, size: .suffix_xmm128}
+	'XMM20': Xmm{lit: 'XMM20', base_offset: 20, size: .suffix_xmm128}
+	'XMM21': Xmm{lit: 'XMM21', base_offset: 21, size: .suffix_xmm128}
+	'XMM22': Xmm{lit: 'XMM22', base_offset: 22, size: .suffix_xmm128}
+	'XMM23': Xmm{lit: 'XMM23', base_offset: 23, size: .suffix_xmm128}
+	'XMM24': Xmm{lit: 'XMM24', base_offset: 24, size: .suffix_xmm128}
+	'XMM25': Xmm{lit: 'XMM25', base_offset: 25, size: .suffix_xmm128}
+	'XMM26': Xmm{lit: 'XMM26', base_offset: 26, size: .suffix_xmm128}
+	'XMM27': Xmm{lit: 'XMM27', base_offset: 27, size: .suffix_xmm128}
+	'XMM28': Xmm{lit: 'XMM28', base_offset: 28, size: .suffix_xmm128}
+	'XMM29': Xmm{lit: 'XMM29', base_offset: 29, size: .suffix_xmm128}
+	'XMM30': Xmm{lit: 'XMM30', base_offset: 30, size: .suffix_xmm128}
+	'XMM31': Xmm{lit: 'XMM31', base_offset: 31, size: .suffix_xmm128}
+
+	'YMM16': Xmm{lit: 'YMM16', base_offset: 16, size: .suffix_ymm256}
+	'YMM17': Xmm{lit: 'YMM17', base_offset: 17, size: .suffix_ymm256}
+	'YMM18': Xmm{lit: 'YMM18', base_offset: 18, size: .suffix_ymm256}
+	'YMM19': Xmm{lit: 'YMM19', base_offset: 19, size: .suffix_ymm256}
+	'YMM20': Xmm{lit: 'YMM20', base_offset: 20, size: .suffix_ymm256}
+	'YMM21': Xmm{lit: 'YMM21', base_offset: 21, size: .suffix_ymm256}
+	'YMM22': Xmm{lit: 'YMM22', base_offset: 22, size: .suffix_ymm256}
+	'YMM23': Xmm{lit: 'YMM23', base_offset: 23, size: .suffix_ymm256}
+	'YMM24': Xmm{lit: 'YMM24', base_offset: 24, size: .suffix_ymm256}
+	'YMM25': Xmm{lit: 'YMM25', base_offset: 25, size: .suffix_ymm256}
+	'YMM26': Xmm{lit: 'YMM26', base_offset: 26, size: .suffix_ymm256}
+	'YMM27': Xmm{lit: 'YMM27', base_offset: 27, size: .suffix_ymm256}
+	'YMM28': Xmm{lit: 'YMM28', base_offset: 28, size: .suffix_ymm256}
+	'YMM29': Xmm{lit: 'YMM29', base_offset: 29, size: .suffix_ymm256}
+	'YMM30': Xmm{lit: 'YMM30', base_offset: 30, size: .suffix_ymm256}
+	'YMM31': Xmm{lit: 'YMM31', base_offset: 31, size: .suffix_ymm256}
+
+	// AVX-512 ZMM (32 registers).
+	'ZMM0':  Xmm{lit: 'ZMM0',  base_offset: 0,  size: .suffix_zmm512}
+	'ZMM1':  Xmm{lit: 'ZMM1',  base_offset: 1,  size: .suffix_zmm512}
+	'ZMM2':  Xmm{lit: 'ZMM2',  base_offset: 2,  size: .suffix_zmm512}
+	'ZMM3':  Xmm{lit: 'ZMM3',  base_offset: 3,  size: .suffix_zmm512}
+	'ZMM4':  Xmm{lit: 'ZMM4',  base_offset: 4,  size: .suffix_zmm512}
+	'ZMM5':  Xmm{lit: 'ZMM5',  base_offset: 5,  size: .suffix_zmm512}
+	'ZMM6':  Xmm{lit: 'ZMM6',  base_offset: 6,  size: .suffix_zmm512}
+	'ZMM7':  Xmm{lit: 'ZMM7',  base_offset: 7,  size: .suffix_zmm512}
+	'ZMM8':  Xmm{lit: 'ZMM8',  base_offset: 8,  size: .suffix_zmm512}
+	'ZMM9':  Xmm{lit: 'ZMM9',  base_offset: 9,  size: .suffix_zmm512}
+	'ZMM10': Xmm{lit: 'ZMM10', base_offset: 10, size: .suffix_zmm512}
+	'ZMM11': Xmm{lit: 'ZMM11', base_offset: 11, size: .suffix_zmm512}
+	'ZMM12': Xmm{lit: 'ZMM12', base_offset: 12, size: .suffix_zmm512}
+	'ZMM13': Xmm{lit: 'ZMM13', base_offset: 13, size: .suffix_zmm512}
+	'ZMM14': Xmm{lit: 'ZMM14', base_offset: 14, size: .suffix_zmm512}
+	'ZMM15': Xmm{lit: 'ZMM15', base_offset: 15, size: .suffix_zmm512}
+	'ZMM16': Xmm{lit: 'ZMM16', base_offset: 16, size: .suffix_zmm512}
+	'ZMM17': Xmm{lit: 'ZMM17', base_offset: 17, size: .suffix_zmm512}
+	'ZMM18': Xmm{lit: 'ZMM18', base_offset: 18, size: .suffix_zmm512}
+	'ZMM19': Xmm{lit: 'ZMM19', base_offset: 19, size: .suffix_zmm512}
+	'ZMM20': Xmm{lit: 'ZMM20', base_offset: 20, size: .suffix_zmm512}
+	'ZMM21': Xmm{lit: 'ZMM21', base_offset: 21, size: .suffix_zmm512}
+	'ZMM22': Xmm{lit: 'ZMM22', base_offset: 22, size: .suffix_zmm512}
+	'ZMM23': Xmm{lit: 'ZMM23', base_offset: 23, size: .suffix_zmm512}
+	'ZMM24': Xmm{lit: 'ZMM24', base_offset: 24, size: .suffix_zmm512}
+	'ZMM25': Xmm{lit: 'ZMM25', base_offset: 25, size: .suffix_zmm512}
+	'ZMM26': Xmm{lit: 'ZMM26', base_offset: 26, size: .suffix_zmm512}
+	'ZMM27': Xmm{lit: 'ZMM27', base_offset: 27, size: .suffix_zmm512}
+	'ZMM28': Xmm{lit: 'ZMM28', base_offset: 28, size: .suffix_zmm512}
+	'ZMM29': Xmm{lit: 'ZMM29', base_offset: 29, size: .suffix_zmm512}
+	'ZMM30': Xmm{lit: 'ZMM30', base_offset: 30, size: .suffix_zmm512}
+	'ZMM31': Xmm{lit: 'ZMM31', base_offset: 31, size: .suffix_zmm512}
+
+	// AVX-512 mask registers (K0..K7). Same Xmm carrier with a distinct size
+	// so the classifier can pick out the kreg OpClass.
+	'K0': Xmm{lit: 'K0', base_offset: 0, size: .suffix_kreg}
+	'K1': Xmm{lit: 'K1', base_offset: 1, size: .suffix_kreg}
+	'K2': Xmm{lit: 'K2', base_offset: 2, size: .suffix_kreg}
+	'K3': Xmm{lit: 'K3', base_offset: 3, size: .suffix_kreg}
+	'K4': Xmm{lit: 'K4', base_offset: 4, size: .suffix_kreg}
+	'K5': Xmm{lit: 'K5', base_offset: 5, size: .suffix_kreg}
+	'K6': Xmm{lit: 'K6', base_offset: 6, size: .suffix_kreg}
+	'K7': Xmm{lit: 'K7', base_offset: 7, size: .suffix_kreg}
+
+	// x87 FPU stack registers ST(0)..ST(7). Encoded with `+r` in the c0+r /
+	// d0+r etc. opcodes; no REX extension (only 8 registers).
+	'ST': Xmm{lit: 'ST', base_offset: 0, size: .suffix_fpureg}
+	'ST0': Xmm{lit: 'ST0', base_offset: 0, size: .suffix_fpureg}
+	'ST1': Xmm{lit: 'ST1', base_offset: 1, size: .suffix_fpureg}
+	'ST2': Xmm{lit: 'ST2', base_offset: 2, size: .suffix_fpureg}
+	'ST3': Xmm{lit: 'ST3', base_offset: 3, size: .suffix_fpureg}
+	'ST4': Xmm{lit: 'ST4', base_offset: 4, size: .suffix_fpureg}
+	'ST5': Xmm{lit: 'ST5', base_offset: 5, size: .suffix_fpureg}
+	'ST6': Xmm{lit: 'ST6', base_offset: 6, size: .suffix_fpureg}
+	'ST7': Xmm{lit: 'ST7', base_offset: 7, size: .suffix_fpureg}
 }

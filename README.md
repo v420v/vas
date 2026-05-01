@@ -89,6 +89,46 @@ Output:
 Hello, world!
 ```
 
+## Testing
+
+Regression tests live in `tests/cases/` as `<name>.s` (assembly source) +
+`<name>.expected.md5` (expected MD5 of the assembled `.o`) pairs. The
+runner is a V `_test.v` file:
+
+```sh
+v test tests/
+```
+
+This rebuilds `vas`, runs every case through it, and asserts the output
+bytes match the recorded MD5. To add a case:
+
+```sh
+# 1. drop a new .s file
+$EDITOR tests/cases/my_feature.s
+
+# 2. record its expected output
+v .                                  # ensure vas is fresh
+./vas tests/cases/my_feature.s
+md5 -q tests/cases/my_feature.o > tests/cases/my_feature.expected.md5
+rm tests/cases/my_feature.o          # keep the dir clean
+
+# 3. verify the new case is picked up
+v test tests/
+```
+
+## Instruction table
+
+The assembler's instruction set is data-driven: rows are generated from
+NASM's `third_party/insns.dat` by `tools/gen_insns.v` and committed to
+`encoder/insns_table.gen.v`. Regenerate after editing the parser:
+
+```sh
+v run tools/gen_insns.v
+```
+
+See `LICENSE-NASM` for the BSD-2-clause notice covering the bundled
+`insns.dat` and the rows derived from it.
+
 ## Star History
 <a href="https://www.star-history.com/#v420v/vas&Date">
  <picture>
