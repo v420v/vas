@@ -278,6 +278,12 @@ pub fn (mut l Lexer) lex() token.Token {
 				`,` {
 					return l.single_letter_token(',', .comma)
 				}
+				`{` {
+					return l.single_letter_token('{', .lbrace)
+				}
+				`}` {
+					return l.single_letter_token('}', .rbrace)
+				}
 				else {
 					c := [l.c].bytestr()
 					error.print(pos, 'unexpected token `${c}`')

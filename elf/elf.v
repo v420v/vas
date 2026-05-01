@@ -30,9 +30,9 @@ pub struct Elf64_Ehdr {
 	e_type      u16
 	e_machine   u16
 	e_version   u32
-	e_entry     voidptr
-	e_phoff     voidptr
-	e_shoff     voidptr
+	e_entry     u64
+	e_phoff     u64
+	e_shoff     u64
 	e_flags     u32
 	e_ehsize    u16
 	e_phentsize u16
@@ -47,21 +47,21 @@ pub struct Elf64_Sym {
 	st_info  u8
 	st_other u8
 	st_shndx u16
-	st_value voidptr
+	st_value u64
 	st_size  u64
 }
 
 pub struct Elf64_Shdr {
 	sh_name      u32
 	sh_type      u32
-	sh_flags     voidptr
-	sh_addr      voidptr
-	sh_offset    voidptr
-	sh_size      voidptr
+	sh_flags     u64
+	sh_addr      u64
+	sh_offset    u64
+	sh_size      u64
 	sh_link      u32
 	sh_info      u32
-	sh_addralign voidptr
-	sh_entsize   voidptr
+	sh_addralign u64
+	sh_entsize   u64
 }
 
 pub struct Elf64_Rela {
@@ -191,7 +191,7 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 			st_info: u8((symbol.binding << 4) + (symbol.symbol_type & 0xf))
 			st_other: symbol.visibility
 			st_shndx: st_shndx
-			st_value: voidptr(symbol.addr)
+			st_value: u64(symbol.addr)
 		}
 
 		e.strtab << name.bytes()
@@ -218,7 +218,6 @@ fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
 	}
 }
 
-// relocation table
 pub fn (mut e Elf) rela_text_users() {
 	/*
 		x86: 再配置型
@@ -235,7 +234,6 @@ pub fn (mut e Elf) rela_text_users() {
 			i64(0-4)
 		}
 
-		// already resolved instruction.
     	if r.is_already_resolved {
 			continue
 		}
@@ -276,7 +274,6 @@ pub fn (mut e Elf) collect_rela_symbols() {
 }
 
 pub fn (mut e Elf) build_symtab_strtab() {
-	// null
 	e.strtab << [u8(0x00)]
 	e.symtab << Elf64_Sym{
 		st_name: 0
@@ -296,11 +293,9 @@ pub fn (mut e Elf) build_symtab_strtab() {
 }
 
 pub fn (mut e Elf) build_shstrtab() {
-	// null
 	e.shstrtab << [u8(0x00)]
 	e.section_name_offs[''] = 0
 
-	// custom sections
 	mut name_offs := ''.len + 1
 	for name in e.user_defined_section_names {
 		e.section_name_offs[name] = name_offs
@@ -334,13 +329,11 @@ pub fn (mut e Elf) build_headers() {
 	mut section_offs := sizeof(Elf64_Ehdr)
 	mut section_idx := {'': 0}
 
-	// null section
 	e.section_headers << Elf64_Shdr{
 		sh_name: u32(e.section_name_offs[''])
 		sh_type: sht_null
 	}
 
-	// user-defined sections
 	for name in e.user_defined_section_names {
 		section := e.user_defined_sections[name] or {
 			panic('[internal error] unkown section `$name`')
@@ -348,13 +341,13 @@ pub fn (mut e Elf) build_headers() {
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
 			sh_type: sht_progbits
-			sh_flags: voidptr(section.flags)
+			sh_flags: u64(section.flags)
 			sh_addr: 0
-			sh_offset: voidptr(section_offs)
-			sh_size: voidptr(section.code.len)
+			sh_offset: u64(section_offs)
+			sh_size: u64(section.code.len)
 			sh_link: 0
 			sh_info: 0
-			sh_addralign: voidptr(1)
+			sh_addralign: u64(1)
 			sh_entsize: 0
 		}
 		section_offs += u32(section.code.len)
@@ -370,71 +363,66 @@ pub fn (mut e Elf) build_headers() {
 	section_idx['.symtab'] = section_idx.len
 
 	e.section_headers << [
-		// .strtab
 		Elf64_Shdr{
 			sh_name: u32(e.section_name_offs['.strtab'])
 			sh_type: sht_strtab
 			sh_flags: 0
 			sh_addr: 0
-			sh_offset: voidptr(strtab_ofs)
-			sh_size: voidptr(strtab_size)
+			sh_offset: u64(strtab_ofs)
+			sh_size: u64(strtab_size)
 			sh_link: 0
 			sh_info: 0
-			sh_addralign: voidptr(1)
+			sh_addralign: u64(1)
 			sh_entsize: 0
 		},
-		// .symtab
 		Elf64_Shdr{
 			sh_name: u32(e.section_name_offs['.symtab'])
 			sh_type: sht_symtab
 			sh_flags: 0
 			sh_addr: 0
-			sh_offset: voidptr(symtab_ofs)
-			sh_size: voidptr(symtab_size)
+			sh_offset: u64(symtab_ofs)
+			sh_size: u64(symtab_size)
 			sh_link: u32(section_idx['.strtab']) // section number of .strtab
 			sh_info: u32(e.local_symbols_count) // Number of local symbols
-			sh_addralign: voidptr(8)
-			sh_entsize: voidptr(sizeof(Elf64_Sym))
+			sh_addralign: u64(8)
+			sh_entsize: u64(sizeof(Elf64_Sym))
 		}
 	]
 
 	section_offs = symtab_ofs + symtab_size
 
-	// add rela ... to section headers
 	for name in e.rela_section_names {
 		size := u32(e.rela[name].len) * sizeof(Elf64_Rela)
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
 			sh_type: sht_rela,
-			sh_flags: voidptr(shf_info_link)
+			sh_flags: u64(shf_info_link)
 			sh_addr: 0
-			sh_offset: voidptr(section_offs)
-			sh_size: voidptr(size)
+			sh_offset: u64(section_offs)
+			sh_size: u64(size)
 			sh_link: u32(section_idx['.symtab'])
 			sh_info: u32(section_idx[name[5..]]) // target section index. if `.rela.text` the target will be `.text`
-			sh_addralign: voidptr(8)
-			sh_entsize: voidptr(sizeof(Elf64_Rela))
+			sh_addralign: u64(8)
+			sh_entsize: u64(sizeof(Elf64_Rela))
 		}
 		section_offs += size
 	}
 
-	// .shstrtab
 	e.section_headers << Elf64_Shdr{
 		sh_name: u32(e.section_name_offs['.shstrtab'])
 		sh_type: sht_strtab
 		sh_flags: 0
 		sh_addr: 0
-		sh_offset: voidptr(section_offs)
-		sh_size: voidptr(e.shstrtab.len)
+		sh_offset: u64(section_offs)
+		sh_size: u64(e.shstrtab.len)
 		sh_link: 0
 		sh_info: 0
-		sh_addralign: voidptr(1)
+		sh_addralign: u64(1)
 		sh_entsize: 0
 	}
 
 	sectionheader_ofs := section_offs + u32(e.shstrtab.len)
 
-	// elf header
 	e.ehdr = Elf64_Ehdr{
 		e_ident: [
 			u8(0x7f), 0x45, 0x4c, 0x46, // Magic number ' ELF' in ascii format
@@ -447,7 +435,7 @@ pub fn (mut e Elf) build_headers() {
 		e_version: 1
 		e_entry: 0
 		e_phoff: 0
-		e_shoff: voidptr(sectionheader_ofs)
+		e_shoff: u64(sectionheader_ofs)
 		e_flags: 0x0
 		e_ehsize: u16(sizeof(Elf64_Ehdr))
 		e_phentsize: u16(sizeof(Elf64_Phdr))
@@ -458,6 +446,14 @@ pub fn (mut e Elf) build_headers() {
 	}
 }
 
+fn write_bytes[T](mut fp os.File, s T, label string) {
+	unsafe {
+		ptr := &u8(voidptr(&s))
+		data := ptr.vbytes(int(sizeof(T)))
+		fp.write(data) or { panic('error writing `${label}`') }
+	}
+}
+
 pub fn (mut e Elf) write_elf() {
 	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }
 
@@ -465,9 +461,7 @@ pub fn (mut e Elf) write_elf() {
 		fp.close()
 	}
 
-	fp.write_struct(e.ehdr) or {
-		panic('error writing `elf header`')
-	}
+	write_bytes(mut fp, e.ehdr, 'elf header')
 
 	for name in e.user_defined_section_names {
 		section := e.user_defined_sections[name] or {
@@ -483,16 +477,12 @@ pub fn (mut e Elf) write_elf() {
 	}
 
 	for s in e.symtab {
-		fp.write_struct(s) or {
-			panic('error writing `.symtab`')
-		}
+		write_bytes(mut fp, s, '.symtab')
 	}
 
 	for name in e.rela_section_names {
 		for r in e.rela[name] {
-			fp.write_struct(r) or {
-				panic('error writing `.rela.text`')
-			}
+			write_bytes(mut fp, r, '.rela.text')
 		}
 	}
 
@@ -501,10 +491,6 @@ pub fn (mut e Elf) write_elf() {
 	}
 
 	for sh in e.section_headers {
-		fp.write_struct(sh) or {
-			panic('error writing `section_headers`')
-		}
+		write_bytes(mut fp, sh, 'section_headers')
 	}
 }
-
-

@@ -3,8 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+
 jobs:
-  build:
+  build-and-test:
     strategy:
       matrix:
         os: ["ubuntu-latest"]
@@ -17,12 +20,23 @@ jobs:
           check-latest: true
 
       - name: Checkout ${{ github.event.repository.name }}
-        uses: actions/checkout@v2         
+        uses: actions/checkout@v4
 
-      - name: Build ${{ github.event.repository.name }}
-        run: v . -enable-globals
+      - name: Build vas
+        run: v .
 
-      - name: Run Tests
-        run: ./vas main.s -o main.o && ld -o main main.o && ./main
-        
+      - name: Smoke test (assemble + link + run hello world)
+        run: |
+          ./vas main.s -o main.o
+          ld -o main main.o
+          ./main
 
+      - name: Regression suite (tests/cases/*.s vs *.expected.md5)
+        run: v test tests/
+
+      - name: Verify generator output is committed
+        # If `tools/gen_insns.v` produces a different table than what's
+        # checked in, fail loudly so contributors regenerate before pushing.
+        run: |
+          v run tools/gen_insns.v
+          git diff --exit-code -- encoder/insns_table.gen.v

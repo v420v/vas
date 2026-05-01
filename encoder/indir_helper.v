@@ -104,7 +104,6 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 		}
 	}
 
-	// add sib byte
 	if indir.has_index_scale {
 		scale_num := u8(eval_expr(indir.scale))
 		if scale_num !in [1, 2, 4, 8] {
@@ -120,7 +119,6 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 		e.current_instr.code << 0x24
 	}
 
-	// disp
 	if disp_need_rela {
 		rtype := if base_is_ip {
 			encoder.r_x86_64_pc32
