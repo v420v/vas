@@ -16,6 +16,16 @@ pub mut:
 	rela_text_users       []Rela
 	user_defined_symbols  map[string]&Instr
 	user_defined_sections map[string]&UserDefinedSection
+	// Constant aliases declared via `.set` / `.equ`. When parse_factor sees
+	// an Ident whose name is in this map, it returns a Number with the
+	// stored value rather than emitting a symbol reference. Only constants
+	// (no symbol-relative aliases) are supported.
+	set_aliases map[string]i64
+	// Section name stack for `.pushsection` / `.popsection` / `.previous`.
+	// `previous_section_name` is the section we were in before the most
+	// recent switch, used by `.previous` to toggle.
+	section_stack         []string
+	previous_section_name string
 	// Per-instruction AVX-512 operand decorators (parsed once per instruction
 	// in try_table_driven, consumed by emit_table during EVEX P2 emission).
 	//   mask_reg     : 0..7 = K register, 8 = no mask (default)
@@ -432,13 +442,22 @@ fn (mut e Encoder) parse_factor() Expr {
 			}
 		}
 		.ident {
+			ident_pos := e.tok.pos
 			mut lit := e.tok.lit
 			if at := lit.index('@') {
 				lit = lit[..at]
 			}
 			e.next()
+			// `.set` / `.equ` constants are inlined here so the rest of
+			// the pipeline sees a plain integer literal.
+			if val := e.set_aliases[lit] {
+				return Number{
+					pos: ident_pos
+					lit: val.str()
+				}
+			}
 			return Ident{
-				pos: e.tok.pos
+				pos: ident_pos
 				lit: lit
 			}
 		}
@@ -693,6 +712,21 @@ fn is_noop_directive(name_upper string) bool {
 		'.ADDRSIG',
 		'.ADDRSIG_SYM',
 		'.WEAK',
+		'.LOC',
+		'.LINE',
+		'.CV_LOC',
+		'.CV_FILE',
+		'.CV_FUNC_ID',
+		'.CV_INLINE_SITE_ID',
+		'.CV_INLINE_LINETABLE',
+		'.INTEL_SYNTAX',
+		'.ATT_SYNTAX',
+		'.CODE64',
+		'.CODE32',
+		'.CODE16',
+		'.SYMVER',
+		'.GNU_ATTRIBUTE',
+		'.SUBSECTION',
 	]
 }
 
@@ -794,20 +828,65 @@ fn (mut e Encoder) encode_instr() {
 		'.STRING', '.ASCIZ' {
 			e.string()
 		}
+		'.ASCII' {
+			e.ascii()
+		}
 		'.BYTE' {
 			e.byte()
 		}
-		'.WORD' {
-			e.word()
+		'.WORD', '.SHORT', '.VALUE' {
+			e.short()
 		}
-		'.LONG' {
+		'.LONG', '.INT' {
 			e.long()
 		}
 		'.QUAD' {
 			e.quad()
 		}
+		'.OCTA' {
+			e.octa()
+		}
+		'.FLOAT', '.SINGLE' {
+			e.float_data()
+		}
+		'.DOUBLE' {
+			e.double_data()
+		}
 		'.ZERO' {
 			e.zero()
+		}
+		'.SKIP', '.SPACE' {
+			e.skip()
+		}
+		'.FILL' {
+			e.fill()
+		}
+		'.ULEB128' {
+			e.uleb128()
+		}
+		'.SLEB128' {
+			e.sleb128()
+		}
+		'.SET', '.EQU' {
+			e.set_directive(false)
+		}
+		'.EQUIV' {
+			e.set_directive(true)
+		}
+		'.COMM' {
+			e.common(true)
+		}
+		'.LCOMM' {
+			e.common(false)
+		}
+		'.PUSHSECTION' {
+			e.pushsection()
+		}
+		'.POPSECTION' {
+			e.popsection()
+		}
+		'.PREVIOUS' {
+			e.previous_section()
 		}
 		// All integer / branch / shift / SSE / MOVZX / MOVSX / MOVSXD / MOVABSQ
 		// / CVT* mnemonics go through try_table_driven. The only legacy entry

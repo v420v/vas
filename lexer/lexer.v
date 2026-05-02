@@ -104,6 +104,31 @@ fn (mut l Lexer) read_number() token.Token {
 		}
 	}
 
+	// Optional decimal/exponent for floats. Only consume the dot when it
+	// looks like a float (digit follows); otherwise leave it for the next
+	// token (`123.foo` keeps `.foo` as a separate ident).
+	if l.c == `.` && is_digit(l.peak(1)) {
+		l.advance() // `.`
+		for l.c >= `0` && l.c <= `9` {
+			l.advance()
+		}
+	}
+	if l.c in [`e`, `E`] {
+		// Heuristic: only treat `e`/`E` as exponent if it's followed by
+		// (optional sign and) a digit. Otherwise it's part of a hex
+		// literal like `0xface` already consumed above.
+		nxt := l.peak(1)
+		if is_digit(nxt) || ((nxt == `+` || nxt == `-`) && is_digit(l.peak(2))) {
+			l.advance() // `e`
+			if l.c in [`+`, `-`] {
+				l.advance()
+			}
+			for l.c >= `0` && l.c <= `9` {
+				l.advance()
+			}
+		}
+	}
+
 	lit := l.text[start..l.idx]
 
 	return token.Token{
