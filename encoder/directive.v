@@ -23,12 +23,20 @@ fn (mut e Encoder) add_section(section_name string, flag string, pos token.Posit
 fn (mut e Encoder) section() {
 	pos := e.tok.pos
 
+	if e.tok.kind !in [.ident, .string] {
+		error.print(pos, 'expected section name')
+		exit(1)
+	}
 	section_name := e.tok.lit
-
 	e.next()
 	e.expect(.comma)
 	section_flags := e.tok.lit
 	e.expect(.string)
+
+	if e.tok.kind == .comma {
+		e.l.skip_to_eol()
+		e.next()
+	}
 
 	e.add_section(section_name, section_flags, pos)
 }
@@ -161,5 +169,3 @@ fn (mut e Encoder) quad() {
 		e.current_instr.code = hex
 	}
 }
-
-

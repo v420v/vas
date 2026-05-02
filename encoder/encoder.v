@@ -432,7 +432,10 @@ fn (mut e Encoder) parse_factor() Expr {
 			}
 		}
 		.ident {
-			lit := e.tok.lit
+			mut lit := e.tok.lit
+			if at := lit.index('@') {
+				lit = lit[..at]
+			}
 			e.next()
 			return Ident{
 				pos: e.tok.pos
@@ -675,11 +678,36 @@ fn compose_mod_rm(mod u8, reg_op u8, rm u8) u8 {
 	return (mod << 6) + (reg_op << 3) + rm
 }
 
+fn is_noop_directive(name_upper string) bool {
+	if name_upper.starts_with('.CFI_') {
+		return true
+	}
+	return name_upper in [
+		'.FILE',
+		'.IDENT',
+		'.TYPE',
+		'.SIZE',
+		'.P2ALIGN',
+		'.BALIGN',
+		'.ALIGN',
+		'.ADDRSIG',
+		'.ADDRSIG_SYM',
+		'.WEAK',
+	]
+}
+
 fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
 
 	instr_name := e.tok.lit
 	instr_name_upper := instr_name.to_upper()
+
+	if is_noop_directive(instr_name_upper) {
+		e.l.skip_to_eol()
+		e.next()
+		return
+	}
+
 	e.next()
 
 	if e.tok.kind == .colon {
@@ -763,7 +791,7 @@ fn (mut e Encoder) encode_instr() {
 			}
 			e.next()
 		}
-		'.STRING' {
+		'.STRING', '.ASCIZ' {
 			e.string()
 		}
 		'.BYTE' {

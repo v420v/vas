@@ -65,6 +65,12 @@ fn (mut l Lexer) skip_comment() {
 	}
 }
 
+pub fn (mut l Lexer) skip_to_eol() {
+	for l.c !in [`\n`, `\0`] {
+		l.advance()
+	}
+}
+
 fn (mut l Lexer) read_number() token.Token {
 	pos := l.current_pos()
 	start := l.idx
@@ -119,7 +125,7 @@ fn (mut l Lexer) read_ident() token.Token {
 	pos := l.current_pos()
 	start := l.idx
 	for {
-		if is_alpha(l.c) || is_digit(l.c) || l.c in [`_`, `.`, `-`, `$`] {
+		if is_alpha(l.c) || is_digit(l.c) || l.c in [`_`, `.`, `-`, `$`, `@`] {
 			l.advance()
 		} else {
 			break
@@ -299,4 +305,3 @@ pub fn (mut l Lexer) lex() token.Token {
 		pos: l.current_pos()
 	} // end of file
 }
-
