@@ -925,7 +925,7 @@ fn (mut e Encoder) encode_instr() {
 			e.rep()
 		}
 		else {
-			error.print(pos, 'unkwoun instruction `${instr_name}`')
+			error.print(pos, 'unknown instruction `${instr_name}`')
 			exit(1)
 		}
 	}
