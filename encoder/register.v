@@ -76,6 +76,17 @@ const general_registers = {
 	'RIP': Register{lit: 'RIP', base_offset: 0, size: .suffix_quad}
 	'EIP': Register{lit: 'EIP', base_offset: 0, size: .suffix_long}
 	'IP': Register{lit: 'IP', base_offset: 0, size: .suffix_word}
+
+	// Segment registers. In 64-bit mode CS/DS/ES/SS are typically null and
+	// rarely used as overrides, but FS/GS carry TLS bases so clang/gcc
+	// emit `%fs:disp(...)` for thread-local storage. parse_operand pivots
+	// to memory parsing when it sees one of these followed by `:`.
+	'CS': Register{lit: 'CS', base_offset: 0, size: .suffix_seg}
+	'DS': Register{lit: 'DS', base_offset: 0, size: .suffix_seg}
+	'ES': Register{lit: 'ES', base_offset: 0, size: .suffix_seg}
+	'SS': Register{lit: 'SS', base_offset: 0, size: .suffix_seg}
+	'FS': Register{lit: 'FS', base_offset: 0, size: .suffix_seg}
+	'GS': Register{lit: 'GS', base_offset: 0, size: .suffix_seg}
 }
 
 // XMM and YMM registers are stored in the same map. Their `size` field

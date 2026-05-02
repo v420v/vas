@@ -304,6 +304,11 @@ pub mut:
 	pos             token.Position
 	has_base        bool
 	has_index_scale bool
+	// Segment override: empty string for the default segment, or one of
+	// `CS`/`DS`/`ES`/`SS`/`FS`/`GS`. Only FS/GS commonly appear in 64-bit
+	// code (TLS base). Set by parse_operand when it sees `%seg:expr...`
+	// and read by emit_table to emit the corresponding prefix byte.
+	segment string
 }
 
 pub struct Ident {
@@ -331,6 +336,7 @@ enum DataSize {
 	suffix_zmm512 // packed 512-bit (AVX-512 VADDPD / VPADDD / etc.)
 	suffix_kreg   // AVX-512 mask register (K0..K7) — width depends on instruction
 	suffix_fpureg // x87 stack register ST(0)..ST(7)
+	suffix_seg    // segment register (CS/DS/ES/SS/FS/GS) — emits a prefix byte
 	suffix_unkown
 }
 
@@ -512,15 +518,38 @@ fn (mut e Encoder) parse_operand() Expr {
 			}
 		}
 		.percent {
-			return e.parse_register()
+			reg := e.parse_register()
+			// `%seg:disp(base, index, scale)` — segment-prefixed memory
+			// operand (TLS access etc.). After consuming the segment
+			// register and `:`, parse the rest as a normal memory
+			// expression and stamp the segment name on the Indirection.
+			if reg is Register {
+				if reg.size == .suffix_seg && e.tok.kind == .colon {
+					e.next()
+					seg_name := reg.lit
+					inner := e.parse_operand()
+					if inner is Indirection {
+						mut ind := inner
+						ind.segment = seg_name
+						return ind
+					}
+					return Indirection{
+						disp: inner
+						pos: pos
+						segment: seg_name
+					}
+				}
+			}
+			return reg
 		}
 		.mul {
-			e.expect(.mul)
-			regi := e.parse_register() as Register
-			return Star{
-				regi: regi
-				pos: pos
-			}
+			// AT&T syntax: `*<operand>` marks an indirect call/jmp target.
+			// The `*` is purely syntactic — the encoder picks rm-form or
+			// rel-form based on the operand class — so consume it and
+			// forward the inner operand. Handles `*%rax`, `*(%rax)`,
+			// `*tab(%rip,%rax,8)` etc.
+			e.next()
+			return e.parse_operand()
 		}
 		else {
 			expr := if e.tok.kind == .lpar {

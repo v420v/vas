@@ -4,6 +4,19 @@ import error
 import encoding.binary
 
 fn (mut e Encoder) add_segment_override_prefix(indir Indirection) {
+	// Segment override (CS/DS/ES/SS/FS/GS) — emitted as a prefix byte
+	// before the rest of the instruction. In 64-bit mode CS/DS/ES/SS
+	// are usually null, but FS/GS are still meaningful (TLS).
+	match indir.segment {
+		'CS' { e.current_instr.code << 0x2E }
+		'SS' { e.current_instr.code << 0x36 }
+		'DS' { e.current_instr.code << 0x3E }
+		'ES' { e.current_instr.code << 0x26 }
+		'FS' { e.current_instr.code << 0x64 }
+		'GS' { e.current_instr.code << 0x65 }
+		else {}
+	}
+	// Address-size override (0x67) for 32-bit base/index in 64-bit mode.
 	if indir.base.size == .suffix_long || indir.index.size == .suffix_long {
 		e.current_instr.code << 0x67
 	}
@@ -50,8 +63,32 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 
 fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 	if !indir.has_base && !indir.has_index_scale {
-		error.print(indir.pos, 'syntax not supported yet. `disp(,,)`')
-		exit(1)
+		// Bare-displacement form like `%fs:0` or `disp` (absolute addressing).
+		// In 64-bit mode this requires ModR/M mod=00 r/m=100 (SIB follows)
+		// + SIB index=100 (none) base=101 (no base) + 32-bit disp.
+		mut used_symbols := []string{}
+		disp := int(eval_expr_get_symbol_64(indir.disp, mut used_symbols))
+		if used_symbols.len >= 2 {
+			error.print(indir.disp.pos, 'invalid operand')
+			exit(1)
+		}
+		e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
+		e.current_instr.code << 0x25
+		if used_symbols.len == 1 {
+			e.rela_text_users << encoder.Rela{
+				instr:  e.current_instr
+				uses:   used_symbols[0]
+				offset: e.current_instr.code.len
+				rtype:  encoder.r_x86_64_32
+				adjust: disp
+			}
+			e.current_instr.code << [u8(0), 0, 0, 0]
+		} else {
+			mut hex := [u8(0), 0, 0, 0]
+			binary.little_endian_put_u32(mut &hex, u32(disp))
+			e.current_instr.code << hex
+		}
+		return
 	}
 
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()

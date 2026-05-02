@@ -38,6 +38,17 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 		}
 	}
 
+	// GAS allows the 1-operand shift shorthand `shll %ecx` for `shll $1, %ecx`.
+	// Inject the implicit `1` as ops[0] (AT&T order) so the standard
+	// AT&T→Intel reversal places it as the immediate (Intel: dst, imm).
+	if ops.len == 1 && c.name in encoder.one_op_shift_canons {
+		one := Expr(Immediate{
+			expr: Number{lit: '1', pos: pos}
+			pos: pos
+		})
+		ops = [one, ops[0]]
+	}
+
 	// AT&T → Intel: GAS AT&T reverses the operand order. We always reverse,
 	// regardless of arity (works for 1-op no-ops too — it's a no-op).
 	if ops.len > 1 {

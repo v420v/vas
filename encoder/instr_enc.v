@@ -200,6 +200,11 @@ const sse_mnemonics_double = ['MOVSD', 'ADDSD', 'SUBSD', 'MULSD', 'DIVSD', 'UCOM
 const sse_mnemonics_xmm128 = ['MOVAPS', 'MOVUPS', 'MOVAPD', 'MOVUPD', 'XORPS', 'XORPD', 'ANDPS',
 	'ANDPD', 'ORPS', 'ORPD', 'ANDNPS', 'ANDNPD', 'PXOR']
 
+// Shift-family mnemonics that GAS allows in their 1-operand form:
+// `shll %ecx` is shorthand for `shll $1, %ecx`. Used by emit_table to
+// synthesize the implicit immediate.
+const one_op_shift_canons = ['SHL', 'SHR', 'SAR', 'SAL', 'ROL', 'ROR', 'RCL', 'RCR']
+
 // Suffixed bases: AT&T `<base><Q|L|W|B>` strips to canonical Intel `<base>` plus a size hint.
 const suffixed_bases = [
 	'MOV', 'ADD', 'OR', 'ADC', 'SBB', 'AND', 'SUB', 'XOR', 'CMP', 'TEST',
@@ -384,6 +389,7 @@ fn canonicalize_mnemonic(name string) Canon {
 	match name {
 		'RETQ' { return sym('RET', DataSize.suffix_quad) }
 		'CALLQ' { return sym('CALL', DataSize.suffix_quad) }
+		'JMPQ' { return sym('JMP', DataSize.suffix_quad) }
 		'PUSHQ' { return sym('PUSH', DataSize.suffix_quad) }
 		'POPQ' { return sym('POP', DataSize.suffix_quad) }
 		'NOPQ' { return sym('NOP', DataSize.suffix_quad) }
