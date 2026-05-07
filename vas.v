@@ -5,6 +5,7 @@ import flag
 import lexer
 import encoder
 import elf
+import macho
 
 fn file_name_without_ext(file_name string) string {
 	ext_len := os.file_ext(file_name).len
@@ -18,20 +19,21 @@ fn file_name_without_ext(file_name string) string {
 
 fn main() {
 	mut fp := flag.new_flag_parser(os.args)
-    fp.application('vas')
-    fp.version('v0.0.0')
-    fp.skip_executable()
-    mut out_file := fp.string('o', `o`, 'out_file_none', 'set output file name')
-	keep_locals := fp.bool('keep-locals', 0, false, 'keeps local symbols (e.g., those starting with `.L`)')
+	fp.application('vas')
+	fp.version('v0.0.0')
+	fp.skip_executable()
+	mut out_file  := fp.string('o', `o`, 'out_file_none', 'set output file name')
+	keep_locals   := fp.bool('keep-locals', 0, false, 'keeps local symbols (e.g., those starting with `.L`)')
+	format_flag   := fp.string('format', `f`, 'auto', 'output format: elf or macho (default: auto-detect from OS)')
 
-    additional_args := fp.finalize() or {
-        println(fp.usage())
-        return
-    }
+	additional_args := fp.finalize() or {
+		println(fp.usage())
+		return
+	}
 
 	if additional_args.len < 1 {
 		println(fp.usage())
-        return
+		return
 	}
 
 	file_name := additional_args[0]
@@ -49,18 +51,30 @@ fn main() {
 		}
 	}
 
-	mut l := lexer.new(file_name, program)
+	effective_format := if format_flag == 'auto' {
+		if os.user_os() == 'macos' { 'macho' } else { 'elf' }
+	} else {
+		format_flag
+	}
 
+	mut l := lexer.new(file_name, program)
 	mut en := encoder.new(mut l, file_name)
 	en.encode()
 	en.assign_addresses()
 
-	mut e := elf.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
-	e.collect_rela_symbols()
-	e.build_symtab_strtab()
-	e.rela_text_users()
-	e.build_shstrtab()
-	e.build_headers()
-	e.write_elf()
+	if effective_format == 'macho' {
+		mut m := macho.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
+		m.collect_rela_symbols()
+		m.build_symtab_strtab()
+		m.build_relocations()
+		m.write_macho()
+	} else {
+		mut e := elf.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
+		e.collect_rela_symbols()
+		e.build_symtab_strtab()
+		e.rela_text_users()
+		e.build_shstrtab()
+		e.build_headers()
+		e.write_elf()
+	}
 }
-
