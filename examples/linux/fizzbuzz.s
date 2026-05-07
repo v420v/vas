@@ -1,4 +1,4 @@
-# Fizz Buzz
+# ./vas examples/linux/fizzbuzz.s && gcc -o fizzbuzz.out examples/linux/fizzbuzz.o && ./fizzbuzz.out
 # ../vas -o fizzbuzz.o fizzbuzz.s && gcc -o fizzbuzz.out fizzbuzz.o && ./fizzbuzz.out
 
 .global main

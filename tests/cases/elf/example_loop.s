@@ -74,4 +74,3 @@ loop_end:
 .data
 msg3:
     .string "message 3"
-

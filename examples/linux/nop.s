@@ -1,4 +1,4 @@
-# ../vas nop.s && ld -o nop.out nop.o && ./nop.out
+# ./vas examples/linux/nop.s && ld -o nop.out examples/linux/nop.o && ./nop.out
 # echo $?
 # > 0
 

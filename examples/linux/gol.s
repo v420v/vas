@@ -1,4 +1,4 @@
-# ../vas -o gol.o gol.s && gcc -o gol.out gol.o
+# ./vas examples/linux/gol.s && gcc -o gol.out examples/linux/gol.o && ./gol.out
 
 	.text
 	.section .rodata, "a"

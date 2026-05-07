@@ -1,4 +1,4 @@
-# ../vas -o rule110.o rule110.s && gcc -o rule110.out rule110.o && ./rule110.out
+# ./vas examples/linux/rule110.s && gcc -o rule110.out examples/linux/rule110.o && ./rule110.out
 
 .global	board
 .bss

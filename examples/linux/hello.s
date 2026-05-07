@@ -1,4 +1,4 @@
-# ../vas hello.s && ld -o hello.out hello.o && ./hello.out
+# ./vas examples/linux/hello.s && ld -o hello.out examples/linux/hello.o && ./hello.out
 # > Hello, world!
 
 .global _start

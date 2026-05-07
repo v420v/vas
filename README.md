@@ -38,81 +38,63 @@ vas [options] <input_file>.s
 
 Options:
 - `-o <filename>`: Set output file name (default: input_file.o)
+- `-f <format>`: Output format: `elf` or `macho` (default: auto-detect from OS)
 - `--keep-locals`: Keep local symbols (e.g., those starting with `.L`)
 
-### Example
+### Examples
 
-1. Create an assembly file (hello.s):
-```asm
-# Hello world example
+The `examples/` directory contains ready-to-run programs organized by platform:
 
-.global _start
-
-.section .data, "aw"
-msg:
-  .string "Hello, world!\n"
-
-.section .text, "ax"
-_start:
-  pushq %rbp
-  movq %rsp, %rbp
-  subq $16, %rsp
-
-  movq $1, %rax    # write syscall
-  movq $1, %rdi    # stdout
-  movq $msg, %rsi  # message
-  movq $14, %rdx   # length
-  syscall
-
-  movq $60, %rax   # exit syscall
-  movq $0, %rdi    # status code 0
-  syscall
+```
+examples/
+  linux/   — ELF examples (assemble with vas, link with ld/gcc)
+  macos/   — Mach-O examples (assemble with vas -f macho, link with clang)
 ```
 
-2. Assemble the file:
+**Linux (ELF):**
 ```sh
-vas hello.s
+./vas examples/linux/hello.s && ld -o hello.out examples/linux/hello.o && ./hello.out
+# > Hello, world!
 ```
 
-3. Link the object file:
+**macOS (Mach-O, x86-64):**
 ```sh
-ld hello.o
-```
-
-4. Run the executable:
-```sh
-./a.out
-```
-
-Output:
-```
-Hello, world!
+./vas -f macho examples/macos/hello.s && clang -arch x86_64 examples/macos/hello.o -o hello.out && arch -x86_64 ./hello.out
+# > Hello, world!
 ```
 
 ## Testing
 
-Regression tests live in `tests/cases/` as `<name>.s` (assembly source) +
-`<name>.expected.md5` (expected MD5 of the assembled `.o`) pairs. The
-runner is a V `_test.v` file:
+Regression tests live under `tests/cases/`, split by output format:
+
+```
+tests/cases/
+  elf/    — ELF test cases:    <name>.s + <name>.expected.md5
+  macho/  — Mach-O test cases: <name>.s + <name>.expected.md5
+```
+
+The runner is a V `_test.v` file:
 
 ```sh
 v test tests/
 ```
 
-This rebuilds `vas`, runs every case through it, and asserts the output
-bytes match the recorded MD5. To add a case:
+This rebuilds `vas`, assembles every case in both directories, and asserts
+the output bytes match the recorded MD5. To add a case:
 
 ```sh
-# 1. drop a new .s file
-$EDITOR tests/cases/my_feature.s
+# ELF example
+$EDITOR tests/cases/elf/my_feature.s
+./vas -f elf tests/cases/elf/my_feature.s
+md5 -q tests/cases/elf/my_feature.o > tests/cases/elf/my_feature.expected.md5
+rm tests/cases/elf/my_feature.o
+v test tests/
 
-# 2. record its expected output
-v .                                  # ensure vas is fresh
-./vas tests/cases/my_feature.s
-md5 -q tests/cases/my_feature.o > tests/cases/my_feature.expected.md5
-rm tests/cases/my_feature.o          # keep the dir clean
-
-# 3. verify the new case is picked up
+# Mach-O example
+$EDITOR tests/cases/macho/my_feature.s
+./vas -f macho tests/cases/macho/my_feature.s
+md5 -q tests/cases/macho/my_feature.o > tests/cases/macho/my_feature.expected.md5
+rm tests/cases/macho/my_feature.o
 v test tests/
 ```
 

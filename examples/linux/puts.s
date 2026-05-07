@@ -1,4 +1,4 @@
-# ../vas puts.s && gcc -o puts.out puts.o && ./puts.out
+# ./vas examples/linux/puts.s && gcc -o puts.out examples/linux/puts.o && ./puts.out
 # > Hello, world!
 
 .data

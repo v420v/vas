@@ -1,4 +1,4 @@
-# ../vas -o fibonacci.o fibonacci.s && gcc -o fibonacci.out fibonacci.o && ./fibonacci.out
+# ./vas -f macho examples/macos/fibonacci.s && clang -arch x86_64 examples/macos/fibonacci.o -o fibonacci.out && arch -x86_64 ./fibonacci.out
 # 0
 # 1
 # 1
@@ -13,8 +13,9 @@
 # 89
 # 144
 
+.globl _main
+
 .text
-.global main
 fib:
     pushq   %rbp
     movq    %rsp, %rbp
@@ -34,20 +35,19 @@ fib:
     movl    -20(%rbp), %eax
     subl    $1, %eax
     movl    %eax, %edi
-    call    fib
+    callq   fib
     movl    %eax, %ebx
     movl    -20(%rbp), %eax
     subl    $2, %eax
     movl    %eax, %edi
-    call    fib
+    callq   fib
     addl    %ebx, %eax
 .L3:
     movq    -8(%rbp), %rbx
     leave
-    ret
-.LC0:
-    .string "%d\n"
-main:
+    retq
+
+_main:
     pushq   %rbp
     movq    %rsp, %rbp
     subq    $16, %rsp
@@ -56,18 +56,19 @@ main:
 .L7:
     movl    -4(%rbp), %eax
     movl    %eax, %edi
-    call    fib
+    callq   fib
     movl    %eax, %esi
     leaq    .LC0(%rip), %rdi
     movl    $0, %eax
-    call    printf
+    callq   _printf
     addl    $1, -4(%rbp)
 .L6:
     cmpl    $14, -4(%rbp)
     jne     .L7
     movl    $0, %eax
     leave
-    ret
+    retq
 
-.section .note.GNU-stack, ""
-
+.data
+.LC0:
+    .string "%d\n"

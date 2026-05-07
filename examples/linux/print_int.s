@@ -1,3 +1,4 @@
+# ./vas examples/linux/print_int.s && gcc -o print_int.out examples/linux/print_int.o && ./print_int.out
 
 .text
 .global main

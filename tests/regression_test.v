@@ -3,21 +3,31 @@ module main
 import os
 import crypto.md5
 
-// regression_test.v — runs every `tests/cases/<name>.s` through `vas` and
-// asserts the output `.o` byte-for-byte matches `tests/cases/<name>.expected.md5`.
+// regression_test.v — assembles every test case and byte-checks the output.
+//
+// Layout:
+//   tests/cases/elf/   — ELF test cases: <name>.s + <name>.expected.md5
+//   tests/cases/macho/ — Mach-O test cases: <name>.s + <name>.expected.md5
 //
 // Workflow:
 //   v .                    # build the assembler binary at project root
 //   v test tests/          # invoke this runner
 //
 // Adding a case:
-//   1. Drop a `.s` file into tests/cases/.
-//   2. Run vas on it once to produce a `.o`.
-//   3. `md5 -q name.o > name.expected.md5` (or equivalent on Linux).
-//   4. Commit both files. The runner will pick the case up automatically.
+//   ELF:
+//     1. Drop a .s file into tests/cases/elf/.
+//     2. Run: ./vas -f elf tests/cases/elf/name.s
+//     3. Run: md5 -q tests/cases/elf/name.o > tests/cases/elf/name.expected.md5
+//     4. rm tests/cases/elf/name.o && commit both files.
+//   Mach-O:
+//     1. Drop a .s file into tests/cases/macho/.
+//     2. Run: ./vas -f macho tests/cases/macho/name.s
+//     3. Run: md5 -q tests/cases/macho/name.o > tests/cases/macho/name.expected.md5
+//     4. rm tests/cases/macho/name.o && commit both files.
 
 const project_root = os.dir(os.dir(@FILE))
-const cases_dir = os.join_path(project_root, 'tests', 'cases')
+const elf_dir = os.join_path(project_root, 'tests', 'cases', 'elf')
+const macho_dir = os.join_path(project_root, 'tests', 'cases', 'macho')
 const vas_bin = os.join_path(project_root, 'vas')
 
 fn ensure_vas_built() ! {
@@ -29,12 +39,13 @@ fn ensure_vas_built() ! {
 	}
 }
 
-fn case_md5(s_path string, name string) !string {
-	o_path := os.join_path(cases_dir, '${name}.o')
+fn case_md5(dir string, name string, format string) !string {
+	s_path := os.join_path(dir, '${name}.s')
+	o_path := os.join_path(dir, '${name}.o')
 	defer {
 		os.rm(o_path) or {}
 	}
-	run := os.execute('${vas_bin} ${s_path}')
+	run := os.execute('${vas_bin} -f ${format} ${s_path}')
 	if run.exit_code != 0 {
 		return error('vas failed (exit=${run.exit_code}): ${run.output}')
 	}
@@ -44,50 +55,55 @@ fn case_md5(s_path string, name string) !string {
 	return md5.sum(bytes).hex()
 }
 
+fn run_cases(dir string, format string, mut failures []string) int {
+	entries := os.ls(dir) or {
+		failures << 'cannot list ${dir}: ${err}'
+		return 0
+	}
+
+	mut names := []string{}
+	for entry in entries {
+		if entry.ends_with('.s') {
+			names << entry[..entry.len - 2]
+		}
+	}
+	names.sort()
+
+	for name in names {
+		expected_path := os.join_path(dir, '${name}.expected.md5')
+		actual := case_md5(dir, name, format) or {
+			failures << '${name} (${format}): ${err}'
+			continue
+		}
+		expected_raw := os.read_file(expected_path) or {
+			failures << '${name} (${format}): missing ${name}.expected.md5'
+			continue
+		}
+		expected := expected_raw.trim_space()
+		if actual != expected {
+			failures << '${name} (${format}): byte mismatch — actual=${actual} expected=${expected}'
+		}
+	}
+
+	return names.len
+}
+
 fn test_regression() {
 	ensure_vas_built() or {
 		assert false, '${err}'
 		return
 	}
 
-	entries := os.ls(cases_dir) or {
-		assert false, 'cannot list cases dir ${cases_dir}: ${err}'
-		return
-	}
-
-	mut cases := []string{}
-	for entry in entries {
-		if entry.ends_with('.s') {
-			cases << entry
-		}
-	}
-	cases.sort()
-
 	mut failures := []string{}
-	for case in cases {
-		name := case[..case.len - 2]
-		s_path := os.join_path(cases_dir, case)
-		expected_path := os.join_path(cases_dir, '${name}.expected.md5')
+	elf_count := run_cases(elf_dir, 'elf', mut failures)
+	macho_count := run_cases(macho_dir, 'macho', mut failures)
 
-		actual := case_md5(s_path, name) or {
-			failures << '${name}: ${err}'
-			continue
-		}
-		expected_raw := os.read_file(expected_path) or {
-			failures << '${name}: missing ${name}.expected.md5'
-			continue
-		}
-		expected := expected_raw.trim_space()
-		if actual != expected {
-			failures << '${name}: byte mismatch — actual=${actual} expected=${expected}'
-		}
-	}
-
+	total := elf_count + macho_count
 	if failures.len > 0 {
 		for f in failures {
 			eprintln('  FAIL: ${f}')
 		}
-		assert false, '${failures.len} of ${cases.len} regression case(s) failed'
+		assert false, '${failures.len} of ${total} regression case(s) failed'
 	}
-	println('${cases.len} regression cases passed')
+	println('${elf_count} ELF + ${macho_count} Mach-O regression cases passed')
 }

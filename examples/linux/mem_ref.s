@@ -1,4 +1,4 @@
-# ../vas mem_ref.s && ld -o mem_ref.out mem_ref.o && ./mem_ref.out
+# ./vas examples/linux/mem_ref.s && ld -o mem_ref.out examples/linux/mem_ref.o && ./mem_ref.out
 # > world!
 
 .global _start
