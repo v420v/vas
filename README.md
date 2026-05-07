@@ -38,7 +38,7 @@ vas [options] <input_file>.s
 
 Options:
 - `-o <filename>`: Set output file name (default: input_file.o)
-- `-f <format>`: Output format: `elf` or `macho` (default: auto-detect from OS)
+- `-f <format>`: Output format: `elf`, `macho`, or `pe` (default: auto-detect from OS)
 - `--keep-locals`: Keep local symbols (e.g., those starting with `.L`)
 
 ### Examples
@@ -47,8 +47,9 @@ The `examples/` directory contains ready-to-run programs organized by platform:
 
 ```
 examples/
-  linux/   — ELF examples (assemble with vas, link with ld/gcc)
-  macos/   — Mach-O examples (assemble with vas -f macho, link with clang)
+  linux/    — ELF examples    (assemble with vas, link with ld/gcc)
+  macos/    — Mach-O examples  (assemble with vas -f macho, link with clang)
+  windows/  — PE/COFF examples (assemble with vas -f pe, link with gcc/MinGW)
 ```
 
 **Linux (ELF):**
@@ -63,6 +64,31 @@ examples/
 # > Hello, world!
 ```
 
+**Windows (PE/COFF, x86-64):**
+
+Windows uses the Microsoft x64 ABI: the first four integer arguments are passed
+in `%rcx`, `%rdx`, `%r8`, `%r9` (instead of `%rdi`, `%rsi`, `%rdx`, `%rcx`
+on Linux/macOS), and the caller must reserve 32 bytes of shadow space before
+every `call`.
+
+Link with MinGW/GCC:
+```sh
+vas -f pe examples/windows/hello.s && gcc -o hello.exe examples/windows/hello.o && hello.exe
+# > Hello, world!
+```
+
+Or with the MSVC linker:
+```bat
+vas -f pe examples\windows\hello.s
+link /out:hello.exe /subsystem:console /defaultlib:ucrt examples\windows\hello.o
+hello.exe
+```
+
+Cross-compile from Linux (requires `x86_64-w64-mingw32-gcc`):
+```sh
+./vas -f pe examples/windows/hello.s && x86_64-w64-mingw32-gcc -o hello.exe examples/windows/hello.o
+```
+
 ## Testing
 
 Regression tests live under `tests/cases/`, split by output format:
@@ -71,6 +97,7 @@ Regression tests live under `tests/cases/`, split by output format:
 tests/cases/
   elf/    — ELF test cases:    <name>.s + <name>.expected.md5
   macho/  — Mach-O test cases: <name>.s + <name>.expected.md5
+  pe/     — PE test cases:     <name>.s + <name>.expected.md5
 ```
 
 The runner is a V `_test.v` file:
@@ -79,7 +106,7 @@ The runner is a V `_test.v` file:
 v test tests/
 ```
 
-This rebuilds `vas`, assembles every case in both directories, and asserts
+This rebuilds `vas`, assembles every case in all three directories, and asserts
 the output bytes match the recorded MD5. To add a case:
 
 ```sh
@@ -95,6 +122,13 @@ $EDITOR tests/cases/macho/my_feature.s
 ./vas -f macho tests/cases/macho/my_feature.s
 md5 -q tests/cases/macho/my_feature.o > tests/cases/macho/my_feature.expected.md5
 rm tests/cases/macho/my_feature.o
+v test tests/
+
+# PE example
+$EDITOR tests/cases/pe/my_feature.s
+./vas -f pe tests/cases/pe/my_feature.s
+md5 -q tests/cases/pe/my_feature.o > tests/cases/pe/my_feature.expected.md5
+rm tests/cases/pe/my_feature.o
 v test tests/
 ```
 
