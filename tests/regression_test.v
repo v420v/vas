@@ -24,11 +24,17 @@ import crypto.md5
 //     2. Run: ./vas -f macho tests/cases/macho/name.s
 //     3. Run: md5 -q tests/cases/macho/name.o > tests/cases/macho/name.expected.md5
 //     4. rm tests/cases/macho/name.o && commit both files.
+//   PE (COFF):
+//     1. Drop a .s file into tests/cases/pe/.
+//     2. Run: ./vas -f pe tests/cases/pe/name.s
+//     3. Run: md5 -q tests/cases/pe/name.o > tests/cases/pe/name.expected.md5
+//     4. rm tests/cases/pe/name.o && commit both files.
 
 const project_root = os.dir(os.dir(@FILE))
-const elf_dir = os.join_path(project_root, 'tests', 'cases', 'elf')
+const elf_dir   = os.join_path(project_root, 'tests', 'cases', 'elf')
 const macho_dir = os.join_path(project_root, 'tests', 'cases', 'macho')
-const vas_bin = os.join_path(project_root, 'vas')
+const pe_dir    = os.join_path(project_root, 'tests', 'cases', 'pe')
+const vas_bin   = os.join_path(project_root, 'vas')
 
 fn ensure_vas_built() ! {
 	// Always rebuild so tests see the latest encoder code; V's incremental
@@ -95,15 +101,16 @@ fn test_regression() {
 	}
 
 	mut failures := []string{}
-	elf_count := run_cases(elf_dir, 'elf', mut failures)
+	elf_count   := run_cases(elf_dir, 'elf', mut failures)
 	macho_count := run_cases(macho_dir, 'macho', mut failures)
+	pe_count    := run_cases(pe_dir, 'pe', mut failures)
 
-	total := elf_count + macho_count
+	total := elf_count + macho_count + pe_count
 	if failures.len > 0 {
 		for f in failures {
 			eprintln('  FAIL: ${f}')
 		}
 		assert false, '${failures.len} of ${total} regression case(s) failed'
 	}
-	println('${elf_count} ELF + ${macho_count} Mach-O regression cases passed')
+	println('${elf_count} ELF + ${macho_count} Mach-O + ${pe_count} PE regression cases passed')
 }

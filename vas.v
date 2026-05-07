@@ -6,6 +6,7 @@ import lexer
 import encoder
 import elf
 import macho
+import pe
 
 fn file_name_without_ext(file_name string) string {
 	ext_len := os.file_ext(file_name).len
@@ -52,7 +53,7 @@ fn main() {
 	}
 
 	effective_format := if format_flag == 'auto' {
-		if os.user_os() == 'macos' { 'macho' } else { 'elf' }
+		if os.user_os() == 'macos' { 'macho' } else if os.user_os() == 'windows' { 'pe' } else { 'elf' }
 	} else {
 		format_flag
 	}
@@ -68,6 +69,12 @@ fn main() {
 		m.build_symtab_strtab()
 		m.build_relocations()
 		m.write_macho()
+	} else if effective_format == 'pe' {
+		mut p := pe.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
+		p.collect_rela_symbols()
+		p.build_symtab_strtab()
+		p.build_relocations()
+		p.write_pe()
 	} else {
 		mut e := elf.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
 		e.collect_rela_symbols()
