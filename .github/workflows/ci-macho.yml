@@ -8,7 +8,7 @@ on:
 
 jobs:
   macho:
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
       - name: Install V
@@ -26,7 +26,7 @@ jobs:
         run: |
           ./vas -f macho examples/macos/hello.s
           clang -arch x86_64 examples/macos/hello.o -o hello.out
-          ./hello.out
+          arch -x86_64 ./hello.out
 
       - name: Mach-O regression suite
         run: v test tests/macho_test.v
