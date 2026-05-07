@@ -1,0 +1,32 @@
+name: Mach-O CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  macho:
+    runs-on: macos-13
+
+    steps:
+      - name: Install V
+        uses: vlang/setup-v@v1
+        with:
+          check-latest: true
+
+      - name: Checkout ${{ github.event.repository.name }}
+        uses: actions/checkout@v4
+
+      - name: Build vas
+        run: v .
+
+      - name: Smoke test (assemble + link + run)
+        run: |
+          ./vas -f macho examples/macos/hello.s
+          clang -arch x86_64 examples/macos/hello.o -o hello.out
+          ./hello.out
+
+      - name: Mach-O regression suite
+        run: v test tests/macho_test.v

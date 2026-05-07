@@ -1,6 +1,8 @@
 # vas - x86-64 Assembler written in V
 
-[![CI](https://github.com/v420v/vas/actions/workflows/ci.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci.yml)
+[![ELF CI](https://github.com/v420v/vas/actions/workflows/ci-elf.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci-elf.yml)
+[![Mach-O CI](https://github.com/v420v/vas/actions/workflows/ci-macho.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci-macho.yml)
+[![PE CI](https://github.com/v420v/vas/actions/workflows/ci-pe.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci-pe.yml)
 
 ## Installation
 

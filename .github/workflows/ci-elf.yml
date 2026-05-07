@@ -1,4 +1,4 @@
-name: CI
+name: ELF CI
 
 on:
   push:
@@ -7,11 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
-    strategy:
-      matrix:
-        os: ["ubuntu-latest"]
-    runs-on: ${{ matrix.os }}
+  elf:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Install V
@@ -25,18 +22,16 @@ jobs:
       - name: Build vas
         run: v .
 
-      - name: Smoke test (assemble + link + run hello world)
+      - name: Smoke test (assemble + link + run)
         run: |
           ./vas main.s -o main.o
           ld -o main main.o
           ./main
 
-      - name: Regression suite (tests/cases/*.s vs *.expected.md5)
-        run: v test tests/
+      - name: ELF regression suite
+        run: v test tests/elf_test.v
 
       - name: Verify generator output is committed
-        # If `tools/gen_insns.v` produces a different table than what's
-        # checked in, fail loudly so contributors regenerate before pushing.
         run: |
           v run tools/gen_insns.v
           git diff --exit-code -- encoder/insns_table.gen.v
