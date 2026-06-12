@@ -1,6 +1,5 @@
 module encoder
 
-import error
 import encoding.binary
 
 // add_imm_rela emits a placeholder of `size` bytes for an immediate that
@@ -48,29 +47,4 @@ fn (mut e Encoder) add_imm_value2(imm_val int, size DataSize) {
 		binary.little_endian_put_u32(mut &hex, u32(imm_val))
 		e.current_instr.code << [hex[0], hex[1], hex[2], hex[3]]
 	}
-}
-
-// rep handles the AT&T `rep movsq` / `rep stosq` forms. The mnemonic on the
-// next token (`movsq` / `stosq`) is consumed as an Ident.
-fn (mut e Encoder) rep() {
-	e.set_current_instr(.rep)
-
-	source := e.parse_operand()
-
-	if source is Ident {
-		match source.lit {
-			'movsq' {
-				e.current_instr.code << [u8(0xF3), 0x48, 0xA5]
-				return
-			}
-			'stosq' {
-				e.current_instr.code << [u8(0xF3), 0x48, 0xAB]
-				return
-			}
-			else {}
-		}
-	}
-
-	error.print(source.pos, 'invalid operand for instruction')
-	exit(1)
 }

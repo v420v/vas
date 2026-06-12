@@ -54,6 +54,16 @@ const supported_canons = [
 	'UCOMISS', 'UCOMISD', 'COMISS', 'COMISD',
 	'XORPS', 'XORPD', 'ANDPS', 'ANDPD', 'ORPS', 'ORPD', 'ANDNPS', 'ANDNPD', 'PXOR',
 	'CVTSS2SD', 'CVTSD2SS',
+	// Packed / extra SSE arithmetic emitted by the auto-vectorizer.
+	'ADDPS', 'ADDPD', 'SUBPS', 'SUBPD', 'MULPS', 'MULPD', 'DIVPS', 'DIVPD',
+	'MAXPS', 'MAXPD', 'MINPS', 'MINPD', 'MAXSS', 'MAXSD', 'MINSS', 'MINSD',
+	'SQRTPS', 'SQRTPD', 'SQRTSS', 'SQRTSD', 'RSQRTPS', 'RSQRTSS', 'RCPPS', 'RCPSS',
+	'HADDPD', 'HADDPS', 'HSUBPD', 'HSUBPS', 'ADDSUBPD', 'ADDSUBPS',
+	'ROUNDPS', 'ROUNDPD', 'ROUNDSS', 'ROUNDSD',
+	'BLENDPS', 'BLENDPD', 'BLENDVPS', 'BLENDVPD', 'DPPS', 'DPPD',
+	// Packed integer/float conversions.
+	'CVTDQ2PS', 'CVTPS2DQ', 'CVTTPS2DQ', 'CVTDQ2PD', 'CVTPD2DQ', 'CVTTPD2DQ',
+	'CVTPS2PD', 'CVTPD2PS', 'CVTSS2SI', 'CVTSD2SI',
 	// Asymmetric / forced-immediate move family
 	'MOVZX', 'MOVSX', 'MOVSXD', 'MOVABSQ',
 	// SSE conversion (asymmetric — integer side selected by AT&T L/Q suffix).
@@ -517,10 +527,10 @@ fn classify_operand(a string, sz SizeCtx) ?string {
 		return 'imm' + sz_se.str()
 	}
 	// `mem` without a size is used by instructions that take a generic
-	// memory pointer (CLFLUSH, PREFETCH*, FXSAVE, etc.). We classify it as
-	// `rm64` so any Indirection with a 64-bit base register satisfies it.
+	// memory pointer (CLFLUSH, PREFETCH*, FXSAVE, etc.). The `mem_any`
+	// required slot matches a memory operand of any width (but not a register).
 	if a == 'mem' && sz.op_class_sz == 0 {
-		return 'rm64'
+		return 'mem_any'
 	}
 	// Generic single-`#` substitution (full size) for rm/reg/mem etc.
 	s := a.replace('#', sz.op_class_sz.str())
@@ -529,15 +539,20 @@ fn classify_operand(a string, sz SizeCtx) ?string {
 		'reg16' { 'reg16' }
 		'reg32' { 'reg32' }
 		'reg64' { 'reg64' }
-		'rm8', 'mem8' { 'rm8' }
-		'rm16', 'mem16' { 'rm16' }
-		'rm32', 'mem32' { 'rm32' }
-		'rm64', 'mem64' { 'rm64' }
-		// 80-bit memory (x87 FLDT/FSTPT/FSAVE etc.). We don't carry a
-		// dedicated mem80 OpClass; the parser-side `mem_any` wildcard makes
-		// any Indirection match this rm slot.
-		'mem80' { 'rm64' }
-		'mem' { 'rm' + sz.op_class_sz.str() }
+		'rm8' { 'rm8' }
+		'rm16' { 'rm16' }
+		'rm32' { 'rm32' }
+		'rm64' { 'rm64' }
+		// Memory-ONLY GPR-width operands. Kept distinct from rmN so a register
+		// can't satisfy a memory-only encoding (e.g. the `66 0F D6` MOVQ store
+		// form, which a GPR must NOT match — it needs `66 REX.W 0F 7E`).
+		'mem8' { 'mem8' }
+		'mem16' { 'mem16' }
+		'mem32' { 'mem32' }
+		'mem64' { 'mem64' }
+		// 80-bit memory (x87 long double / BCD: FLDT/FSTPT/FBLD/FBSTP).
+		'mem80' { 'mem80' }
+		'mem' { 'mem' + sz.op_class_sz.str() }
 		'imm8' { 'imm8' }
 		'imm16' { 'imm16' }
 		'imm32' { 'imm32' }

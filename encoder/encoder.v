@@ -154,10 +154,14 @@ pub enum InstrKind {
 	xorps
 	pxor
 	label
+	align
+	weak
+	set_type
 }
 
 const stb_local            = 0
 const stb_global           = 1
+const stb_weak             = 2
 const stt_notype           = 0
 const stt_object           = 1
 const stt_func             = 2
@@ -202,7 +206,19 @@ const r_x86_64_16          = u64(12)
 const r_x86_64_pc16        = u64(13)
 const r_x86_64_8           = u64(14)
 const r_x86_64_pc8         = u64(15)
+const r_x86_64_dtpmod64    = u64(16)
+const r_x86_64_dtpoff64    = u64(17)
+const r_x86_64_tpoff64     = u64(18)
+const r_x86_64_tlsgd       = u64(19)
+const r_x86_64_tlsld       = u64(20)
+const r_x86_64_dtpoff32    = u64(21)
+const r_x86_64_gottpoff    = u64(22)
+const r_x86_64_tpoff32     = u64(23)
 const r_x86_64_pc64        = u64(24)
+const r_x86_64_gotoff64    = u64(25)
+const r_x86_64_gotpc32     = u64(26)
+const r_x86_64_gotpcrelx   = u64(41)
+const r_x86_64_rex_gotpcrelx = u64(42)
 const stv_default          = 0
 const stv_internal         = 1
 const stv_hidden           = 2
@@ -221,6 +237,16 @@ pub mut:
 	section_name   string         @[required]
 	is_jmp_or_call bool
 	pos            token.Position @[required]
+	// For kind == .align: the alignment (in bytes), the explicit fill byte
+	// (-1 = default: NOPs in code, 0 in data), and the max bytes to skip
+	// (-1 = unlimited). The padding bytes are materialised into `code` during
+	// assign_addresses once the section offset is known.
+	align_bytes int
+	align_fill  int = -1
+	align_max   int = -1
+	// For a `.set name, sym` alias: the target symbol whose address/section
+	// this symbol inherits, resolved after layout.
+	alias_target string
 }
 
 pub struct Rela {
@@ -231,6 +257,25 @@ pub mut:
 	rtype               u64
 	adjust              int
 	is_already_resolved bool
+	// For label-difference data (`.long A-B`): `uses` is the addend symbol
+	// (+1), `uses2` the subtrahend (-1). After layout, resolve_label_diffs
+	// either folds it to a constant (both endpoints in one section) or, when
+	// the subtrahend anchors this data's own section, rewrites it into a
+	// PC-relative relocation against `uses` using the explicit `addend` below.
+	uses2 string
+	// When set, the backend emits this relocation with `addend` verbatim,
+	// bypassing its rtype-specific addend computation. Used for the
+	// cross-section label-difference PC-relative form.
+	set_addend bool
+	addend     i64
+}
+
+// SymRef is one symbol term of a relocatable expression, with its integer
+// coefficient (+1 for `sym`, -1 for `-sym`).
+pub struct SymRef {
+pub:
+	name  string
+	coeff int
 }
 
 pub type Expr = Number | Binop | Ident | Immediate | Indirection | Neg | Register | Star | Xmm
@@ -315,6 +360,10 @@ pub struct Ident {
 pub:
 	lit string
 	pos token.Position
+	// Relocation modifier from a `sym@MODIFIER` suffix, lowercased and without
+	// the `@` (e.g. `plt`, `gotpcrel`, `tpoff`, `gottpoff`, `tlsgd`). Empty for
+	// a plain symbol.
+	modifier string
 }
 
 pub struct UserDefinedSection {
@@ -322,6 +371,9 @@ pub mut:
 	code  []u8
 	addr  int
 	flags int
+	// Largest alignment requested in this section (via .p2align/.balign/.align),
+	// written to the section header's sh_addralign. 0 is treated as 1.
+	align int
 }
 
 enum DataSize {
@@ -337,6 +389,7 @@ enum DataSize {
 	suffix_kreg   // AVX-512 mask register (K0..K7) — width depends on instruction
 	suffix_fpureg // x87 stack register ST(0)..ST(7)
 	suffix_seg    // segment register (CS/DS/ES/SS/FS/GS) — emits a prefix byte
+	suffix_tbyte  // 80-bit memory (x87 long double / BCD: FLDT/FSTPT/FBLD/FBSTP)
 	suffix_unkown
 }
 
@@ -449,23 +502,25 @@ fn (mut e Encoder) parse_factor() Expr {
 		}
 		.ident {
 			ident_pos := e.tok.pos
-			mut lit := e.tok.lit
-			if at := lit.index('@') {
-				lit = lit[..at]
-			}
+			lit := e.tok.lit
 			e.next()
-			// `.set` / `.equ` constants are inlined here so the rest of
-			// the pipeline sees a plain integer literal.
-			if val := e.set_aliases[lit] {
-				return Number{
-					pos: ident_pos
-					lit: val.str()
+			// A `sym@MODIFIER` suffix (e.g. `printf@PLT`, `x@tpoff`) selects a
+			// relocation flavor. Capture it and keep the bare name. A modifier
+			// never co-occurs with the `A-B` subtraction form, so this is
+			// handled before the minus split.
+			if at := lit.index('@') {
+				return Ident{
+					pos:      ident_pos
+					lit:      lit[..at]
+					modifier: lit[at + 1..].to_lower()
 				}
 			}
-			return Ident{
-				pos: ident_pos
-				lit: lit
-			}
+			// The lexer keeps `-` inside identifiers (for names like
+			// `.note.GNU-stack`), but in an expression `A-B` is a subtraction
+			// (jump-table entries `.long .L2-.L4`, `.size f, .Lend-f`). Split
+			// the token back into a left-associative subtraction chain here.
+			// `.set`/`.equ` constant inlining is applied per segment.
+			return e.split_minus_ident(lit, ident_pos)
 		}
 		.minus {
 			e.next()
@@ -479,6 +534,45 @@ fn (mut e Encoder) parse_factor() Expr {
 			error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 			exit(1)
 		}
+	}
+}
+
+// split_minus_ident turns an identifier token that the lexer glued around `-`
+// into a left-associative subtraction of its segments (e.g. `.L2-.L4-1` →
+// `(.L2 - .L4) - 1`). A token with no `-` returns a single segment unchanged.
+fn (mut e Encoder) split_minus_ident(lit string, pos token.Position) Expr {
+	parts := lit.split('-')
+	mut expr := e.seg_to_expr(parts[0], pos)
+	for i := 1; i < parts.len; i++ {
+		expr = Binop{
+			left_hs:  expr
+			right_hs: e.seg_to_expr(parts[i], pos)
+			op:       .minus
+			pos:      pos
+		}
+	}
+	return expr
+}
+
+// seg_to_expr classifies one `-`-delimited segment: a `.set`/`.equ` constant is
+// inlined as a Number, a digit-led segment is a numeric literal, anything else
+// is a symbol reference.
+fn (mut e Encoder) seg_to_expr(seg string, pos token.Position) Expr {
+	if val := e.set_aliases[seg] {
+		return Number{
+			pos: pos
+			lit: val.str()
+		}
+	}
+	if seg.len > 0 && seg[0] >= `0` && seg[0] <= `9` {
+		return Number{
+			pos: pos
+			lit: seg
+		}
+	}
+	return Ident{
+		pos: pos
+		lit: seg
 	}
 }
 
@@ -646,6 +740,91 @@ fn eval_expr(expr Expr) int {
 	return int(eval_expr_get_symbol_64(expr, mut empty))
 }
 
+// eval_reloc_expr evaluates a data expression into a constant plus a list of
+// symbol terms with signed coefficients (+1 for `sym`, -1 for `-sym`). `sign`
+// is inherited from any enclosing subtraction/negation; start the walk with
+// +1. Symbols may only be added/subtracted: a symbol inside `*` or `/` is
+// rejected (those operands must reduce to constants).
+fn eval_reloc_expr(expr Expr, sign int, mut refs []SymRef) i64 {
+	match expr {
+		Number {
+			v := strconv.parse_int(expr.lit, 0, 64) or {
+				error.print(expr.pos, 'invalid number `${expr.lit}`')
+				exit(1)
+			}
+			return i64(sign) * v
+		}
+		Ident {
+			refs << SymRef{
+				name:  expr.lit
+				coeff: sign
+			}
+			return 0
+		}
+		Neg {
+			return eval_reloc_expr(expr.expr, -sign, mut refs)
+		}
+		Immediate {
+			return eval_reloc_expr(expr.expr, sign, mut refs)
+		}
+		Binop {
+			match expr.op {
+				.plus {
+					return eval_reloc_expr(expr.left_hs, sign, mut refs) +
+						eval_reloc_expr(expr.right_hs, sign, mut refs)
+				}
+				.minus {
+					return eval_reloc_expr(expr.left_hs, sign, mut refs) +
+						eval_reloc_expr(expr.right_hs, -sign, mut refs)
+				}
+				.mul, .div {
+					mut lr := []SymRef{}
+					mut rr := []SymRef{}
+					l := eval_reloc_expr(expr.left_hs, 1, mut lr)
+					r := eval_reloc_expr(expr.right_hs, 1, mut rr)
+					if lr.len != 0 || rr.len != 0 {
+						error.print(expr.pos, 'cannot multiply or divide a symbol in an expression')
+						exit(1)
+					}
+					res := if expr.op == .mul {
+						l * r
+					} else {
+						if r == 0 {
+							error.print(expr.pos, 'division by zero')
+							exit(1)
+						}
+						l / r
+					}
+					return i64(sign) * res
+				}
+				else {
+					error.print(expr.pos, 'unsupported operator in expression')
+					exit(1)
+				}
+			}
+		}
+		else {
+			error.print(e_pos(expr), 'unexpected operand in data expression')
+			exit(1)
+		}
+	}
+}
+
+// e_pos extracts the source position from any Expr variant for diagnostics.
+fn e_pos(expr Expr) token.Position {
+	return match expr {
+		Number { expr.pos }
+		Binop { expr.pos }
+		Ident { expr.pos }
+		Immediate { expr.pos }
+		Indirection { expr.pos }
+		Neg { expr.pos }
+		Register { expr.pos }
+		Star { expr.pos }
+		Xmm { expr.pos }
+	}
+}
+
 fn get_size_by_suffix(name string) DataSize {
 	return match name.to_upper()[name.len - 1] {
 		`Q` {
@@ -733,11 +912,7 @@ fn is_noop_directive(name_upper string) bool {
 	return name_upper in [
 		'.FILE',
 		'.IDENT',
-		'.TYPE',
 		'.SIZE',
-		'.P2ALIGN',
-		'.BALIGN',
-		'.ALIGN',
 		'.ADDRSIG',
 		'.ADDRSIG_SYM',
 		'.WEAK',
@@ -759,8 +934,71 @@ fn is_noop_directive(name_upper string) bool {
 	]
 }
 
+// prefix_byte maps a leading prefix mnemonic to its prefix byte, or -1 if the
+// mnemonic is not a prefix. LOCK/REP families prepend to the next instruction.
+fn prefix_byte(name_upper string) int {
+	return match name_upper {
+		'LOCK' { 0xF0 }
+		'REP', 'REPE', 'REPZ' { 0xF3 }
+		'REPNE', 'REPNZ' { 0xF2 }
+		else { -1 }
+	}
+}
+
+// define_label records a `name:` definition in the current section.
+fn (mut e Encoder) define_label(name string, pos token.Position) {
+	if name in e.user_defined_symbols {
+		error.print(pos, 'symbol `${name}` is already defined')
+		exit(1)
+	}
+	instr := &Instr{
+		kind:         .label
+		pos:          pos
+		section_name: e.current_section_name
+		symbol_name:  name
+	}
+	e.user_defined_symbols[name] = instr
+	e.instrs << instr
+}
+
+// prepend_prefixes inserts prefix bytes (LOCK/REP) ahead of the just-encoded
+// instruction's bytes, where group-1 prefixes belong in the legacy encoding.
+// Relocations recorded during this instruction's encoding (indices
+// >= rela_start) now sit `prefixes.len` bytes later, so their in-instruction
+// offsets are shifted to keep the patch site — and the PC-relative addend the
+// backend derives from it — correct.
+fn (mut e Encoder) prepend_prefixes(prefixes []u8, rela_start int) {
+	mut nc := []u8{cap: prefixes.len + e.current_instr.code.len}
+	nc << prefixes
+	nc << e.current_instr.code
+	e.current_instr.code = nc
+	for i := rela_start; i < e.rela_text_users.len; i++ {
+		e.rela_text_users[i].offset += prefixes.len
+	}
+}
+
 fn (mut e Encoder) encode_instr() {
 	pos := e.tok.pos
+
+	// Leading prefix mnemonics (lock / rep / repe / repz / repne / repnz)
+	// prepend a byte to the instruction that follows on the same line.
+	mut prefixes := []u8{}
+	for {
+		pb := prefix_byte(e.tok.lit.to_upper())
+		if pb < 0 {
+			break
+		}
+		pname := e.tok.lit
+		ppos := e.tok.pos
+		e.next()
+		if e.tok.kind == .colon {
+			// A label that happens to be spelled like a prefix (`rep:`).
+			e.expect(.colon)
+			e.define_label(pname, ppos)
+			return
+		}
+		prefixes << u8(pb)
+	}
 
 	instr_name := e.tok.lit
 	instr_name_upper := instr_name.to_upper()
@@ -774,25 +1012,16 @@ fn (mut e Encoder) encode_instr() {
 	e.next()
 
 	if e.tok.kind == .colon {
-		instr := Instr{
-			kind: .label
-			pos: pos
-			section_name: e.current_section_name
-			symbol_name: instr_name
-		}
 		e.expect(.colon)
-
-		if instr_name in e.user_defined_symbols {
-			error.print(pos, 'symbol `${instr_name}` is already defined')
-			exit(1)
-		}
-
-		e.user_defined_symbols[instr_name] = &instr
-		e.instrs << &instr
+		e.define_label(instr_name, pos)
 		return
 	}
 
+	rela_start := e.rela_text_users.len
 	if e.try_table_driven(instr_name_upper, pos) {
+		if prefixes.len > 0 {
+			e.prepend_prefixes(prefixes, rela_start)
+		}
 		return
 	}
 
@@ -826,6 +1055,18 @@ fn (mut e Encoder) encode_instr() {
 				symbol_name: e.tok.lit
 			}
 			e.next()
+		}
+		'.WEAK', '.WEAKREF' {
+			e.instrs << &Instr{
+				kind: .weak
+				pos: pos
+				section_name: e.current_section_name
+				symbol_name: e.tok.lit
+			}
+			e.next()
+		}
+		'.TYPE' {
+			e.type_directive(pos)
 		}
 		'.HIDDEN' {
 			e.instrs << &Instr{
@@ -890,6 +1131,12 @@ fn (mut e Encoder) encode_instr() {
 		'.FILL' {
 			e.fill()
 		}
+		'.P2ALIGN', '.P2ALIGNL', '.P2ALIGNW' {
+			e.align_directive(true)
+		}
+		'.BALIGN', '.BALIGNL', '.BALIGNW', '.ALIGN' {
+			e.align_directive(false)
+		}
 		'.ULEB128' {
 			e.uleb128()
 		}
@@ -917,13 +1164,9 @@ fn (mut e Encoder) encode_instr() {
 		'.PREVIOUS' {
 			e.previous_section()
 		}
-		// All integer / branch / shift / SSE / MOVZX / MOVSX / MOVSXD / MOVABSQ
-		// / CVT* mnemonics go through try_table_driven. The only legacy entry
-		// that remains here is REP, which consumes a following mnemonic ident
-		// rather than ordinary operands.
-		'REP' {
-			e.rep()
-		}
+		// All integer / branch / shift / SSE / string / MOVZX / MOVSX / MOVSXD /
+		// MOVABSQ / CVT* mnemonics go through try_table_driven; LOCK/REP prefixes
+		// are handled above. Only directives remain in this dispatch.
 		else {
 			error.print(pos, 'unknown instruction `${instr_name}`')
 			exit(1)

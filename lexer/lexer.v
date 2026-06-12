@@ -149,6 +149,9 @@ fn is_digit(c u8) bool {
 fn (mut l Lexer) read_ident() token.Token {
 	pos := l.current_pos()
 	start := l.idx
+	// `-` is consumed into the identifier so that section names like
+	// `.note.GNU-stack` survive intact. Expression contexts (`.long .L2-.L4`)
+	// re-split such a token into a subtraction in parse_factor.
 	for {
 		if is_alpha(l.c) || is_digit(l.c) || l.c in [`_`, `.`, `-`, `$`, `@`] {
 			l.advance()
@@ -270,7 +273,8 @@ pub fn (mut l Lexer) lex() token.Token {
 			l.advance()
 		} else if is_digit(l.c) {
 			return l.read_number()
-		} else if is_alpha(l.c) || l.c == `_` || l.c == `.` {
+		} else if is_alpha(l.c) || l.c == `_` || l.c == `.` || l.c == `@` {
+			// `@` may lead a token in `.type sym, @function` / `,@progbits`.
 			return l.read_ident()
 		} else if l.c == `"` {
 			return l.read_string()

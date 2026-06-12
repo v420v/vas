@@ -22,3 +22,6 @@ label_test.s
 .idea/
 .vscode/
 *.iml
+
+# local benchmark/measurement scratch (not for commit)
+.bench/

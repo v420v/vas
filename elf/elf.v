@@ -101,6 +101,7 @@ const sht_progbits         = 1
 const sht_symtab           = 2
 const sht_strtab           = 3
 const sht_rela             = 4
+const sht_nobits           = 8
 const shf_write            = 0x1
 const shf_alloc            = 0x2
 const shf_execinstr        = 0x4
@@ -127,7 +128,15 @@ const r_x86_64_16		  	= u64(12)
 const r_x86_64_pc16	  	= u64(13)
 const r_x86_64_8		  	= u64(14)
 const r_x86_64_pc8	  	    = u64(15)
+const r_x86_64_tlsgd       = u64(19)
+const r_x86_64_tlsld       = u64(20)
+const r_x86_64_dtpoff32    = u64(21)
+const r_x86_64_gottpoff    = u64(22)
+const r_x86_64_tpoff32     = u64(23)
 const r_x86_64_pc64	  	= u64(24)
+const r_x86_64_gotoff64    = u64(25)
+const r_x86_64_gotpcrelx   = u64(41)
+const r_x86_64_rex_gotpcrelx = u64(42)
 const stv_default			= 0
 const stv_internal		    = 1
 const stv_hidden			= 2
@@ -152,6 +161,22 @@ pub fn new(out_file string, keep_locals bool, rela_text_users []encoder.Rela, us
 
 pub fn align_to(n int, align int) int {
 	return (n + align - 1) / align * align
+}
+
+// is_symbol_reloc reports whether a relocation type references its symbol
+// directly (GOT/PLT/TLS slots are per-symbol), so it must not be rewritten to a
+// section-relative form even for local symbols.
+// is_nobits reports whether a section holds no file content (SHT_NOBITS) — the
+// .bss / .tbss families. Such sections occupy memory but not file space.
+fn is_nobits(name string) bool {
+	return name == '.bss' || name == '.tbss' || name.starts_with('.bss.')
+		|| name.starts_with('.tbss.')
+}
+
+fn is_symbol_reloc(rtype u64) bool {
+	return rtype in [r_x86_64_plt32, r_x86_64_gotpcrel, r_x86_64_gotpcrelx, r_x86_64_rex_gotpcrelx,
+		r_x86_64_gottpoff, r_x86_64_tlsgd, r_x86_64_tlsld, r_x86_64_tpoff32, r_x86_64_dtpoff32,
+		r_x86_64_got32, r_x86_64_gotoff64]
 }
 
 fn add_padding(mut code []u8) {
@@ -226,9 +251,11 @@ pub fn (mut e Elf) rela_text_users() {
 	for r in e.rela_text_users {
 		mut index := 0
 
-		mut r_addend := if r.rtype in [r_x86_64_32s, r_x86_64_32, r_x86_64_64, r_x86_64_16, r_x86_64_8] {
+		mut r_addend := if r.rtype in [r_x86_64_32s, r_x86_64_32, r_x86_64_64, r_x86_64_16, r_x86_64_8,
+			r_x86_64_tpoff32, r_x86_64_dtpoff32, r_x86_64_got32, r_x86_64_gotoff64] {
 			i64(0)
-		} else if r.rtype in [r_x86_64_pc32] {
+		} else if r.rtype in [r_x86_64_pc32, r_x86_64_plt32, r_x86_64_gotpcrel, r_x86_64_gotpcrelx,
+			r_x86_64_rex_gotpcrelx, r_x86_64_gottpoff, r_x86_64_tlsgd, r_x86_64_tlsld] {
 			i64(r.offset - r.instr.code.len)
 		} else {
 			i64(0-4)
@@ -238,8 +265,38 @@ pub fn (mut e Elf) rela_text_users() {
 			continue
 		}
 
+		// Cross-section label-difference (and other pre-computed) relocations
+		// carry their final addend; emit it verbatim against `uses` (its
+		// section symbol when local).
+		if r.set_addend {
+			mut idx := 0
+			if s := e.user_defined_symbols[r.uses] {
+				idx = if s.binding == stb_global {
+					e.symtab_symbol_indexs[r.uses]
+				} else {
+					e.symtab_symbol_indexs[s.section_name]
+				}
+			} else {
+				idx = e.symtab_symbol_indexs[r.uses]
+			}
+			rela_section_name := '.rela' + r.instr.section_name
+			e.rela[rela_section_name] << Elf64_Rela{
+				r_offset: u64(r.instr.addr + r.offset)
+				r_info:   (u64(idx) << 32) + r.rtype
+				r_addend: r.addend
+			}
+			if rela_section_name !in e.rela_section_names {
+				e.rela_section_names << rela_section_name
+			}
+			continue
+		}
+
 		if s := e.user_defined_symbols[r.uses] {
-			if s.binding == stb_global {
+			// GOT/PLT/TLS relocations are always resolved per-symbol (there is a
+			// GOT/TLS slot for the symbol itself), so they reference the symbol
+			// even when it is local — unlike ordinary local references, which
+			// are rewritten to be section-relative.
+			if is_symbol_reloc(r.rtype) || s.binding == stb_global {
 				index = e.symtab_symbol_indexs[r.uses]
 			} else {
 				r_addend += s.addr
@@ -288,6 +345,7 @@ pub fn (mut e Elf) build_symtab_strtab() {
 	e.elf_symbol(stb_local, mut &off, mut &str)  // local
 	e.elf_rela_symbol(mut &off, mut &str)            // rela local
 	e.elf_symbol(stb_global, mut &off, mut &str) // global
+	e.elf_symbol(2, mut &off, mut &str)          // weak (STB_WEAK)
 
 	add_padding(mut e.strtab)
 }
@@ -338,19 +396,23 @@ pub fn (mut e Elf) build_headers() {
 		section := e.user_defined_sections[name] or {
 			panic('[internal error] unkown section `$name`')
 		}
+		nobits := is_nobits(name)
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
-			sh_type: sht_progbits
+			sh_type: u32(if nobits { sht_nobits } else { sht_progbits })
 			sh_flags: u64(section.flags)
 			sh_addr: 0
 			sh_offset: u64(section_offs)
 			sh_size: u64(section.code.len)
 			sh_link: 0
 			sh_info: 0
-			sh_addralign: u64(1)
+			sh_addralign: u64(if section.align > 0 { section.align } else { 1 })
 			sh_entsize: 0
 		}
-		section_offs += u32(section.code.len)
+		// A NOBITS section reserves no bytes in the file.
+		if !nobits {
+			section_offs += u32(section.code.len)
+		}
 		section_idx[name] = section_idx.len
 	}
 
@@ -464,6 +526,9 @@ pub fn (mut e Elf) write_elf() {
 	write_bytes(mut fp, e.ehdr, 'elf header')
 
 	for name in e.user_defined_section_names {
+		if is_nobits(name) {
+			continue // NOBITS sections carry no file content
+		}
 		section := e.user_defined_sections[name] or {
 			panic('unkown section $name')
 		}

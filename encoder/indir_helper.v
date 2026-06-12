@@ -22,6 +22,40 @@ fn (mut e Encoder) add_segment_override_prefix(indir Indirection) {
 	}
 }
 
+// disp_modifier finds the `@MODIFIER` carried by a symbol inside a displacement
+// expression (e.g. the `tpoff` in `%fs:x@tpoff` or `gotpcrel` in
+// `sym@gotpcrel(%rip)`).
+fn disp_modifier(expr Expr) string {
+	return match expr {
+		Ident { expr.modifier }
+		Binop {
+			m := disp_modifier(expr.left_hs)
+			if m != '' { m } else { disp_modifier(expr.right_hs) }
+		}
+		Neg { disp_modifier(expr.expr) }
+		Immediate { disp_modifier(expr.expr) }
+		else { '' }
+	}
+}
+
+// modifier_to_reloc maps a `@MODIFIER` to its x86-64 relocation type. The bool
+// is false when the modifier isn't a recognized GOT/PLT/TLS flavor.
+fn modifier_to_reloc(modifier string) (u64, bool) {
+	rt := match modifier {
+		'plt' { encoder.r_x86_64_plt32 }
+		'gotpcrel', 'gotpcrelx' { encoder.r_x86_64_gotpcrel }
+		'gottpoff' { encoder.r_x86_64_gottpoff }
+		'tlsgd' { encoder.r_x86_64_tlsgd }
+		'tlsld' { encoder.r_x86_64_tlsld }
+		'tpoff' { encoder.r_x86_64_tpoff32 }
+		'dtpoff' { encoder.r_x86_64_dtpoff32 }
+		'got' { encoder.r_x86_64_got32 }
+		'gotoff' { encoder.r_x86_64_gotoff64 }
+		else { encoder.r_x86_64_none }
+	}
+	return rt, rt != encoder.r_x86_64_none
+}
+
 fn scale(n u8) u8 {
 	match n {
 		1 {
@@ -46,19 +80,21 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 		return false, false, false
 	}
 
-	match true {
-		indir.base.lit in ['RIP', 'EIP'] {
-			return true, false, false
-		}
-		indir.base.lit in ['RSP', 'ESP'] {
-			return false, true, false
-		}
-		indir.base.lit in ['RBP', 'EBP'] {
-			return false, false, true
-		} else {
-			return false, false, false
-		}
+	// RIP/EIP: instruction-pointer-relative addressing (handled specially).
+	if indir.base.lit in ['RIP', 'EIP'] {
+		return true, false, false
 	}
+
+	// The ModR/M r/m and SIB base fields only encode the low 3 bits of the
+	// register number, so RSP/RBP's addressing quirks are shared by their
+	// REX-extended cousins R12/R13:
+	//   low3 == 4 (RSP, R12): r/m or SIB base = 100 means "SIB byte follows",
+	//                         so a SIB byte is always required.
+	//   low3 == 5 (RBP, R13): r/m or SIB base = 101 with mod=00 means
+	//                         "disp32 / no base", so a displacement (mod >= 01)
+	//                         must be emitted even when it is zero.
+	low3 := indir.base.base_offset % 8
+	return false, low3 == 4, low3 == 5
 }
 
 fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
@@ -75,11 +111,14 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 		e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
 		e.current_instr.code << 0x25
 		if used_symbols.len == 1 {
+			// `%seg:sym@tpoff` etc. select a TLS/GOT relocation; otherwise this
+			// is a plain absolute 32-bit reference.
+			mrt, mok := modifier_to_reloc(disp_modifier(indir.disp))
 			e.rela_text_users << encoder.Rela{
 				instr:  e.current_instr
 				uses:   used_symbols[0]
 				offset: e.current_instr.code.len
-				rtype:  encoder.r_x86_64_32
+				rtype:  if mok { mrt } else { encoder.r_x86_64_32 }
 				adjust: disp
 			}
 			e.current_instr.code << [u8(0), 0, 0, 0]
@@ -157,12 +196,16 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 	}
 
 	if disp_need_rela {
-		rtype := if base_is_ip {
+		mrt, mok := modifier_to_reloc(disp_modifier(indir.disp))
+		rtype := if mok {
+			// `sym@gotpcrel(%rip)`, `sym@gottpoff(%rip)`, `sym@tlsgd(%rip)`, ...
+			mrt
+		} else if base_is_ip {
 			encoder.r_x86_64_pc32
 		} else if indir.base.size == .suffix_quad {
 			encoder.r_x86_64_32s
 		} else {
-			encoder.r_x86_64_32	
+			encoder.r_x86_64_32
 		}
 		rela := encoder.Rela{
 			instr: e.current_instr

@@ -42,6 +42,14 @@ pub enum OpClass {
 	// Generic memory of unspecified size (CLFLUSH / PREFETCH* / FXSAVE / etc.).
 	// Subclass-matches any rmN slot.
 	mem_any
+	mem8
+	mem16
+	mem32
+	mem64
+	mem128
+	mem256
+	mem80 // 80-bit memory (x87 tbyte / BCD), kept distinct so FLDT/FSTPT don't
+	      // collide with the 32/64-bit FLD/FSTP forms
 	// x87 FPU stack registers ST(0)..ST(7). `fpu0` is the implicit ST(0)
 	// operand some instructions encode as a placeholder (no actual bytes).
 	fpureg
@@ -138,11 +146,36 @@ pub:
 	evex_mm      u8
 }
 
-// All integer / branch / shift rows now come from the auto-generated
-// `generated_insns_table` in encoder/insns_table.gen.v. This table stays as
-// an empty placeholder for special cases the parser cannot produce — the
-// lookup function scans both arrays.
-pub const insns_table = []InstrEnc{}
+pub const insns_table = [
+	InstrEnc{mnemonic: 'MOVSB', operands: [], op_order: .zo, opcode: [u8(0xa4)]},
+	InstrEnc{mnemonic: 'MOVSW', operands: [], op_order: .zo, prefixes: [u8(0x66)], opcode: [u8(0xa5)]},
+	InstrEnc{mnemonic: 'MOVSL', operands: [], op_order: .zo, opcode: [u8(0xa5)]},
+	InstrEnc{mnemonic: 'MOVSQ', operands: [], op_order: .zo, rex_w: true, opcode: [u8(0xa5)]},
+	InstrEnc{mnemonic: 'STOSB', operands: [], op_order: .zo, opcode: [u8(0xaa)]},
+	InstrEnc{mnemonic: 'STOSW', operands: [], op_order: .zo, prefixes: [u8(0x66)], opcode: [u8(0xab)]},
+	InstrEnc{mnemonic: 'STOSL', operands: [], op_order: .zo, opcode: [u8(0xab)]},
+	InstrEnc{mnemonic: 'STOSQ', operands: [], op_order: .zo, rex_w: true, opcode: [u8(0xab)]},
+	InstrEnc{mnemonic: 'LODSB', operands: [], op_order: .zo, opcode: [u8(0xac)]},
+	InstrEnc{mnemonic: 'LODSW', operands: [], op_order: .zo, prefixes: [u8(0x66)], opcode: [u8(0xad)]},
+	InstrEnc{mnemonic: 'LODSL', operands: [], op_order: .zo, opcode: [u8(0xad)]},
+	InstrEnc{mnemonic: 'LODSQ', operands: [], op_order: .zo, rex_w: true, opcode: [u8(0xad)]},
+	InstrEnc{mnemonic: 'SCASB', operands: [], op_order: .zo, opcode: [u8(0xae)]},
+	InstrEnc{mnemonic: 'SCASW', operands: [], op_order: .zo, prefixes: [u8(0x66)], opcode: [u8(0xaf)]},
+	InstrEnc{mnemonic: 'SCASL', operands: [], op_order: .zo, opcode: [u8(0xaf)]},
+	InstrEnc{mnemonic: 'SCASQ', operands: [], op_order: .zo, rex_w: true, opcode: [u8(0xaf)]},
+	InstrEnc{mnemonic: 'CMPSB', operands: [], op_order: .zo, opcode: [u8(0xa6)]},
+	InstrEnc{mnemonic: 'CMPSW', operands: [], op_order: .zo, prefixes: [u8(0x66)], opcode: [u8(0xa7)]},
+	InstrEnc{mnemonic: 'CMPSL', operands: [], op_order: .zo, opcode: [u8(0xa7)]},
+	InstrEnc{mnemonic: 'CMPSQ', operands: [], op_order: .zo, rex_w: true, opcode: [u8(0xa7)]},
+	InstrEnc{mnemonic: 'XCHG', operands: [.rm8, .reg8], op_order: .mr, opcode: [u8(0x86)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.reg8, .rm8], op_order: .rm, opcode: [u8(0x86)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.rm16, .reg16], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x87)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x87)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.rm32, .reg32], op_order: .mr, opcode: [u8(0x87)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x87)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x87)], reg_field: .slash_r},
+	InstrEnc{mnemonic: 'XCHG', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x87)], reg_field: .slash_r},
+]
 
 // ----- Mnemonic canonicalization -----
 
@@ -168,6 +201,11 @@ const zero_op_canons = [
 	'PUSHF', 'PUSHFQ', 'PUSHFD', 'POPF', 'POPFQ', 'POPFD',
 	'PUSHA', 'PUSHAD', 'POPA', 'POPAD',
 	'EMMS', 'GETSEC', 'RSM', 'TLBSYNC',
+	'MOVSB', 'MOVSW', 'MOVSL', 'MOVSQ',
+	'STOSB', 'STOSW', 'STOSL', 'STOSQ',
+	'LODSB', 'LODSW', 'LODSL', 'LODSQ',
+	'SCASB', 'SCASW', 'SCASL', 'SCASQ',
+	'CMPSB', 'CMPSW', 'CMPSL', 'CMPSQ',
 ]
 
 const branch_canons = [
@@ -249,6 +287,15 @@ const passthrough_canons = [
 	'MOVDDUP', 'MOVSHDUP', 'MOVSLDUP',
 	'SHUFPS', 'SHUFPD', 'UNPCKHPS', 'UNPCKHPD', 'UNPCKLPS', 'UNPCKLPD',
 	'CMPPS', 'CMPPD',
+	// Packed / extra SSE arithmetic + conversions (auto-vectorizer output).
+	'ADDPS', 'ADDPD', 'SUBPS', 'SUBPD', 'MULPS', 'MULPD', 'DIVPS', 'DIVPD',
+	'MAXPS', 'MAXPD', 'MINPS', 'MINPD', 'MAXSS', 'MAXSD', 'MINSS', 'MINSD',
+	'SQRTPS', 'SQRTPD', 'SQRTSS', 'SQRTSD', 'RSQRTPS', 'RSQRTSS', 'RCPPS', 'RCPSS',
+	'HADDPD', 'HADDPS', 'HSUBPD', 'HSUBPS', 'ADDSUBPD', 'ADDSUBPS',
+	'ROUNDPS', 'ROUNDPD', 'ROUNDSS', 'ROUNDSD',
+	'BLENDPS', 'BLENDPD', 'BLENDVPS', 'BLENDVPD', 'DPPS', 'DPPD',
+	'CVTDQ2PS', 'CVTPS2DQ', 'CVTTPS2DQ', 'CVTDQ2PD', 'CVTPD2DQ', 'CVTTPD2DQ',
+	'CVTPS2PD', 'CVTPD2PS', 'CVTSS2SI', 'CVTSD2SI',
 	'POPCNT',
 	'CLFLUSH', 'CLFLUSHOPT', 'CLWB', 'PREFETCH', 'PREFETCHT0', 'PREFETCHT1', 'PREFETCHT2',
 	'PREFETCHNTA', 'PREFETCHW', 'PREFETCHWT1', 'CLDEMOTE',
@@ -298,6 +345,12 @@ const fpu_mem_bases = ['FADD', 'FSUB', 'FSUBR', 'FMUL', 'FDIV', 'FDIVR',
 // suffix: FLDT, FSTPT, FBLD, FBSTP. (FBLD/FBSTP take BCD-80 directly without
 // a `t`, but FBLDT / FBSTPT also work.)
 const fpu_tbyte_bases = ['FLD', 'FSTP', 'FBLD', 'FBSTP']
+
+// x87 *integer* memory ops. Their AT&T size suffix names an INTEGER width —
+// `s`=m16int, `l`=m32int, `q`=m64int — unlike the float bases above where
+// `s`=m32 and `l`=m64. (FILD/FIST/FISTP have the m64 `q` form.)
+const fpu_int_bases = ['FIADD', 'FIMUL', 'FISUB', 'FISUBR', 'FIDIV', 'FIDIVR',
+	'FICOM', 'FICOMP', 'FILD', 'FIST', 'FISTP']
 
 fn try_strip_size_suffix(name string, base string) (DataSize, bool) {
 	if name.len != base.len + 1 || !name.starts_with(base) {
@@ -508,6 +561,16 @@ fn canonicalize_mnemonic(name string) Canon {
 		return sym(name, DataSize.suffix_unkown)
 	}
 
+	if name in encoder.suffixed_bases {
+		return Canon{
+			name:     name
+			dst_size: DataSize.suffix_unkown
+			src_size: DataSize.suffix_unkown
+			alt_name: name
+			ok:       true
+		}
+	}
+
 	for base in encoder.suffixed_bases {
 		size, ok := try_strip_size_suffix(name, base)
 		if ok {
@@ -545,6 +608,18 @@ fn canonicalize_mnemonic(name string) Canon {
 		if name.len > 2 {
 			last := name[name.len - 1]
 			base := name[..name.len - 1]
+			// x87 integer ops: suffix names an integer width (s=16, l=32, q=64).
+			if base in encoder.fpu_int_bases {
+				isz := match last {
+					`S` { DataSize.suffix_word }
+					`L` { DataSize.suffix_long }
+					`Q` { DataSize.suffix_quad }
+					else { DataSize.suffix_unkown }
+				}
+				if isz != .suffix_unkown {
+					return sym(base, isz)
+				}
+			}
 			if last == `S` && base in encoder.fpu_mem_bases {
 				return sym(base, DataSize.suffix_long)
 			}
@@ -554,7 +629,7 @@ fn canonicalize_mnemonic(name string) Canon {
 			// 80-bit tbyte memory: width is wildcard for now (mem_any
 			// matches any rmN slot the row demands).
 			if last == `T` && base in encoder.fpu_tbyte_bases {
-				return sym(base, DataSize.suffix_unkown)
+				return sym(base, DataSize.suffix_tbyte)
 			}
 		}
 		return sym(name, DataSize.suffix_unkown)
@@ -658,6 +733,7 @@ fn classify_memory_size(s DataSize) OpClass {
 		.suffix_quad { OpClass.rm64 }
 		.suffix_single { OpClass.xmmrm32 }
 		.suffix_double { OpClass.xmmrm64 }
+		.suffix_tbyte { OpClass.mem80 }
 		.suffix_xmm128 { OpClass.xmmrm128 }
 		.suffix_ymm256 { OpClass.ymmrm256 }
 		.suffix_zmm512 { OpClass.zmmrm512 }
@@ -758,9 +834,14 @@ fn op_class_matches(parsed OpClass, required OpClass) bool {
 		.xmmrm { parsed == .xmmreg || parsed == .xmmrm8 || parsed == .xmmrm16 || parsed == .xmmrm32 || parsed == .xmmrm64 || parsed == .xmmrm128 }
 		.xmmrm8 { parsed == .xmmreg || parsed == .rm8 }
 		.xmmrm16 { parsed == .xmmreg || parsed == .rm16 }
-		.xmmrm32 { parsed == .xmmreg }
-		.xmmrm64 { parsed == .xmmreg }
-		.xmmrm128 { parsed == .xmmreg }
+		// A memory operand's true width is fixed by the mnemonic, but vas's
+		// AVX/SSE size heuristic may over-promote it (e.g. MOVHPD's m64 source
+		// gets tagged xmmrm128 from the 128-bit xmm sibling). Since the bytes
+		// of a memory reference don't depend on the matched width, and the
+		// register operands pin the row, accept any xmm-memory width here.
+		.xmmrm32 { parsed == .xmmreg || parsed == .xmmrm32 || parsed == .xmmrm64 || parsed == .xmmrm128 || parsed == .mem_any }
+		.xmmrm64 { parsed == .xmmreg || parsed == .xmmrm32 || parsed == .xmmrm64 || parsed == .xmmrm128 || parsed == .mem_any }
+		.xmmrm128 { parsed == .xmmreg || parsed == .xmmrm32 || parsed == .xmmrm64 || parsed == .xmmrm128 || parsed == .mem_any }
 		// ymm: ymmreg also fills ymmrm/ymmrm256 slots; xmm fits ymmrm128 (low half).
 		.ymmrm { parsed == .ymmreg || parsed == .ymmrm128 || parsed == .ymmrm256 }
 		.ymmrm128 { parsed == .ymmreg || parsed == .xmmreg }
@@ -772,6 +853,20 @@ fn op_class_matches(parsed OpClass, required OpClass) bool {
 		.zmmrm512 { parsed == .zmmreg }
 		// K-mask: krm slot accepts a K register or any sized memory operand.
 		.krm { parsed == .kreg || parsed == .rm8 || parsed == .rm16 || parsed == .rm32 || parsed == .rm64 }
+		// Memory-only slots: satisfied by a parsed memory operand of the right
+		// width (memory parses to rmN / xmmrmN / ymmrmN, never to a register
+		// class) or by the unsized-memory wildcard. A register never matches.
+		.mem8 { parsed == .rm8 || parsed == .mem_any }
+		.mem16 { parsed == .rm16 || parsed == .mem_any }
+		.mem32 { parsed == .rm32 || parsed == .xmmrm32 || parsed == .xmmrm64 || parsed == .xmmrm128 || parsed == .mem_any }
+		.mem64 { parsed == .rm64 || parsed == .xmmrm32 || parsed == .xmmrm64 || parsed == .xmmrm128 || parsed == .mem_any }
+		.mem128 { parsed == .xmmrm128 || parsed == .mem_any }
+		.mem256 { parsed == .ymmrm256 || parsed == .mem_any }
+		.mem80 { parsed == .mem80 || parsed == .mem_any }
+		.mem_any {
+			parsed in [OpClass.rm8, .rm16, .rm32, .rm64, .xmmrm32, .xmmrm64, .xmmrm128,
+				.ymmrm256, .zmmrm512, .mem_any]
+		}
 		// fpureg slot also accepts an implicit fpu0 (ST(0)).
 		.fpureg { parsed == .fpu0 }
 		// label as relative branch target.
@@ -820,6 +915,13 @@ fn op_class_str(c OpClass) string {
 		.kreg { 'kreg' }
 		.krm { 'krm' }
 		.mem_any { 'mem' }
+		.mem8 { 'mem8' }
+		.mem16 { 'mem16' }
+		.mem32 { 'mem32' }
+		.mem64 { 'mem64' }
+		.mem128 { 'mem128' }
+		.mem256 { 'mem256' }
+		.mem80 { 'mem80' }
 		.fpureg { 'fpureg' }
 		.fpu0 { 'fpu0(%st)' }
 		.label { 'label' }

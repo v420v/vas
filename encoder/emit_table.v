@@ -596,10 +596,17 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 		for _ in 0 .. nbytes {
 			e.current_instr.code << u8(0)
 		}
-		rtype := if enc.mnemonic == 'CALL' {
+		// A branch target spelled `sym@PLT` (e.g. a tail-call `jmp foo@PLT`), and
+		// every CALL, go through the PLT; otherwise it's a plain relative branch
+		// (same-section targets are resolved away by fix_same_section_relocations).
+		rtype := if op.modifier == 'plt' || enc.mnemonic == 'CALL' {
 			encoder.r_x86_64_plt32
 		} else {
-			encoder.r_x86_64_32s
+			// A relative branch is PC-relative. Same-section targets are
+			// resolved to a constant by fix_same_section_relocations; otherwise
+			// a PC32 relocation is emitted (correct for cross-section local
+			// targets and PIE, where an absolute 32S would be rejected).
+			encoder.r_x86_64_pc32
 		}
 		e.rela_text_users << &Rela{
 			uses:   op.lit

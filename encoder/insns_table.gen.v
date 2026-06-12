@@ -29,17 +29,17 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'MOV', operands: [.rm16, .imm16], op_order: .mi, prefixes: [u8(0x66)], opcode: [u8(0xc7)], reg_field: .slash_d0, imm: .iw}
 	InstrEnc{mnemonic: 'MOV', operands: [.rm32, .imm32], op_order: .mi, opcode: [u8(0xc7)], reg_field: .slash_d0, imm: .id}
 	InstrEnc{mnemonic: 'MOV', operands: [.rm64, .imm32], op_order: .mi, rex_w: true, opcode: [u8(0xc7)], reg_field: .slash_d0, imm: .id}
-	InstrEnc{mnemonic: 'LEA', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x8d)], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LEA', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x8d)], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LEA', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x8d)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LEA', operands: [.reg16, .mem16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x8d)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LEA', operands: [.reg32, .mem32], op_order: .rm, opcode: [u8(0x8d)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LEA', operands: [.reg64, .mem64], op_order: .rm, rex_w: true, opcode: [u8(0x8d)], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm8, .reg8], op_order: .mr, opcode: [u8(0x84)], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm16, .reg16], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x85)], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm32, .reg32], op_order: .mr, opcode: [u8(0x85)], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x85)], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'TEST', operands: [.reg8, .rm8], op_order: .rm, opcode: [u8(0x84)], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'TEST', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x85)], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'TEST', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x85)], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'TEST', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x85)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'TEST', operands: [.reg8, .mem8], op_order: .rm, opcode: [u8(0x84)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'TEST', operands: [.reg16, .mem16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x85)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'TEST', operands: [.reg32, .mem32], op_order: .rm, opcode: [u8(0x85)], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'TEST', operands: [.reg64, .mem64], op_order: .rm, rex_w: true, opcode: [u8(0x85)], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm8, .imm8], op_order: .mi, opcode: [u8(0xf6)], reg_field: .slash_d0, imm: .ib}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm16, .imm16], op_order: .mi, prefixes: [u8(0x66)], opcode: [u8(0xf7)], reg_field: .slash_d0, imm: .iw}
 	InstrEnc{mnemonic: 'TEST', operands: [.rm32, .imm32], op_order: .mi, opcode: [u8(0xf7)], reg_field: .slash_d0, imm: .id}
@@ -150,12 +150,12 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'PEXT', operands: [.reg64, .reg64, .rm64], op_order: .rvm, opcode: [u8(0xf5)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 2, vex_mm: 2}
 	InstrEnc{mnemonic: 'BSWAP', operands: [.reg32], op_order: .r, opcode: [u8(0x0f), 0xc8], plus_reg: true}
 	InstrEnc{mnemonic: 'BSWAP', operands: [.reg64], op_order: .r, rex_w: true, opcode: [u8(0x0f), 0xc8], plus_reg: true}
-	InstrEnc{mnemonic: 'MOVBE', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVBE', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVBE', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVBE', operands: [.rm16, .reg16], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVBE', operands: [.rm32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVBE', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVBE', operands: [.reg16, .mem16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVBE', operands: [.reg32, .mem32], op_order: .rm, opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVBE', operands: [.reg64, .mem64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVBE', operands: [.mem16, .reg16], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVBE', operands: [.mem32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVBE', operands: [.mem64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CBW', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0x66)], opcode: [u8(0x98)]}
 	InstrEnc{mnemonic: 'CDQ', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x99)]}
 	InstrEnc{mnemonic: 'CDQE', operands: []OpClass{}, op_order: .zo, rex_w: true, opcode: [u8(0x98)]}
@@ -186,7 +186,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'CMPXCHG', operands: [.rm16, .reg16], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb1], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CMPXCHG', operands: [.rm32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0xb1], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CMPXCHG', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0xb1], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'CMPXCHG8B', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'CMPXCHG8B', operands: [.mem64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'CMPXCHG16B', operands: [.xmmrm128], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'XADD', operands: [.rm8, .reg8], op_order: .mr, opcode: [u8(0x0f), 0xc0], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'XADD', operands: [.rm16, .reg16], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc1], reg_field: .slash_r}
@@ -196,9 +196,9 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'JMP', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'JMP', operands: [.rm32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'JMP', operands: [.rm64], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'JMP', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'JMP', operands: [.rm32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'JMP', operands: [.rm64], op_order: .m, rex_w: true, opcode: [u8(0xff)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'JMP', operands: [.mem16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'JMP', operands: [.mem32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'JMP', operands: [.mem64], op_order: .m, rex_w: true, opcode: [u8(0xff)], reg_field: .slash_d5}
 	InstrEnc{mnemonic: 'JMP', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'JMP', operands: [.rm32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'JMP', operands: [.rm64], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d4}
@@ -234,9 +234,9 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'CALL', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'CALL', operands: [.rm32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'CALL', operands: [.rm64], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'CALL', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'CALL', operands: [.rm32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'CALL', operands: [.rm64], op_order: .m, rex_w: true, opcode: [u8(0xff)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'CALL', operands: [.mem16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'CALL', operands: [.mem32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'CALL', operands: [.mem64], op_order: .m, rex_w: true, opcode: [u8(0xff)], reg_field: .slash_d3}
 	InstrEnc{mnemonic: 'CALL', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0xff)], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'CALL', operands: [.rm32], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'CALL', operands: [.rm64], op_order: .m, opcode: [u8(0xff)], reg_field: .slash_d2}
@@ -278,15 +278,15 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'MFENCE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0xae, 0xf0]}
 	InstrEnc{mnemonic: 'SFENCE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0xae, 0xf8]}
 	InstrEnc{mnemonic: 'SERIALIZE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xe8]}
-	InstrEnc{mnemonic: 'CLFLUSH', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'CLFLUSHOPT', operands: [.rm64], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'CLWB', operands: [.rm64], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'CLFLUSH', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'CLFLUSHOPT', operands: [.mem_any], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'CLWB', operands: [.mem_any], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'CLZERO', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xfc]}
 	InstrEnc{mnemonic: 'INVD', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x08]}
 	InstrEnc{mnemonic: 'WBINVD', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x09]}
 	InstrEnc{mnemonic: 'WBNOINVD', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x09]}
 	InstrEnc{mnemonic: 'INVPCID', operands: [.reg64, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x82], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'INVLPG', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'INVLPG', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d7}
 	InstrEnc{mnemonic: 'INVLPGA', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xdf]}
 	InstrEnc{mnemonic: 'RDPMC', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x33]}
 	InstrEnc{mnemonic: 'RDTSC', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x31]}
@@ -317,32 +317,32 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'MWAITX', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xfb]}
 	InstrEnc{mnemonic: 'TPAUSE', operands: [.reg32], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'UMWAIT', operands: [.reg32], op_order: .m, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'LFS', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb4], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LFS', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x0f), 0xb4], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LFS', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0xb4], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LGS', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb5], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LGS', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x0f), 0xb5], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LGS', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0xb5], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LSS', operands: [.reg16, .rm16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb2], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LSS', operands: [.reg32, .rm32], op_order: .rm, opcode: [u8(0x0f), 0xb2], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'LSS', operands: [.reg64, .rm64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0xb2], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LFS', operands: [.reg16, .mem16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb4], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LFS', operands: [.reg32, .mem32], op_order: .rm, opcode: [u8(0x0f), 0xb4], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LFS', operands: [.reg64, .mem64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0xb4], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LGS', operands: [.reg16, .mem16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb5], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LGS', operands: [.reg32, .mem32], op_order: .rm, opcode: [u8(0x0f), 0xb5], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LGS', operands: [.reg64, .mem64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0xb5], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LSS', operands: [.reg16, .mem16], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xb2], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LSS', operands: [.reg32, .mem32], op_order: .rm, opcode: [u8(0x0f), 0xb2], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'LSS', operands: [.reg64, .mem64], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0xb2], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SWAPGS', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xf8]}
-	InstrEnc{mnemonic: 'LGDT', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'LGDT', operands: [.rm32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'LGDT', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'LIDT', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'LIDT', operands: [.rm32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'LIDT', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'SGDT', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'SGDT', operands: [.rm32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'SGDT', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'SIDT', operands: [.rm16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'SIDT', operands: [.rm32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'SIDT', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'LGDT', operands: [.mem16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'LGDT', operands: [.mem32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'LGDT', operands: [.mem64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'LIDT', operands: [.mem16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'LIDT', operands: [.mem32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'LIDT', operands: [.mem64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'SGDT', operands: [.mem16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'SGDT', operands: [.mem32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'SGDT', operands: [.mem64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'SIDT', operands: [.mem16], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'SIDT', operands: [.mem32], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'SIDT', operands: [.mem64], op_order: .m, opcode: [u8(0x0f), 0x01], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'F2XM1', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf0]}
 	InstrEnc{mnemonic: 'FABS', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xe1]}
-	InstrEnc{mnemonic: 'FADD', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FADD', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FADD', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FADD', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'FADD', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xc0], plus_reg: true}
 	InstrEnc{mnemonic: 'FADD', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xdc), 0xc0], plus_reg: true}
 	InstrEnc{mnemonic: 'FADD', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xc0], plus_reg: true}
@@ -350,10 +350,10 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FADDP', operands: [.fpureg], op_order: .r, opcode: [u8(0xde), 0xc0], plus_reg: true}
 	InstrEnc{mnemonic: 'FADDP', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xde), 0xc0], plus_reg: true}
 	InstrEnc{mnemonic: 'FADDP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xde), 0xc1]}
-	InstrEnc{mnemonic: 'FBLD', operands: [.rm64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'FBLD', operands: [.rm64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'FBSTP', operands: [.rm64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FBSTP', operands: [.rm64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FBLD', operands: [.mem80], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FBLD', operands: [.mem_any], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FBSTP', operands: [.mem80], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FBSTP', operands: [.mem_any], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'FCHS', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xe0]}
 	InstrEnc{mnemonic: 'FCLEX', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdb), 0xe2]}
 	InstrEnc{mnemonic: 'FCMOVB', operands: [.fpureg], op_order: .r, opcode: [u8(0xda), 0xc0], plus_reg: true}
@@ -380,8 +380,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FCMOVU', operands: [.fpureg], op_order: .r, opcode: [u8(0xda), 0xd8], plus_reg: true}
 	InstrEnc{mnemonic: 'FCMOVU', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xda), 0xd8], plus_reg: true}
 	InstrEnc{mnemonic: 'FCMOVU', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xda), 0xd9]}
-	InstrEnc{mnemonic: 'FCOM', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'FCOM', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FCOM', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FCOM', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'FCOM', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xd0], plus_reg: true}
 	InstrEnc{mnemonic: 'FCOM', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xd0], plus_reg: true}
 	InstrEnc{mnemonic: 'FCOM', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd8), 0xd1]}
@@ -391,8 +391,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FCOMIP', operands: [.fpureg], op_order: .r, opcode: [u8(0xdf), 0xf0], plus_reg: true}
 	InstrEnc{mnemonic: 'FCOMIP', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xdf), 0xf0], plus_reg: true}
 	InstrEnc{mnemonic: 'FCOMIP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdf), 0xf1]}
-	InstrEnc{mnemonic: 'FCOMP', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FCOMP', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FCOMP', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FCOMP', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d3}
 	InstrEnc{mnemonic: 'FCOMP', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xd8], plus_reg: true}
 	InstrEnc{mnemonic: 'FCOMP', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xd8], plus_reg: true}
 	InstrEnc{mnemonic: 'FCOMP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd8), 0xd9]}
@@ -400,8 +400,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FCOS', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xff]}
 	InstrEnc{mnemonic: 'FDECSTP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf6]}
 	InstrEnc{mnemonic: 'FDISI', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdb), 0xe1]}
-	InstrEnc{mnemonic: 'FDIV', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FDIV', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FDIV', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FDIV', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'FDIV', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xf0], plus_reg: true}
 	InstrEnc{mnemonic: 'FDIV', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xdc), 0xf8], plus_reg: true}
 	InstrEnc{mnemonic: 'FDIV', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xf0], plus_reg: true}
@@ -409,8 +409,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FDIVP', operands: [.fpureg], op_order: .r, opcode: [u8(0xde), 0xf8], plus_reg: true}
 	InstrEnc{mnemonic: 'FDIVP', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xde), 0xf8], plus_reg: true}
 	InstrEnc{mnemonic: 'FDIVP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xde), 0xf9]}
-	InstrEnc{mnemonic: 'FDIVR', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FDIVR', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FDIVR', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FDIVR', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d7}
 	InstrEnc{mnemonic: 'FDIVR', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xdc), 0xf0], plus_reg: true}
 	InstrEnc{mnemonic: 'FDIVR', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xf8], plus_reg: true}
 	InstrEnc{mnemonic: 'FDIVR', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xf8], plus_reg: true}
@@ -424,51 +424,51 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FFREE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdd), 0xc1]}
 	InstrEnc{mnemonic: 'FFREEP', operands: [.fpureg], op_order: .r, opcode: [u8(0xdf), 0xc0], plus_reg: true}
 	InstrEnc{mnemonic: 'FFREEP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdf), 0xc1]}
-	InstrEnc{mnemonic: 'FIADD', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FIADD', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FICOM', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'FICOM', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'FICOMP', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FICOMP', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FIDIV', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FIDIV', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FIDIVR', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FIDIVR', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FILD', operands: [.rm32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FILD', operands: [.rm16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FILD', operands: [.rm64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'FIMUL', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FIMUL', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FIADD', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FIADD', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FICOM', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FICOM', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FICOMP', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FICOMP', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FIDIV', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FIDIV', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FIDIVR', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FIDIVR', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FILD', operands: [.mem32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FILD', operands: [.mem16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FILD', operands: [.mem64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FIMUL', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FIMUL', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'FINCSTP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf7]}
 	InstrEnc{mnemonic: 'FINIT', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdb), 0xe3]}
-	InstrEnc{mnemonic: 'FIST', operands: [.rm32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'FIST', operands: [.rm16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'FISTP', operands: [.rm32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FISTP', operands: [.rm16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FISTP', operands: [.rm64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FISTTP', operands: [.rm16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FISTTP', operands: [.rm32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FISTTP', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FISUB', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'FISUB', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'FISUBR', operands: [.rm32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'FISUBR', operands: [.rm16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'FLD', operands: [.rm32], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FLD', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FLD', operands: [.rm64], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FIST', operands: [.mem32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FIST', operands: [.mem16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FISTP', operands: [.mem32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FISTP', operands: [.mem16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FISTP', operands: [.mem64], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FISTTP', operands: [.mem16], op_order: .m, opcode: [u8(0xdf)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FISTTP', operands: [.mem32], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FISTTP', operands: [.mem64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FISUB', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FISUB', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FISUBR', operands: [.mem32], op_order: .m, opcode: [u8(0xda)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FISUBR', operands: [.mem16], op_order: .m, opcode: [u8(0xde)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FLD', operands: [.mem32], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FLD', operands: [.mem64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FLD', operands: [.mem80], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d5}
 	InstrEnc{mnemonic: 'FLD', operands: [.fpureg], op_order: .r, opcode: [u8(0xd9), 0xc0], plus_reg: true}
 	InstrEnc{mnemonic: 'FLD', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xc1]}
 	InstrEnc{mnemonic: 'FLD1', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xe8]}
-	InstrEnc{mnemonic: 'FLDCW', operands: [.rm64], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'FLDENV', operands: [.rm64], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FLDCW', operands: [.mem_any], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FLDENV', operands: [.mem_any], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'FLDL2E', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xea]}
 	InstrEnc{mnemonic: 'FLDL2T', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xe9]}
 	InstrEnc{mnemonic: 'FLDLG2', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xec]}
 	InstrEnc{mnemonic: 'FLDLN2', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xed]}
 	InstrEnc{mnemonic: 'FLDPI', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xeb]}
 	InstrEnc{mnemonic: 'FLDZ', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xee]}
-	InstrEnc{mnemonic: 'FMUL', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FMUL', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FMUL', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FMUL', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'FMUL', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xdc), 0xc8], plus_reg: true}
 	InstrEnc{mnemonic: 'FMUL', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xc8], plus_reg: true}
 	InstrEnc{mnemonic: 'FMUL', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xc8], plus_reg: true}
@@ -481,36 +481,36 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FNENI', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdb), 0xe0]}
 	InstrEnc{mnemonic: 'FNINIT', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdb), 0xe3]}
 	InstrEnc{mnemonic: 'FNOP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xd0]}
-	InstrEnc{mnemonic: 'FNSAVE', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FNSTCW', operands: [.rm64], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FNSTENV', operands: [.rm64], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FNSTSW', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FNSAVE', operands: [.mem_any], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FNSTCW', operands: [.mem_any], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FNSTENV', operands: [.mem_any], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FNSTSW', operands: [.mem_any], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d7}
 	InstrEnc{mnemonic: 'FPATAN', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf3]}
 	InstrEnc{mnemonic: 'FPREM', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf8]}
 	InstrEnc{mnemonic: 'FPREM1', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf5]}
 	InstrEnc{mnemonic: 'FPTAN', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf2]}
 	InstrEnc{mnemonic: 'FRNDINT', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xfc]}
-	InstrEnc{mnemonic: 'FRSTOR', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'FSAVE', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FRSTOR', operands: [.mem_any], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FSAVE', operands: [.mem_any], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'FSCALE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xfd]}
 	InstrEnc{mnemonic: 'FSETPM', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdb), 0xe4]}
 	InstrEnc{mnemonic: 'FSIN', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xfe]}
 	InstrEnc{mnemonic: 'FSINCOS', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xfb]}
 	InstrEnc{mnemonic: 'FSQRT', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xfa]}
-	InstrEnc{mnemonic: 'FST', operands: [.rm32], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'FST', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FST', operands: [.mem32], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'FST', operands: [.mem64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'FST', operands: [.fpureg], op_order: .r, opcode: [u8(0xdd), 0xd0], plus_reg: true}
 	InstrEnc{mnemonic: 'FST', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdd), 0xd1]}
-	InstrEnc{mnemonic: 'FSTCW', operands: [.rm64], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FSTENV', operands: [.rm64], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'FSTP', operands: [.rm32], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FSTP', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'FSTP', operands: [.rm64], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FSTCW', operands: [.mem_any], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FSTENV', operands: [.mem_any], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'FSTP', operands: [.mem32], op_order: .m, opcode: [u8(0xd9)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FSTP', operands: [.mem64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'FSTP', operands: [.mem80], op_order: .m, opcode: [u8(0xdb)], reg_field: .slash_d7}
 	InstrEnc{mnemonic: 'FSTP', operands: [.fpureg], op_order: .r, opcode: [u8(0xdd), 0xd8], plus_reg: true}
 	InstrEnc{mnemonic: 'FSTP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xdd), 0xd9]}
-	InstrEnc{mnemonic: 'FSTSW', operands: [.rm64], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d7}
-	InstrEnc{mnemonic: 'FSUB', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'FSUB', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FSTSW', operands: [.mem_any], op_order: .m, opcode: [u8(0xdd)], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'FSUB', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'FSUB', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'FSUB', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xdc), 0xe8], plus_reg: true}
 	InstrEnc{mnemonic: 'FSUB', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xe0], plus_reg: true}
 	InstrEnc{mnemonic: 'FSUB', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xe0], plus_reg: true}
@@ -518,8 +518,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FSUBP', operands: [.fpureg], op_order: .r, opcode: [u8(0xde), 0xe8], plus_reg: true}
 	InstrEnc{mnemonic: 'FSUBP', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xde), 0xe8], plus_reg: true}
 	InstrEnc{mnemonic: 'FSUBP', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xde), 0xe9]}
-	InstrEnc{mnemonic: 'FSUBR', operands: [.rm32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'FSUBR', operands: [.rm64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FSUBR', operands: [.mem32], op_order: .m, opcode: [u8(0xd8)], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'FSUBR', operands: [.mem64], op_order: .m, opcode: [u8(0xdc)], reg_field: .slash_d5}
 	InstrEnc{mnemonic: 'FSUBR', operands: [.fpureg, .fpu0], op_order: .r_skip, opcode: [u8(0xdc), 0xe0], plus_reg: true}
 	InstrEnc{mnemonic: 'FSUBR', operands: [.fpureg], op_order: .r, opcode: [u8(0xd8), 0xe8], plus_reg: true}
 	InstrEnc{mnemonic: 'FSUBR', operands: [.fpu0, .fpureg], op_order: .skip_r, opcode: [u8(0xd8), 0xe8], plus_reg: true}
@@ -550,8 +550,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'FYL2X', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf1]}
 	InstrEnc{mnemonic: 'FYL2XP1', operands: []OpClass{}, op_order: .zo, opcode: [u8(0xd9), 0xf9]}
 	InstrEnc{mnemonic: 'EMMS', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x77]}
-	InstrEnc{mnemonic: 'PREFETCH', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x0d], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'PREFETCHW', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x0d], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'PREFETCH', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0x0d], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'PREFETCHW', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0x0d], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'PUSH', operands: [.reg16], op_order: .r, prefixes: [u8(0x66)], opcode: [u8(0x50)], plus_reg: true}
 	InstrEnc{mnemonic: 'PUSH', operands: [.reg32], op_order: .r, opcode: [u8(0x50)], plus_reg: true}
 	InstrEnc{mnemonic: 'PUSH', operands: [.reg64], op_order: .r, opcode: [u8(0x50)], plus_reg: true}
@@ -708,6 +708,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'SETNG', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9e], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETG', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9f], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETNLE', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9f], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'ADDPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x58], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ADDSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x58], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ANDNPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x55], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ANDPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x54], reg_field: .slash_r}
@@ -720,14 +721,19 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'CVTSS2SI', operands: [.reg64, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], rex_w: true, opcode: [u8(0x0f), 0x2d], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTTSS2SI', operands: [.reg32, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x2c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTTSS2SI', operands: [.reg64, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], rex_w: true, opcode: [u8(0x0f), 0x2c], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'DIVPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x5e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'DIVSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x5e], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MAXPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x5f], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MAXSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x5f], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MINPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x5d], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MINSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x5d], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVAPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x28], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVAPS', operands: [.xmmrm128, .xmmreg], op_order: .mr, opcode: [u8(0x0f), 0x29], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVHPS', operands: [.xmmreg, .rm64], op_order: .rm, opcode: [u8(0x0f), 0x16], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVHPS', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x0f), 0x17], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVHPS', operands: [.xmmreg, .mem64], op_order: .rm, opcode: [u8(0x0f), 0x16], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVHPS', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x0f), 0x17], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVLHPS', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x0f), 0x16], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVLPS', operands: [.xmmreg, .rm64], op_order: .rm, opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVLPS', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x0f), 0x13], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVLPS', operands: [.xmmreg, .mem64], op_order: .rm, opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVLPS', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x0f), 0x13], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVHLPS', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVMSKPS', operands: [.reg32, .xmmreg], op_order: .rm, opcode: [u8(0x0f), 0x50], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVMSKPS', operands: [.reg64, .xmmreg], op_order: .rm, rex_w: true, opcode: [u8(0x0f), 0x50], reg_field: .slash_r}
@@ -736,41 +742,49 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'MOVSS', operands: [.xmmrm32, .xmmreg], op_order: .mr, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x11], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVUPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x10], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVUPS', operands: [.xmmrm128, .xmmreg], op_order: .mr, opcode: [u8(0x0f), 0x11], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MULPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x59], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MULSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x59], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ORPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x56], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'RCPPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x53], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'RCPSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x53], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'RSQRTPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x52], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'RSQRTSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x52], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SHUFPS', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, opcode: [u8(0x0f), 0xc6], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'SQRTPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x51], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'SQRTSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x51], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'SUBPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x5c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SUBSS', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x5c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'UCOMISS', operands: [.xmmreg, .xmmrm32], op_order: .rm, opcode: [u8(0x0f), 0x2e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'UNPCKHPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x15], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'UNPCKLPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x14], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'XORPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x57], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'FXRSTOR', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FXRSTOR64', operands: [.rm64], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'FXSAVE', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'FXSAVE64', operands: [.rm64], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FXRSTOR', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FXRSTOR64', operands: [.mem_any], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'FXSAVE', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'FXSAVE64', operands: [.mem_any], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'XGETBV', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd0]}
 	InstrEnc{mnemonic: 'XSETBV', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd1]}
-	InstrEnc{mnemonic: 'XSAVE', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'XSAVEC', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'XSAVEC64', operands: [.rm64], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'XSAVEOPT', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'XSAVEOPT64', operands: [.rm64], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'XSAVES', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'XRSTOR', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d5}
-	InstrEnc{mnemonic: 'XRSTORS', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d3}
-	InstrEnc{mnemonic: 'PREFETCHNTA', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'PREFETCHT0', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'PREFETCHT1', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d2}
-	InstrEnc{mnemonic: 'PREFETCHT2', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'XSAVE', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'XSAVEC', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'XSAVEC64', operands: [.mem_any], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d4}
+	InstrEnc{mnemonic: 'XSAVEOPT', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'XSAVEOPT64', operands: [.mem_any], op_order: .m, rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'XSAVES', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'XRSTOR', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xae], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'XRSTORS', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d3}
+	InstrEnc{mnemonic: 'PREFETCHNTA', operands: [.mem8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'PREFETCHT0', operands: [.mem8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d1}
+	InstrEnc{mnemonic: 'PREFETCHT1', operands: [.mem8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'PREFETCHT2', operands: [.mem8], op_order: .m, opcode: [u8(0x0f), 0x18], reg_field: .slash_d3}
 	InstrEnc{mnemonic: 'SFENCE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0xae, 0xf8]}
-	InstrEnc{mnemonic: 'MOVNTDQ', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xe7], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVNTI', operands: [.rm64, .reg32], op_order: .mr, opcode: [u8(0x0f), 0xc3], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVNTI', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0xc3], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVNTPD', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x2b], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVNTDQ', operands: [.mem_any, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xe7], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVNTI', operands: [.mem_any, .reg32], op_order: .mr, opcode: [u8(0x0f), 0xc3], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVNTI', operands: [.mem_any, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0xc3], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVNTPD', operands: [.mem_any, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x2b], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'LFENCE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0xae, 0xe8]}
 	InstrEnc{mnemonic: 'MFENCE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0xae, 0xf0]}
-	InstrEnc{mnemonic: 'MOVD', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVD', operands: [.xmmreg, .rm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x6e], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVD', operands: [.mem_any, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVD', operands: [.xmmreg, .mem_any], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x6e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVD', operands: [.xmmreg, .rm32], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x6e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVD', operands: [.rm32, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVDQA', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x6f], reg_field: .slash_r}
@@ -779,8 +793,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'MOVDQU', operands: [.xmmrm128, .xmmreg], op_order: .mr, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x7f], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVQ', operands: [.xmmreg, .xmmreg], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVQ', operands: [.xmmreg, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xd6], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVQ', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xd6], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVQ', operands: [.xmmreg, .rm64], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVQ', operands: [.mem_any, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xd6], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVQ', operands: [.xmmreg, .mem_any], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVQ', operands: [.xmmreg, .rm64], op_order: .rm, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x6e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVQ', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x7e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PACKSSWB', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x63], reg_field: .slash_r}
@@ -809,8 +823,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .reg16, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .reg32, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .reg64, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .rm64, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .rm16, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .mem_any, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PINSRW', operands: [.xmmreg, .mem16, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc4], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PMADDWD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xf5], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PMAXSW', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xee], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PMAXUB', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xde], reg_field: .slash_r}
@@ -824,11 +838,11 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'POR', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xeb], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PSADBW', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xf6], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PSHUFD', operands: [.xmmreg, .xmmreg, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PSHUFD', operands: [.xmmreg, .rm64, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PSHUFD', operands: [.xmmreg, .mem_any, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PSHUFHW', operands: [.xmmreg, .xmmreg, .imm8], op_order: .rmi, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PSHUFHW', operands: [.xmmreg, .rm64, .imm8], op_order: .rmi, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PSHUFHW', operands: [.xmmreg, .mem_any, .imm8], op_order: .rmi, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PSHUFLW', operands: [.xmmreg, .xmmreg, .imm8], op_order: .rmi, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PSHUFLW', operands: [.xmmreg, .rm64, .imm8], op_order: .rmi, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PSHUFLW', operands: [.xmmreg, .mem_any, .imm8], op_order: .rmi, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x70], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PSLLDQ', operands: [.xmmreg, .imm8], op_order: .mi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x73], reg_field: .slash_d7, imm: .ib}
 	InstrEnc{mnemonic: 'PSLLW', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xf1], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PSLLW', operands: [.xmmreg, .imm8], op_order: .mi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x71], reg_field: .slash_d6, imm: .ib}
@@ -864,63 +878,87 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'PUNPCKLDQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x62], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PUNPCKLQDQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x6c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PXOR', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xef], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'ADDPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x58], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ADDSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x58], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ANDNPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x55], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ANDPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x54], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CMPPD', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc2], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'CMPSD', operands: [.xmmreg, .xmmrm64, .imm8], op_order: .rmi, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0xc2], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'COMISD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x2f], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTDQ2PD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xe6], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTDQ2PS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x5b], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTPD2DQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0xe6], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTPD2PS', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x5a], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTPS2DQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x5b], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTPS2PD', operands: [.xmmreg, .xmmrm64], op_order: .rm, opcode: [u8(0x0f), 0x5a], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTSD2SI', operands: [.reg32, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x2d], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTSD2SI', operands: [.reg64, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], rex_w: true, opcode: [u8(0x0f), 0x2d], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTSD2SS', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x5a], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTSI2SD', operands: [.xmmreg, .rm32], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x2a], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTSI2SD', operands: [.xmmreg, .rm64], op_order: .rm, prefixes: [u8(0xf2)], rex_w: true, opcode: [u8(0x0f), 0x2a], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTSS2SD', operands: [.xmmreg, .xmmrm32], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x5a], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTTPD2DQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xe6], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CVTTPS2DQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x5b], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTTSD2SI', operands: [.reg32, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x2c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CVTTSD2SI', operands: [.reg64, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], rex_w: true, opcode: [u8(0x0f), 0x2c], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'DIVPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x5e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'DIVSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x5e], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MAXPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x5f], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MAXSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x5f], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MINPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x5d], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MINSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x5d], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVAPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x28], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVAPD', operands: [.xmmrm128, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x29], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVHPD', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x17], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVHPD', operands: [.xmmreg, .rm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x16], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVLPD', operands: [.rm64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x13], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVLPD', operands: [.xmmreg, .rm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVHPD', operands: [.mem64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x17], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVHPD', operands: [.xmmreg, .mem64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x16], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVLPD', operands: [.mem64, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x13], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVLPD', operands: [.xmmreg, .mem64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVMSKPD', operands: [.reg32, .xmmreg], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x50], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVMSKPD', operands: [.reg64, .xmmreg], op_order: .rm, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x50], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x10], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVSD', operands: [.xmmrm64, .xmmreg], op_order: .mr, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x11], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVUPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x10], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVUPD', operands: [.xmmrm128, .xmmreg], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x11], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MULPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x59], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MULSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x59], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ORPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x56], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SHUFPD', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc6], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'SQRTPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x51], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'SQRTSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x51], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'SUBPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x5c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SUBSD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x5c], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'UCOMISD', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x2e], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'UNPCKHPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x15], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'UNPCKLPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x14], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'XORPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x57], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'ADDSUBPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xd0], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'ADDSUBPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0xd0], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'HADDPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x7c], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'HADDPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x7c], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'HSUBPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x7d], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'HSUBPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x7d], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVDDUP', operands: [.xmmreg, .xmmrm64], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVSHDUP', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x16], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'MOVSLDUP', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x12], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CLGI', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xdd]}
 	InstrEnc{mnemonic: 'STGI', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xdc]}
 	InstrEnc{mnemonic: 'VMCALL', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xc1]}
-	InstrEnc{mnemonic: 'VMCLEAR', operands: [.rm64], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc7], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'VMCLEAR', operands: [.mem_any], op_order: .m, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0xc7], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'VMFUNC', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd4]}
 	InstrEnc{mnemonic: 'VMLAUNCH', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xc2]}
 	InstrEnc{mnemonic: 'VMLOAD', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xda]}
 	InstrEnc{mnemonic: 'VMMCALL', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd9]}
-	InstrEnc{mnemonic: 'VMPTRLD', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'VMPTRST', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d7}
+	InstrEnc{mnemonic: 'VMPTRLD', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'VMPTRST', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0xc7], reg_field: .slash_d7}
 	InstrEnc{mnemonic: 'VMREAD', operands: [.rm64, .reg64], op_order: .mr, opcode: [u8(0x0f), 0x78], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'VMRESUME', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xc3]}
 	InstrEnc{mnemonic: 'VMRUN', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd8]}
 	InstrEnc{mnemonic: 'VMSAVE', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xdb]}
 	InstrEnc{mnemonic: 'VMWRITE', operands: [.reg64, .rm64], op_order: .rm, opcode: [u8(0x0f), 0x79], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'VMXOFF', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xc4]}
-	InstrEnc{mnemonic: 'VMXON', operands: [.rm64], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xc7], reg_field: .slash_d6}
-	InstrEnc{mnemonic: 'INVEPT', operands: [.reg64, .rm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x80], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'INVVPID', operands: [.reg64, .rm64], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x81], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'VMXON', operands: [.mem_any], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xc7], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'INVEPT', operands: [.reg64, .mem_any], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x80], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'INVVPID', operands: [.reg64, .mem_any], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x81], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'VMGEXIT', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x01, 0xc1]}
 	InstrEnc{mnemonic: 'VMGEXIT', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x01, 0xc1]}
 	InstrEnc{mnemonic: 'PABSB', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x1c], reg_field: .slash_r}
@@ -939,20 +977,26 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'PSIGNB', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x08], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PSIGNW', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x09], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PSIGND', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x0a], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'BLENDPD', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x0d], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'BLENDPS', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x0c], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'BLENDVPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x15], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'BLENDVPS', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x14], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'DPPD', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x41], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'DPPS', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x40], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'EXTRACTPS', operands: [.rm32, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x17], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'EXTRACTPS', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x3a, 0x17], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'INSERTPS', operands: [.xmmreg, .xmmrm32, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x21], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PACKUSDW', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x2b], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PCMPEQQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x29], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PEXTRB', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x14], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PEXTRB', operands: [.rm8, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x14], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PEXTRB', operands: [.mem8, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x14], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PEXTRB', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x14], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PEXTRD', operands: [.rm32, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x16], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PEXTRQ', operands: [.rm64, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x3a, 0x16], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PEXTRW', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x15], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PEXTRW', operands: [.rm16, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x15], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PEXTRW', operands: [.mem16, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x15], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PEXTRW', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x3a, 0x15], reg_field: .slash_r, imm: .ib}
-	InstrEnc{mnemonic: 'PINSRB', operands: [.xmmreg, .rm64, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x20], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'PINSRB', operands: [.xmmreg, .mem_any, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x20], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PINSRB', operands: [.xmmreg, .rm8, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x20], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PINSRB', operands: [.xmmreg, .reg32, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x20], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'PINSRD', operands: [.xmmreg, .rm32, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x22], reg_field: .slash_r, imm: .ib}
@@ -967,6 +1011,10 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'PMINUW', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x3a], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PMULDQ', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x28], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PMULLD', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0x40], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'ROUNDPD', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x09], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'ROUNDPS', operands: [.xmmreg, .xmmrm128, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x08], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'ROUNDSD', operands: [.xmmreg, .xmmrm64, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x0b], reg_field: .slash_r, imm: .ib}
+	InstrEnc{mnemonic: 'ROUNDSS', operands: [.xmmreg, .xmmrm32, .imm8], op_order: .rmi, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x3a, 0x0a], reg_field: .slash_r, imm: .ib}
 	InstrEnc{mnemonic: 'CRC32', operands: [.reg32, .rm8], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x38, 0xf0], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CRC32', operands: [.reg32, .rm16], op_order: .rm, prefixes: [u8(0x66), 0xf2], opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'CRC32', operands: [.reg32, .rm32], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x38, 0xf1], reg_field: .slash_r}
@@ -1035,9 +1083,9 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VBLENDVPD', operands: [.ymmreg, .ymmreg, .ymmrm256, .ymmreg], op_order: .rvms, opcode: [u8(0x4b)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VBLENDVPS', operands: [.xmmreg, .xmmreg, .xmmrm128, .xmmreg], op_order: .rvms, opcode: [u8(0x4a)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VBLENDVPS', operands: [.ymmreg, .ymmreg, .ymmrm256, .ymmreg], op_order: .rvms, opcode: [u8(0x4a)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.xmmreg, .rm32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.ymmreg, .rm32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.xmmreg, .mem32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.ymmreg, .mem32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTF128', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x1a)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VCMPEQ_OSPD', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0xc2), 0x10], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCMPEQ_OSPD', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0xc2), 0x10], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 1}
@@ -1343,10 +1391,10 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VCVTSD2SI', operands: [.reg64, .xmmrm64], op_order: .rm, opcode: [u8(0x2d)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 1, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSD2SS', operands: [.xmmreg, .xmmreg, .xmmrm64], op_order: .rvm, opcode: [u8(0x5a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSI2SD', operands: [.xmmreg, .xmmreg, .rm32], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
-	InstrEnc{mnemonic: 'VCVTSI2SD', operands: [.xmmreg, .xmmreg, .rm32], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
+	InstrEnc{mnemonic: 'VCVTSI2SD', operands: [.xmmreg, .xmmreg, .mem32], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSI2SD', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 1, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSI2SS', operands: [.xmmreg, .xmmreg, .rm32], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
-	InstrEnc{mnemonic: 'VCVTSI2SS', operands: [.xmmreg, .xmmreg, .rm32], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
+	InstrEnc{mnemonic: 'VCVTSI2SS', operands: [.xmmreg, .xmmreg, .mem32], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSI2SS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x2a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 1, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSS2SD', operands: [.xmmreg, .xmmreg, .xmmrm32], op_order: .rvm, opcode: [u8(0x5a)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VCVTSS2SI', operands: [.reg32, .xmmrm32], op_order: .rm, opcode: [u8(0x2d)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
@@ -1385,7 +1433,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VLDDQU', operands: [.xmmreg, .xmmrm128], op_order: .rm, prefixes: [u8(0xf0)], opcode: []u8{}, reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VLDQQU', operands: [.ymmreg, .ymmrm256], op_order: .rm, prefixes: [u8(0xf0)], opcode: []u8{}, reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VLDDQU', operands: [.ymmreg, .ymmrm256], op_order: .rm, prefixes: [u8(0xf0)], opcode: []u8{}, reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 3, vex_mm: 1}
-	InstrEnc{mnemonic: 'VLDMXCSR', operands: [.rm32], op_order: .m, opcode: [u8(0xae)], reg_field: .slash_d2, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'VLDMXCSR', operands: [.mem32], op_order: .m, opcode: [u8(0xae)], reg_field: .slash_d2, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMASKMOVDQU', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0xf7)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMASKMOVPS', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x2c)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VMASKMOVPS', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0x2c)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
@@ -1436,15 +1484,15 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VMOVDQU', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x6f)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVDQU', operands: [.ymmrm256, .ymmreg], op_order: .mr, opcode: [u8(0x7f)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVHLPS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPD', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPS', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPD', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPS', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPS', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVLHPS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPD', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPS', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPD', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPS', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPS', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVMSKPD', operands: [.reg64, .xmmreg], op_order: .rm, opcode: [u8(0x50)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVMSKPD', operands: [.reg32, .xmmreg], op_order: .rm, opcode: [u8(0x50)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVMSKPD', operands: [.reg64, .ymmreg], op_order: .rm, opcode: [u8(0x50)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 1}
@@ -1462,17 +1510,17 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VMOVNTPS', operands: [.xmmrm128, .xmmreg], op_order: .mr, opcode: [u8(0x2b)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVNTPS', operands: [.ymmrm256, .ymmreg], op_order: .mr, opcode: [u8(0x2b)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .rm64], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .mem64], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .mvr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSHDUP', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSHDUP', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x16)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSLDUP', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSLDUP', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x12)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .rm32], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .mem32], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .mvr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSS', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSS', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVUPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVUPD', operands: [.xmmrm128, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVUPD', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 1}
@@ -1537,12 +1585,12 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPERM2F128', operands: [.ymmreg, .ymmreg, .ymmrm256, .imm8], op_order: .rvmi, opcode: [u8(0x06)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRB', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRB', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VPEXTRB', operands: [.rm8, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
+	InstrEnc{mnemonic: 'VPEXTRB', operands: [.mem8, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg64, .xmmreg, .imm8], op_order: .rmi, opcode: [u8(0xc5)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg32, .xmmreg, .imm8], op_order: .rmi, opcode: [u8(0xc5)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VPEXTRW', operands: [.rm16, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
+	InstrEnc{mnemonic: 'VPEXTRW', operands: [.mem16, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRD', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x16)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRD', operands: [.rm32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x16)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRQ', operands: [.rm64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x16)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 3}
@@ -1553,15 +1601,15 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPHSUBW', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x05)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPHSUBD', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x06)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPHSUBSW', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x07)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .rm8, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
+	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .mem8, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .rm8, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .reg32, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .rm16, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .mem16, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .rm16, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .reg32, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'VPINSRD', operands: [.xmmreg, .xmmreg, .mem32, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRD', operands: [.xmmreg, .xmmreg, .rm32, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VPINSRD', operands: [.xmmreg, .xmmreg, .rm32, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VPINSRQ', operands: [.xmmreg, .xmmreg, .rm64, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 3}
+	InstrEnc{mnemonic: 'VPINSRQ', operands: [.xmmreg, .xmmreg, .mem64, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRQ', operands: [.xmmreg, .xmmreg, .rm64, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPMADDWD', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0xf5)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPMADDUBSW', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x04)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
@@ -1666,7 +1714,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VSQRTPS', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x51)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VSQRTSD', operands: [.xmmreg, .xmmreg, .xmmrm64], op_order: .rvm, opcode: [u8(0x51)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'VSQRTSS', operands: [.xmmreg, .xmmreg, .xmmrm32], op_order: .rvm, opcode: [u8(0x51)], reg_field: .slash_r, vex_present: true, vex_l: 2, vex_w: 0, vex_pp: 2, vex_mm: 1}
-	InstrEnc{mnemonic: 'VSTMXCSR', operands: [.rm32], op_order: .m, opcode: [u8(0xae)], reg_field: .slash_d3, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'VSTMXCSR', operands: [.mem32], op_order: .m, opcode: [u8(0xae)], reg_field: .slash_d3, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'VSUBPD', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x5c)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VSUBPD', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0x5c)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VSUBPS', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x5c)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
@@ -2033,21 +2081,21 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPMOVMSKB', operands: [.reg32, .ymmreg], op_order: .rm, opcode: [u8(0xd7)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPMOVMSKB', operands: [.reg64, .ymmreg], op_order: .rm, opcode: [u8(0xd7)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'VPMOVSXBW', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x20)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSXBD', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x21)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSXBD', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x21)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSXBD', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x21)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSXBQ', operands: [.ymmreg, .rm32], op_order: .rm, opcode: [u8(0x22)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSXBQ', operands: [.ymmreg, .mem32], op_order: .rm, opcode: [u8(0x22)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSXBQ', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x22)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSXWD', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x23)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSXWQ', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x24)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSXWQ', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x24)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSXWQ', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x24)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSXDQ', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x25)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXBW', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x30)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVZXBD', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x31)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVZXBD', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x31)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXBD', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x31)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVZXBQ', operands: [.ymmreg, .rm32], op_order: .rm, opcode: [u8(0x32)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVZXBQ', operands: [.ymmreg, .mem32], op_order: .rm, opcode: [u8(0x32)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXBQ', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x32)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXWD', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x33)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVZXWQ', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x34)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVZXWQ', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x34)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXWQ', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x34)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXDQ', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x35)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPMULDQ', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0x28)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
@@ -2108,21 +2156,21 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VBROADCASTI128', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x5a)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBLENDD', operands: [.xmmreg, .xmmreg, .xmmrm128, .imm8], op_order: .rvmi, opcode: [u8(0x02)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VPBLENDD', operands: [.ymmreg, .ymmreg, .ymmrm256, .imm8], op_order: .rvmi, opcode: [u8(0x02)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 3}
-	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.xmmreg, .rm8], op_order: .rm, opcode: [u8(0x78)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.xmmreg, .mem8], op_order: .rm, opcode: [u8(0x78)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x78)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.ymmreg, .rm8], op_order: .rm, opcode: [u8(0x78)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.ymmreg, .mem8], op_order: .rm, opcode: [u8(0x78)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x78)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTW', operands: [.xmmreg, .rm16], op_order: .rm, opcode: [u8(0x79)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTW', operands: [.xmmreg, .mem16], op_order: .rm, opcode: [u8(0x79)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTW', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x79)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTW', operands: [.ymmreg, .rm16], op_order: .rm, opcode: [u8(0x79)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTW', operands: [.ymmreg, .mem16], op_order: .rm, opcode: [u8(0x79)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTW', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x79)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.xmmreg, .rm32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.xmmreg, .mem32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.ymmreg, .rm32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.ymmreg, .mem32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.xmmreg, .rm64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.xmmreg, .mem64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPERMD', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0x36)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VPERMPD', operands: [.ymmreg, .ymmrm256, .imm8], op_order: .rmi, opcode: [u8(0x01)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 1, vex_w: 1, vex_pp: 1, vex_mm: 3}
@@ -2153,7 +2201,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'XBEGIN', operands: [.rel32], op_order: .i, opcode: [u8(0xc7), 0xf8], rel: .rel32}
 	InstrEnc{mnemonic: 'XEND', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd5]}
 	InstrEnc{mnemonic: 'XTEST', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xd6]}
-	InstrEnc{mnemonic: 'PREFETCHWT1', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x0d], reg_field: .slash_d2}
+	InstrEnc{mnemonic: 'PREFETCHWT1', operands: [.mem8], op_order: .m, opcode: [u8(0x0f), 0x0d], reg_field: .slash_d2}
 	InstrEnc{mnemonic: 'SHA1MSG1', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x38, 0xc9], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SHA1MSG2', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x38, 0xca], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'SHA1NEXTE', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x0f), 0x38, 0xc8], reg_field: .slash_r}
@@ -2177,12 +2225,12 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VSM4RNDS4', operands: [.xmmreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0xda)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 3, evex_mm: 2}
 	InstrEnc{mnemonic: 'VSM4RNDS4', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0xda)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 3, evex_mm: 2}
 	InstrEnc{mnemonic: 'VSM4RNDS4', operands: [.zmmreg, .zmmreg, .zmmrm512], op_order: .rvm, opcode: [u8(0xda)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'VBCSTNEBF16PS', operands: [.xmmreg, .rm16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBCSTNEBF16PS', operands: [.ymmreg, .rm16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBCSTNEBF162PS', operands: [.xmmreg, .rm16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBCSTNEBF162PS', operands: [.ymmreg, .rm16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBCSTNESH2PS', operands: [.xmmreg, .rm16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
-	InstrEnc{mnemonic: 'VBCSTNESH2PS', operands: [.ymmreg, .rm16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBCSTNEBF16PS', operands: [.xmmreg, .mem16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBCSTNEBF16PS', operands: [.ymmreg, .mem16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBCSTNEBF162PS', operands: [.xmmreg, .mem16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBCSTNEBF162PS', operands: [.ymmreg, .mem16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBCSTNESH2PS', operands: [.xmmreg, .mem16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
+	InstrEnc{mnemonic: 'VBCSTNESH2PS', operands: [.ymmreg, .mem16], op_order: .rm, opcode: [u8(0xb1)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 1, vex_mm: 2}
 	InstrEnc{mnemonic: 'VCVTNEEBF162PS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0xb0)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 2, vex_mm: 2}
 	InstrEnc{mnemonic: 'VCVTNEEBF162PS', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0xb0)], reg_field: .slash_r, vex_present: true, vex_l: 1, vex_w: 0, vex_pp: 2, vex_mm: 2}
 	InstrEnc{mnemonic: 'VCVTNEEPH2PS', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0xb0)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 2}
@@ -2233,10 +2281,10 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'KMOVW', operands: [.kreg, .krm], op_order: .rm, opcode: [u8(0x90)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'KMOVD', operands: [.kreg, .krm], op_order: .rm, opcode: [u8(0x90)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 1}
 	InstrEnc{mnemonic: 'KMOVQ', operands: [.kreg, .krm], op_order: .rm, opcode: [u8(0x90)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 0, vex_mm: 1}
-	InstrEnc{mnemonic: 'KMOVB', operands: [.rm8, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
-	InstrEnc{mnemonic: 'KMOVW', operands: [.rm16, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
-	InstrEnc{mnemonic: 'KMOVD', operands: [.rm32, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 1}
-	InstrEnc{mnemonic: 'KMOVQ', operands: [.rm64, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'KMOVB', operands: [.mem8, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'KMOVW', operands: [.mem16, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 0, vex_mm: 1}
+	InstrEnc{mnemonic: 'KMOVD', operands: [.mem32, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 1}
+	InstrEnc{mnemonic: 'KMOVQ', operands: [.mem64, .kreg], op_order: .mr, opcode: [u8(0x91)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 0, vex_mm: 1}
 	InstrEnc{mnemonic: 'KMOVD', operands: [.kreg, .reg32], op_order: .rm, opcode: [u8(0x92)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'KMOVQ', operands: [.kreg, .reg64], op_order: .rm, opcode: [u8(0x92)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 3, vex_mm: 1}
 	InstrEnc{mnemonic: 'KMOVD', operands: [.reg32, .kreg], op_order: .rm, opcode: [u8(0x93)], reg_field: .slash_r, vex_present: true, vex_l: 0, vex_w: 0, vex_pp: 3, vex_mm: 1}
@@ -2340,13 +2388,13 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VBROADCASTI64X2', operands: [.ymmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x5a)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTI64X2', operands: [.zmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x5a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTI64X4', operands: [.zmmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x5b)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.zmmreg, .rm64], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.zmmreg, .mem64], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTSD', operands: [.zmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x19)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.xmmreg, .rm32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.ymmreg, .rm32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.zmmreg, .rm32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.xmmreg, .mem32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.ymmreg, .mem32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.zmmreg, .mem32], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VBROADCASTSS', operands: [.zmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x18)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
@@ -2773,7 +2821,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.xmmreg, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.xmmreg, .ymmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.ymmreg, .zmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 3}
-	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.rm64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
+	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.mem64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.xmmrm128, .ymmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.ymmrm256, .zmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2QQ', operands: [.xmmreg, .xmmrm64], op_order: .rm, opcode: [u8(0x7b)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 1}
@@ -2904,7 +2952,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VEXTRACTI64X4', operands: [.ymmrm256, .zmmreg, .imm8], op_order: .mri, opcode: [u8(0x3b)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VEXTRACTPS', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x17)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VEXTRACTPS', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x17)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
-	InstrEnc{mnemonic: 'VEXTRACTPS', operands: [.rm32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x17)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
+	InstrEnc{mnemonic: 'VEXTRACTPS', operands: [.mem32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x17)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VFIXUPIMMPD', operands: [.xmmreg, .xmmreg, .xmmrm128, .imm8], op_order: .rvmi, opcode: [u8(0x54)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VFIXUPIMMPD', operands: [.ymmreg, .ymmreg, .ymmrm256, .imm8], op_order: .rvmi, opcode: [u8(0x54)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VFIXUPIMMPD', operands: [.zmmreg, .zmmreg, .zmmrm512, .imm8], op_order: .rvmi, opcode: [u8(0x54)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 3}
@@ -3158,15 +3206,15 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VMOVDQU8', operands: [.ymmrm256, .ymmreg], op_order: .mr, opcode: [u8(0x7f)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 3, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVDQU8', operands: [.zmmrm512, .zmmreg], op_order: .mr, opcode: [u8(0x7f)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVHLPS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPD', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVHPS', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPD', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPS', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVHPS', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x17)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVLHPS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x16)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPD', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVLPS', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPD', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPS', operands: [.xmmreg, .xmmreg, .mem64], op_order: .rvm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVLPS', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 0, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVNTDQ', operands: [.xmmrm128, .xmmreg], op_order: .mr, opcode: [u8(0xe7)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVNTDQ', operands: [.ymmrm256, .ymmreg], op_order: .mr, opcode: [u8(0xe7)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVNTDQ', operands: [.zmmrm512, .zmmreg], op_order: .mr, opcode: [u8(0xe7)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 1}
@@ -3183,8 +3231,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VMOVQ', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x7e)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVQ', operands: [.xmmreg, .xmmrm64], op_order: .rm, opcode: [u8(0x7e)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 2, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVQ', operands: [.xmmrm64, .xmmreg], op_order: .mr, opcode: [u8(0xd6)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .rm64], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 3, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 3, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .mem64], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 3, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 3, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 3, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSD', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .mvr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 3, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSHDUP', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x16)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
@@ -3193,8 +3241,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VMOVSLDUP', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSLDUP', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSLDUP', operands: [.zmmreg, .zmmrm512], op_order: .rm, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .rm32], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
-	InstrEnc{mnemonic: 'VMOVSS', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .mem32], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
+	InstrEnc{mnemonic: 'VMOVSS', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVSS', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .mvr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 1}
 	InstrEnc{mnemonic: 'VMOVUPD', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 1}
@@ -3325,9 +3373,9 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.zmmreg, .reg16], op_order: .rm, opcode: [u8(0x7a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.zmmreg, .reg32], op_order: .rm, opcode: [u8(0x7a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTB', operands: [.zmmreg, .reg64], op_order: .rm, opcode: [u8(0x7a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.xmmreg, .rm32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.ymmreg, .rm32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.zmmreg, .rm32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.xmmreg, .mem32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.ymmreg, .mem32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.zmmreg, .mem32], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTD', operands: [.zmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x58)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
@@ -3340,9 +3388,9 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPBROADCASTMW2D', operands: [.xmmreg, .kreg], op_order: .rm, opcode: [u8(0x3a)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTMW2D', operands: [.ymmreg, .kreg], op_order: .rm, opcode: [u8(0x3a)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTMW2D', operands: [.zmmreg, .kreg], op_order: .rm, opcode: [u8(0x3a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.xmmreg, .rm64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.ymmreg, .rm64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.zmmreg, .rm64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.xmmreg, .mem64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.ymmreg, .mem64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.zmmreg, .mem64], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.xmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.ymmreg, .xmmreg], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 1, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPBROADCASTQ', operands: [.zmmreg, .xmmreg], op_order: .rm, opcode: [u8(0x59)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 1, evex_pp: 1, evex_mm: 2}
@@ -3725,22 +3773,22 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPEXTRB', operands: [.reg16, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRB', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRB', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
-	InstrEnc{mnemonic: 'VPEXTRB', operands: [.rm8, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
+	InstrEnc{mnemonic: 'VPEXTRB', operands: [.mem8, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x14)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRD', operands: [.rm32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x16)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRQ', operands: [.rm64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x16)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg16, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg32, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
-	InstrEnc{mnemonic: 'VPEXTRW', operands: [.rm16, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
+	InstrEnc{mnemonic: 'VPEXTRW', operands: [.mem16, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x15)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg16, .xmmreg, .imm8], op_order: .rmi, opcode: [u8(0xc5)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg32, .xmmreg, .imm8], op_order: .rmi, opcode: [u8(0xc5)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VPEXTRW', operands: [.reg64, .xmmreg, .imm8], op_order: .rmi, opcode: [u8(0xc5)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .reg32, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
-	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .rm8, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
+	InstrEnc{mnemonic: 'VPINSRB', operands: [.xmmreg, .xmmreg, .mem8, .imm8], op_order: .rvmi, opcode: [u8(0x20)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRD', operands: [.xmmreg, .xmmreg, .rm32, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRQ', operands: [.xmmreg, .xmmreg, .rm64, .imm8], op_order: .rvmi, opcode: [u8(0x22)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .reg32, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 1}
-	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .rm16, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 1}
+	InstrEnc{mnemonic: 'VPINSRW', operands: [.xmmreg, .xmmreg, .mem16, .imm8], op_order: .rvmi, opcode: [u8(0xc4)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 1}
 	InstrEnc{mnemonic: 'VPLZCNTD', operands: [.xmmreg, .xmmrm128], op_order: .rm, opcode: [u8(0x44)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPLZCNTD', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x44)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPLZCNTD', operands: [.zmmreg, .zmmrm512], op_order: .rm, opcode: [u8(0x44)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
@@ -3816,13 +3864,13 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPMOVDB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDB', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVDB', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVDB', operands: [.rm64, .ymmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVDB', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVDB', operands: [.mem64, .ymmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDB', operands: [.xmmrm128, .zmmreg], op_order: .mr, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDW', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDW', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDW', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVDW', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVDW', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDW', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVDW', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x33)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVM2B', operands: [.xmmreg, .kreg], op_order: .rm, opcode: [u8(0x28)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
@@ -3843,55 +3891,55 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPMOVQB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQB', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVQB', operands: [.rm16, .xmmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVQB', operands: [.rm32, .ymmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVQB', operands: [.rm64, .zmmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVQB', operands: [.mem16, .xmmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVQB', operands: [.mem32, .ymmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVQB', operands: [.mem64, .zmmreg], op_order: .mr, opcode: [u8(0x32)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQD', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQD', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQD', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVQD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVQD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQD', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQD', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x35)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQW', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQW', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQW', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVQW', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVQW', operands: [.rm64, .ymmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVQW', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVQW', operands: [.mem64, .ymmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVQW', operands: [.xmmrm128, .zmmreg], op_order: .mr, opcode: [u8(0x34)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.rm64, .ymmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.mem64, .ymmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDB', operands: [.xmmrm128, .zmmreg], op_order: .mr, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSDW', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x23)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.rm16, .xmmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.rm32, .ymmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.rm64, .zmmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.mem16, .xmmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.mem32, .ymmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSQB', operands: [.mem64, .zmmreg], op_order: .mr, opcode: [u8(0x22)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQD', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x25)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.rm64, .ymmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.mem64, .ymmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSQW', operands: [.xmmrm128, .zmmreg], op_order: .mr, opcode: [u8(0x24)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSWB', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x20)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVSXBD', operands: [.xmmreg, .xmmrm32], op_order: .rm, opcode: [u8(0x21)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 2}
@@ -3915,37 +3963,37 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.rm64, .ymmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.mem64, .ymmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDB', operands: [.xmmrm128, .zmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSDW', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x13)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.rm16, .xmmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.rm32, .ymmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.rm64, .zmmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.mem16, .xmmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.mem32, .ymmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSQB', operands: [.mem64, .zmmreg], op_order: .mr, opcode: [u8(0x12)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQD', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x15)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.xmmreg, .zmmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.rm32, .xmmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.rm64, .ymmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.mem32, .xmmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.mem64, .ymmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSQW', operands: [.xmmrm128, .zmmreg], op_order: .mr, opcode: [u8(0x14)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVUSWB', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVW2M', operands: [.kreg, .xmmreg], op_order: .rm, opcode: [u8(0x29)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 1, evex_pp: 2, evex_mm: 2}
@@ -3954,7 +4002,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPMOVWB', operands: [.xmmreg, .xmmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVWB', operands: [.xmmreg, .ymmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVWB', operands: [.ymmreg, .zmmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
-	InstrEnc{mnemonic: 'VPMOVWB', operands: [.rm64, .xmmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
+	InstrEnc{mnemonic: 'VPMOVWB', operands: [.mem64, .xmmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVWB', operands: [.xmmrm128, .ymmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVWB', operands: [.ymmrm256, .zmmreg], op_order: .mr, opcode: [u8(0x30)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 2, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPMOVZXBD', operands: [.xmmreg, .xmmrm32], op_order: .rm, opcode: [u8(0x31)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 2}
@@ -4330,9 +4378,9 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VXORPS', operands: [.zmmreg, .zmmreg, .zmmrm512], op_order: .rvm, opcode: [u8(0x57)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 0, evex_mm: 1}
 	InstrEnc{mnemonic: 'PTWRITE', operands: [.rm32], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d4}
 	InstrEnc{mnemonic: 'PTWRITE', operands: [.rm64], op_order: .m, prefixes: [u8(0xf3)], rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d4}
-	InstrEnc{mnemonic: 'CLDEMOTE', operands: [.rm64], op_order: .m, opcode: [u8(0x0f), 0x1c], reg_field: .slash_d0}
-	InstrEnc{mnemonic: 'MOVDIRI', operands: [.rm32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0x38, 0xf9], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'MOVDIRI', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf9], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'CLDEMOTE', operands: [.mem_any], op_order: .m, opcode: [u8(0x0f), 0x1c], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'MOVDIRI', operands: [.mem32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0x38, 0xf9], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'MOVDIRI', operands: [.mem64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf9], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'PCONFIG', operands: []OpClass{}, op_order: .zo, opcode: [u8(0x0f), 0x01, 0xc5]}
 	InstrEnc{mnemonic: 'VGF2P8AFFINEINVQB', operands: [.xmmreg, .xmmreg, .xmmrm128, .imm8], op_order: .rvmi, opcode: [u8(0xcf)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 0, vex_w: 1, vex_pp: 1, vex_mm: 3}
 	InstrEnc{mnemonic: 'VGF2P8AFFINEINVQB', operands: [.ymmreg, .ymmreg, .ymmrm256, .imm8], op_order: .rvmi, opcode: [u8(0xcf)], reg_field: .slash_r, imm: .ib, vex_present: true, vex_l: 1, vex_w: 1, vex_pp: 1, vex_mm: 3}
@@ -4430,26 +4478,26 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VPSHUFBITQMB', operands: [.kreg, .xmmreg, .xmmrm128], op_order: .rvm, opcode: [u8(0x8f)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPSHUFBITQMB', operands: [.kreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0x8f)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 2}
 	InstrEnc{mnemonic: 'VPSHUFBITQMB', operands: [.kreg, .zmmreg, .zmmrm512], op_order: .rvm, opcode: [u8(0x8f)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 2}
-	InstrEnc{mnemonic: 'V4FMADDPS', operands: [.zmmreg, .zmmreg, .rm64], op_order: .rvm, opcode: [u8(0x9a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'V4FNMADDPS', operands: [.zmmreg, .zmmreg, .rm64], op_order: .rvm, opcode: [u8(0xaa)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'V4FMADDSS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0x9b)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'V4FNMADDSS', operands: [.xmmreg, .xmmreg, .rm64], op_order: .rvm, opcode: [u8(0xab)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'VP4DPWSSDS', operands: [.zmmreg, .zmmreg, .rm64], op_order: .rvm, opcode: [u8(0x53)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'VP4DPWSSD', operands: [.zmmreg, .zmmreg, .rm64], op_order: .rvm, opcode: [u8(0x52)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
-	InstrEnc{mnemonic: 'CLRSSBSY', operands: [.rm64], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
+	InstrEnc{mnemonic: 'V4FMADDPS', operands: [.zmmreg, .zmmreg, .mem_any], op_order: .rvm, opcode: [u8(0x9a)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
+	InstrEnc{mnemonic: 'V4FNMADDPS', operands: [.zmmreg, .zmmreg, .mem_any], op_order: .rvm, opcode: [u8(0xaa)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
+	InstrEnc{mnemonic: 'V4FMADDSS', operands: [.xmmreg, .xmmreg, .mem_any], op_order: .rvm, opcode: [u8(0x9b)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 3, evex_mm: 2}
+	InstrEnc{mnemonic: 'V4FNMADDSS', operands: [.xmmreg, .xmmreg, .mem_any], op_order: .rvm, opcode: [u8(0xab)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 3, evex_mm: 2}
+	InstrEnc{mnemonic: 'VP4DPWSSDS', operands: [.zmmreg, .zmmreg, .mem_any], op_order: .rvm, opcode: [u8(0x53)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
+	InstrEnc{mnemonic: 'VP4DPWSSD', operands: [.zmmreg, .zmmreg, .mem_any], op_order: .rvm, opcode: [u8(0x52)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 3, evex_mm: 2}
+	InstrEnc{mnemonic: 'CLRSSBSY', operands: [.mem64], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d6}
 	InstrEnc{mnemonic: 'ENDBR32', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x1e, 0xfb]}
 	InstrEnc{mnemonic: 'ENDBR64', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x1e, 0xfa]}
 	InstrEnc{mnemonic: 'INCSSPD', operands: [.reg32], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0xae], reg_field: .slash_d5}
 	InstrEnc{mnemonic: 'INCSSPQ', operands: [.reg64], op_order: .m, prefixes: [u8(0xf3)], rex_w: true, opcode: [u8(0x0f), 0xae], reg_field: .slash_d5}
 	InstrEnc{mnemonic: 'RDSSPD', operands: [.reg32], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x1e], reg_field: .slash_d1}
 	InstrEnc{mnemonic: 'RDSSPQ', operands: [.reg64], op_order: .m, prefixes: [u8(0xf3)], rex_w: true, opcode: [u8(0x0f), 0x1e], reg_field: .slash_d1}
-	InstrEnc{mnemonic: 'RSTORSSP', operands: [.rm64], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d5}
+	InstrEnc{mnemonic: 'RSTORSSP', operands: [.mem64], op_order: .m, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x01], reg_field: .slash_d5}
 	InstrEnc{mnemonic: 'SAVEPREVSSP', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x01, 0xea]}
 	InstrEnc{mnemonic: 'SETSSBSY', operands: []OpClass{}, op_order: .zo, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x01, 0xe8]}
-	InstrEnc{mnemonic: 'WRUSSD', operands: [.rm32, .reg32], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0xf5], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'WRUSSQ', operands: [.rm64, .reg64], op_order: .mr, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x38, 0xf5], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'WRSSD', operands: [.rm32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0x38, 0xf6], reg_field: .slash_r}
-	InstrEnc{mnemonic: 'WRSSQ', operands: [.rm64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf6], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'WRUSSD', operands: [.mem32, .reg32], op_order: .mr, prefixes: [u8(0x66)], opcode: [u8(0x0f), 0x38, 0xf5], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'WRUSSQ', operands: [.mem64, .reg64], op_order: .mr, prefixes: [u8(0x66)], rex_w: true, opcode: [u8(0x0f), 0x38, 0xf5], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'WRSSD', operands: [.mem32, .reg32], op_order: .mr, opcode: [u8(0x0f), 0x38, 0xf6], reg_field: .slash_r}
+	InstrEnc{mnemonic: 'WRSSQ', operands: [.mem64, .reg64], op_order: .mr, rex_w: true, opcode: [u8(0x0f), 0x38, 0xf6], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ENQCMD', operands: [.reg32, .zmmrm512], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x38, 0xf8], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ENQCMD', operands: [.reg64, .zmmrm512], op_order: .rm, prefixes: [u8(0xf2)], opcode: [u8(0x0f), 0x38, 0xf8], reg_field: .slash_r}
 	InstrEnc{mnemonic: 'ENQCMDS', operands: [.reg32, .zmmrm512], op_order: .rm, prefixes: [u8(0xf3)], opcode: [u8(0x0f), 0x38, 0xf8], reg_field: .slash_r}
@@ -4513,7 +4561,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VCVTPH2W', operands: [.ymmreg, .ymmrm256], op_order: .rm, opcode: [u8(0x7d)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 0}
 	InstrEnc{mnemonic: 'VCVTPH2W', operands: [.zmmreg, .zmmrm512], op_order: .rm, opcode: [u8(0x7d)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 0}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.xmmreg, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
-	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.rm64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
+	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.mem64, .xmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.xmmreg, .ymmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.xmmrm128, .ymmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 1, evex_mm: 3}
 	InstrEnc{mnemonic: 'VCVTPS2PH', operands: [.ymmreg, .zmmreg, .imm8], op_order: .mri, opcode: [u8(0x1d)], reg_field: .slash_r, imm: .ib, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 1, evex_mm: 3}
@@ -4676,8 +4724,8 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'VMINPH', operands: [.ymmreg, .ymmreg, .ymmrm256], op_order: .rvm, opcode: [u8(0x5d)], reg_field: .slash_r, evex_present: true, evex_l: 1, evex_w: 0, evex_pp: 0, evex_mm: 0}
 	InstrEnc{mnemonic: 'VMINPH', operands: [.zmmreg, .zmmreg, .zmmrm512], op_order: .rvm, opcode: [u8(0x5d)], reg_field: .slash_r, evex_present: true, evex_l: 2, evex_w: 0, evex_pp: 0, evex_mm: 0}
 	InstrEnc{mnemonic: 'VMINSH', operands: [.xmmreg, .xmmreg, .xmmrm16], op_order: .rvm, opcode: [u8(0x5d)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
-	InstrEnc{mnemonic: 'VMOVSH', operands: [.xmmreg, .rm16], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
-	InstrEnc{mnemonic: 'VMOVSH', operands: [.rm16, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
+	InstrEnc{mnemonic: 'VMOVSH', operands: [.xmmreg, .mem16], op_order: .rm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
+	InstrEnc{mnemonic: 'VMOVSH', operands: [.mem16, .xmmreg], op_order: .mr, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
 	InstrEnc{mnemonic: 'VMOVSH', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x10)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
 	InstrEnc{mnemonic: 'VMOVSH', operands: [.xmmreg, .xmmreg, .xmmreg], op_order: .rvm, opcode: [u8(0x11)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 0, evex_pp: 2, evex_mm: 0}
 	InstrEnc{mnemonic: 'VMOVW', operands: [.xmmreg, .rm16], op_order: .rm, opcode: [u8(0x6e)], reg_field: .slash_r, evex_present: true, evex_l: 0, evex_w: 2, evex_pp: 1, evex_mm: 0}
