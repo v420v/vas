@@ -55,51 +55,53 @@ Options:
 
 ### Examples
 
-The `examples/` directory contains ready-to-run programs organized by platform:
+The `examples/` directory has end-to-end showcases where vas stands in for the
+GNU assembler: each script runs `gcc -S` to get AT&T assembly, `vas` to assemble
+it, and `gcc`/`ld` to link. They need `v`, `gcc`, and `ld` on `PATH` (e.g. the
+Docker container above), with `vas` already built (`v -o vas .`).
+
+**SQLite** — assemble the SQLite amalgamation with vas and run real SQL:
 
 ```
-examples/
-  linux/    — ELF examples    (assemble with vas, link with ld/gcc)
-  macos/    — Mach-O examples  (assemble with vas -f macho, link with clang)
-  windows/  — PE/COFF examples (assemble with vas -f pe, link with gcc/MinGW)
+$ bash examples/sqlite/build-sqlite.sh
+==> vas: assemble each .s (vas replaces GNU as here)
+   sqlite3.o 1252004 bytes, shell.o 507625 bytes
+==> smoke test: run real SQL
+--- vas-built SQLite ---
+alice|9.5
+carol|7.8
+3|6.833|9.5
+2870
+SQLite 3.53.2 built by vas
 ```
 
-**Linux (ELF):**
-```sh
-./vas examples/linux/hello.s && ld -o hello.out examples/linux/hello.o && ./hello.out
-# > Hello, world!
+**Lua** — assemble the whole Lua interpreter (every `src/*.c`) with vas and run
+a script:
+
+```
+$ bash examples/lua/build-lua.sh
+==> vas: assemble each .s (vas replaces GNU as here)
+   assembled 33 objects
+==> smoke test: run real Lua
+--- vas-built Lua ---
+fib 1..12 : 1 1 2 3 5 8 13 21 34 55 89 144
+primes <40 : 2 3 5 7 11 13 17 19 23 29 31 37
+Lua 5.4 — assembled by vas
 ```
 
-**macOS (Mach-O, x86-64):**
-```sh
-./vas -f macho examples/macos/hello.s && clang -arch x86_64 examples/macos/hello.o -o hello.out && arch -x86_64 ./hello.out
-# > Hello, world!
+**Self-hosting** — vas assembles the assembly that V and gcc emit from its own
+source, until two generations produce a byte-identical object:
+
+```
+$ bash examples/selfhost/selfhost.sh
+==> generation 1: vas assembles vas, then we link + test it
+==> generation 2: vas1 assembles vas, then we link + test it
+==> FIXPOINT at generation 2: gen2.o is byte-identical to gen1.o
+==> vas now reproduces itself exactly — self-hosting verified.
 ```
 
-**Windows (PE/COFF, x86-64):**
-
-Windows uses the Microsoft x64 ABI: the first four integer arguments are passed
-in `%rcx`, `%rdx`, `%r8`, `%r9` (instead of `%rdi`, `%rsi`, `%rdx`, `%rcx`
-on Linux/macOS), and the caller must reserve 32 bytes of shadow space before
-every `call`.
-
-Link with MinGW/GCC:
-```sh
-vas -f pe examples/windows/hello.s && gcc -o hello.exe examples/windows/hello.o && hello.exe
-# > Hello, world!
-```
-
-Or with the MSVC linker:
-```bat
-vas -f pe examples\windows\hello.s
-link /out:hello.exe /subsystem:console /defaultlib:ucrt examples\windows\hello.o
-hello.exe
-```
-
-Cross-compile from Linux (requires `x86_64-w64-mingw32-gcc`):
-```sh
-./vas -f pe examples/windows/hello.s && x86_64-w64-mingw32-gcc -o hello.exe examples/windows/hello.o
-```
+The `examples/{linux,macos,windows}/` directories also hold minimal hand-written
+ELF / Mach-O / PE programs.
 
 ## Testing
 
