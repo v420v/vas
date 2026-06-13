@@ -40,6 +40,7 @@ const general_registers = {
 	'DX': Register{lit: 'DX', base_offset: 2, size: .suffix_word}
 	'BX': Register{lit: 'BX', base_offset: 3, size: .suffix_word}
 	'SP': Register{lit: 'SP', base_offset: 4, size: .suffix_word}
+	'BP': Register{lit: 'BP', base_offset: 5, size: .suffix_word}
 	'SI': Register{lit: 'SI', base_offset: 6, size: .suffix_word}
 	'DI': Register{lit: 'DI', base_offset: 7, size: .suffix_word}
 	'R8W': Register{lit: 'R8W', base_offset: 8, size: .suffix_word}
@@ -56,7 +57,6 @@ const general_registers = {
 	'DL': Register{lit: 'DL', base_offset: 2, size: .suffix_byte}
 	'BL': Register{lit: 'BL', base_offset: 3, size: .suffix_byte}
 	'AH': Register{lit: 'AH', base_offset: 4, size: .suffix_byte}
-	'BP': Register{lit: 'BP', base_offset: 5, size: .suffix_byte}
 	'CH': Register{lit: 'CH', base_offset: 5, size: .suffix_byte}
 	'DH': Register{lit: 'DH', base_offset: 6, size: .suffix_byte}
 	'BH': Register{lit: 'BH', base_offset: 7, size: .suffix_byte}

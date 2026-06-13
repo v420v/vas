@@ -38,6 +38,18 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 		}
 	}
 
+	// SSE compare-predicate pseudo-ops: `cmpnlesd %xmm1, %xmm0` is shorthand for
+	// `cmpsd $6, %xmm1, %xmm0`. canonicalize_mnemonic mapped the mnemonic to the
+	// base CMPSD/CMPSS/CMPPS/CMPPD and stashed the predicate in c.inject_imm;
+	// prepend it as the leading AT&T-order operand so the reversal below lands it
+	// as the Intel imm8.
+	if c.inject_imm >= 0 {
+		ops.prepend(Expr(Immediate{
+			expr: Number{lit: c.inject_imm.str(), pos: pos}
+			pos:  pos
+		}))
+	}
+
 	// GAS allows the 1-operand shift shorthand `shll %ecx` for `shll $1, %ecx`.
 	// Inject the implicit `1` as ops[0] (AT&T order) so the standard
 	// AT&T→Intel reversal places it as the immediate (Intel: dst, imm).

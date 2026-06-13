@@ -245,8 +245,11 @@ pub mut:
 	align_fill  int = -1
 	align_max   int = -1
 	// For a `.set name, sym` alias: the target symbol whose address/section
-	// this symbol inherits, resolved after layout.
+	// this symbol inherits, resolved after layout. alias_addend is the constant
+	// added to the target's address for the `.set name, sym + const` form (gcc's
+	// overlapping-string-literal optimization: `.set .LC1, .LC52+8`).
 	alias_target string
+	alias_addend i64
 }
 
 pub struct Rela {
@@ -655,6 +658,17 @@ fn (mut e Encoder) parse_operand() Expr {
 				e.parse_expr()
 			}
 			if e.tok.kind != .lpar {
+				// A bare numeric literal in operand position is an absolute
+				// memory reference in AT&T syntax (`movq 16, %rax` loads from
+				// address 16) — not an immediate, which would need `$`. Wrap it
+				// so it encodes as the disp32 absolute form. Bare symbols/labels
+				// stay as-is: they're branch targets (`jmp .L5`) handled downstream.
+				if expr is Number {
+					return Indirection{
+						disp: expr
+						pos: pos
+					}
+				}
 				return expr
 			}
 			e.next()
@@ -688,13 +702,22 @@ fn (mut e Encoder) parse_operand() Expr {
 	exit(1)
 }
 
+// parse_num_lit parses a non-negative numeric literal (a leading `-` is a
+// separate Neg node) into its i64 bit pattern. It parses as u64 so that values
+// in (i64_max, u64_max] — the 0x8000000000000000 FP sign mask, full-width
+// `movabs` immediates — keep their exact bits instead of saturating at i64 max
+// (which turned -9223372036854775808 into 0x8000000000000001).
+fn parse_num_lit(lit string, pos token.Position) i64 {
+	return i64(strconv.parse_uint(lit, 0, 64) or {
+		error.print(pos, 'invalid number `${lit}`')
+		exit(1)
+	})
+}
+
 fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 	return match expr {
 		Number {
-			strconv.parse_int(expr.lit, 0, 64) or {
-				error.print(expr.pos, 'invalid number `expr.lit`')
-				exit(1)
-			}
+			parse_num_lit(expr.lit, expr.pos)
 		}
 		Binop {
 			match expr.op {
@@ -748,10 +771,7 @@ fn eval_expr(expr Expr) int {
 fn eval_reloc_expr(expr Expr, sign int, mut refs []SymRef) i64 {
 	match expr {
 		Number {
-			v := strconv.parse_int(expr.lit, 0, 64) or {
-				error.print(expr.pos, 'invalid number `${expr.lit}`')
-				exit(1)
-			}
+			v := parse_num_lit(expr.lit, expr.pos)
 			return i64(sign) * v
 		}
 		Ident {

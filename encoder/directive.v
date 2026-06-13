@@ -30,7 +30,10 @@ fn (mut e Encoder) section() {
 fn (mut e Encoder) zero() {
 	e.set_current_instr(.zero)
 
-	operand := e.parse_operand()
+	// `.zero N` takes a count expression, not an instruction operand — use the
+	// expression parser so a bare `N` stays a Number rather than being read as
+	// an absolute-memory reference.
+	operand := e.parse_expr()
 
 	n := eval_expr(operand)
 
@@ -311,10 +314,13 @@ fn (mut e Encoder) set_directive(strict bool) {
 		return
 	}
 
-	// `.set name, sym` → a symbol alias: `name` resolves to the same address
-	// and section as `sym` (common for C++ constructor/destructor folding).
-	// Resolved after layout (the target may be defined later).
-	if refs.len == 1 && refs[0].coeff == 1 && val == 0 {
+	// `.set name, sym (+ const)` → a symbol alias: `name` resolves to the same
+	// section as `sym`, at `sym`'s address plus the constant. The plain form
+	// (const 0) is common for C++ constructor/destructor folding; the +const
+	// form is gcc's overlapping-string-literal optimization (`.set .LC1,.LC52+8`
+	// points .LC1 8 bytes into .LC52). Resolved after layout (the target may be
+	// defined later).
+	if refs.len == 1 && refs[0].coeff == 1 {
 		if name in e.user_defined_symbols {
 			error.print(pos, 'symbol `${name}` is already defined')
 			exit(1)
@@ -325,6 +331,7 @@ fn (mut e Encoder) set_directive(strict bool) {
 			section_name: e.current_section_name
 			symbol_name:  name
 			alias_target: refs[0].name
+			alias_addend: val
 		}
 		return
 	}
@@ -493,7 +500,11 @@ fn (mut e Encoder) string() {
 // deferred label-difference fixup (resolved to a constant after layout, no ELF
 // relocation emitted).
 fn (mut e Encoder) emit_data_value(width int, rtype u64) {
-	expr := e.parse_operand()
+	// Data directives (.byte/.word/.long/.quad/...) take a value expression, not
+	// an instruction operand: a bare `5` is the constant 5, not the bytes at
+	// address 5. parse_expr handles numbers, `sym@modifier`, and `A-B` label
+	// differences — everything data needs — without the absolute-memory wrap.
+	expr := e.parse_expr()
 	mut refs := []SymRef{}
 	cst := eval_reloc_expr(expr, 1, mut refs)
 	offset := i64(e.current_instr.code.len)

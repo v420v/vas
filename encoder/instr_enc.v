@@ -183,7 +183,7 @@ pub const insns_table = [
 // support. The AT&T-specific spellings CLTQ/CLTD/CQTO/CWTL are normalized to
 // these in `canonicalize_mnemonic`.
 const zero_op_canons = [
-	'RET', 'SYSCALL', 'NOP', 'HLT', 'LEAVE', 'CDQE', 'CDQ', 'CQO', 'CWDE',
+	'RET', 'SYSCALL', 'NOP', 'HLT', 'LEAVE', 'CBW', 'CDQE', 'CDQ', 'CQO', 'CWDE',
 	'F2XM1', 'FABS', 'FCHS', 'FCLEX', 'FCOMPP', 'FCOS', 'FDECSTP', 'FEMMS', 'FFREE',
 	'FINCSTP', 'FINIT', 'FLD1', 'FLDL2E', 'FLDL2T', 'FLDLG2', 'FLDLN2', 'FLDPI', 'FLDZ',
 	'FNCLEX', 'FNINIT', 'FNOP', 'FPATAN', 'FPREM', 'FPREM1', 'FPTAN', 'FRNDINT', 'FSCALE',
@@ -424,7 +424,42 @@ pub:
 	dst_size DataSize
 	src_size DataSize
 	alt_name string
-	ok       bool
+	// inject_imm >= 0 marks a mnemonic that expands to a base instruction plus a
+	// synthesized leading immediate — used by the SSE compare-predicate pseudo-ops
+	// (`cmpnlesd` → `cmpsd $6`). -1 means "no injected immediate".
+	inject_imm int = -1
+	ok         bool
+}
+
+// SSE compare-predicate pseudo-ops: GAS spells `cmpsd $imm8, src, dst` as
+// `cmp<pred>sd src, dst`, where the predicate name selects the imm8. gcc emits
+// these for floating relational operators (e.g. `cmpnlesd` for `a > b`). The
+// same 8 predicates apply to the SS / PS / PD sizes. try_cmp_pseudo returns the
+// base mnemonic (CMPSS/CMPSD/CMPPS/CMPPD) and the predicate imm8; ok=false when
+// `name` is not one of these pseudo spellings.
+fn try_cmp_pseudo(name string) (string, u8, bool) {
+	// Bases (CMPSD/CMPPS/...) are length 5; a real pseudo is CMP + pred(>=2) +
+	// size(2) >= 7. The length guard keeps the string compares (CMPSB/CMPSW/...)
+	// and the integer CMP suffixes out.
+	if name.len < 7 || !name.starts_with('CMP') {
+		return '', 0, false
+	}
+	size_suffix := name[name.len - 2..]
+	if size_suffix !in ['SS', 'SD', 'PS', 'PD'] {
+		return '', 0, false
+	}
+	pred := match name[3..name.len - 2] {
+		'EQ' { u8(0) }
+		'LT' { u8(1) }
+		'LE' { u8(2) }
+		'UNORD' { u8(3) }
+		'NEQ' { u8(4) }
+		'NLT' { u8(5) }
+		'NLE' { u8(6) }
+		'ORD' { u8(7) }
+		else { return '', 0, false }
+	}
+	return 'CMP' + size_suffix, pred, true
 }
 
 fn sym(name string, sz DataSize) Canon {
@@ -446,6 +481,7 @@ fn canonicalize_mnemonic(name string) Canon {
 		'PUSHQ' { return sym('PUSH', DataSize.suffix_quad) }
 		'POPQ' { return sym('POP', DataSize.suffix_quad) }
 		'NOPQ' { return sym('NOP', DataSize.suffix_quad) }
+		'CBTW' { return sym('CBW', DataSize.suffix_word) }
 		'CLTQ' { return sym('CDQE', DataSize.suffix_quad) }
 		'CLTD' { return sym('CDQ', DataSize.suffix_long) }
 		'CQTO' { return sym('CQO', DataSize.suffix_quad) }
@@ -519,6 +555,21 @@ fn canonicalize_mnemonic(name string) Canon {
 			}
 		}
 		else {}
+	}
+
+	// SSE compare-predicate pseudo (cmpnlesd → cmpsd $6): map to the base
+	// mnemonic and stash the predicate imm8 for emit_table to inject. Checked
+	// before the suffixed-base / passthrough paths so `CMP`'s presence in
+	// suffixed_bases can't mis-handle it.
+	cmp_base, cmp_pred, is_cmp_pseudo := try_cmp_pseudo(name)
+	if is_cmp_pseudo {
+		return Canon{
+			name:       cmp_base
+			dst_size:   DataSize.suffix_unkown
+			src_size:   DataSize.suffix_unkown
+			inject_imm: int(cmp_pred)
+			ok:         true
+		}
 	}
 
 	if name == 'PUSH' || name == 'POP' {
@@ -745,7 +796,7 @@ fn classify_memory_size(s DataSize) OpClass {
 	}
 }
 
-fn classify_immediate_value(im Immediate, _ DataSize) OpClass {
+fn classify_immediate_value(im Immediate, size_hint DataSize) OpClass {
 	mut sym := []string{}
 	v := eval_expr_get_symbol_64(im.expr, mut sym)
 	if sym.len > 0 {
@@ -760,7 +811,13 @@ fn classify_immediate_value(im Immediate, _ DataSize) OpClass {
 	if v >= -128 && v <= 255 {
 		return OpClass.imm8
 	}
-	if v >= -32768 && v <= 65535 {
+	// A 16-bit-range value is an imm16 only for a genuinely 16-bit operand
+	// (`pushw`, `movw`, ...). For an explicitly 32/64-bit operand there is no
+	// imm16 encoding — GAS sign-extends a 32-bit immediate — so classifying it
+	// as imm16 would select the 0x66-prefixed form and change the operation
+	// width (`pushq $0x1234` must not become a 2-byte `pushw`, which corrupts
+	// the stack).
+	if v >= -32768 && v <= 65535 && size_hint != .suffix_quad && size_hint != .suffix_long {
 		return OpClass.imm16
 	}
 	if v >= -(i64(1) << 31) && v <= ((i64(1) << 32) - 1) {

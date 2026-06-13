@@ -153,7 +153,7 @@ fn (mut e Encoder) resolve_aliases() {
 			error.print(sym.pos, 'undefined alias target `${sym.alias_target}` for `${sym.symbol_name}`')
 			exit(1)
 		}
-		sym.addr = target.addr
+		sym.addr = target.addr + sym.alias_addend
 		sym.section_name = target.section_name
 		if sym.symbol_type == encoder.stt_notype {
 			sym.symbol_type = target.symbol_type
