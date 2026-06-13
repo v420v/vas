@@ -22,7 +22,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 VAS=${VAS:-../../vas}                 # the vas binary to test (repo root)
-CC=${CC:-gcc}
+CC=${CC:-gcc-12}                      # pinned: see Dockerfile / README
 OPT=${OPT:-O2}                        # gcc -O level for the .s (O0/O2/Os all work)
 SQLITE_VER=${SQLITE_VER:-3530200}     # amalgamation version (sqlite.org/2026/...)
 SQLITE_URL=${SQLITE_URL:-https://www.sqlite.org/2026/sqlite-autoconf-${SQLITE_VER}.tar.gz}

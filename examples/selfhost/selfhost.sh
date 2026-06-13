@@ -30,7 +30,7 @@ cd "$here/../.."
 
 # ---- config (override via env) ---------------------------------------------
 V=${V:-v}                       # V compiler
-CC=${CC:-gcc}                   # C compiler / linker driver
+CC=${CC:-gcc-12}                # C compiler / linker driver (pinned: see README)
 MAXGEN=${MAXGEN:-5}             # safety cap on generations
 BUILDDIR=${BUILDDIR:-"$here/.selfhost"} # scratch dir, kept next to this script
 SEED=${SEED:-./vas}             # stage-0 vas; built with V if missing

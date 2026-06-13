@@ -60,6 +60,10 @@ GNU assembler: each script runs `gcc -S` to get AT&T assembly, `vas` to assemble
 it, and `gcc`/`ld` to link. They need `v`, `gcc`, and `ld` on `PATH` (e.g. the
 Docker container above), with `vas` already built (`v -o vas .`).
 
+The scripts pin `CC=gcc-12` so the assembly input is reproducible: the Docker
+image above ships `gcc-12`, so running the examples inside it is guaranteed to
+work. On the host, install `gcc-12` (or override with `CC=...`).
+
 **SQLite** — assemble the SQLite amalgamation with vas and run real SQL:
 
 ```

@@ -26,7 +26,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 VAS=${VAS:-../../vas}                 # the vas binary to test (repo root)
-CC=${CC:-gcc}
+CC=${CC:-gcc-12}                      # pinned: see Dockerfile / README
 OPT=${OPT:-O2}                        # gcc -O level for the .s (O0/O2/Os all work)
 LUA_VER=${LUA_VER:-5.4.7}             # lua.org/ftp version
 LUA_URL=${LUA_URL:-https://www.lua.org/ftp/lua-${LUA_VER}.tar.gz}
