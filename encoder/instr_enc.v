@@ -210,14 +210,14 @@ const zero_op_canons = [
 
 const branch_canons = [
 	'JMP', 'CALL',
-	'JO', 'JNO', 'JB', 'JNB', 'JE', 'JNE', 'JBE', 'JNBE', 'JS', 'JNS', 'JP', 'JPO', 'JL', 'JGE',
+	'JO', 'JNO', 'JB', 'JNB', 'JE', 'JNE', 'JBE', 'JNBE', 'JS', 'JNS', 'JP', 'JNP', 'JPO', 'JL', 'JGE',
 	'JLE', 'JG',
 	'JC', 'JNC', 'JZ', 'JNZ', 'JNA', 'JA', 'JAE', 'JNGE', 'JNL', 'JNG', 'JNLE', 'JPE',
 ]
 
 const setcc_canons = [
 	'SETO', 'SETNO', 'SETB', 'SETNB', 'SETE', 'SETNE', 'SETBE', 'SETA', 'SETS', 'SETNS', 'SETP',
-	'SETPO', 'SETL', 'SETGE', 'SETLE', 'SETG',
+	'SETNP', 'SETPO', 'SETL', 'SETGE', 'SETLE', 'SETG',
 	'SETC', 'SETNC', 'SETZ', 'SETNZ', 'SETPE', 'SETAE', 'SETNA', 'SETNBE', 'SETNGE', 'SETNL',
 	'SETNG', 'SETNLE',
 ]

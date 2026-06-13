@@ -222,6 +222,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'JP', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8a], rel: .rel32}
 	InstrEnc{mnemonic: 'JPE', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8a], rel: .rel32}
 	InstrEnc{mnemonic: 'JPO', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8b], rel: .rel32}
+	InstrEnc{mnemonic: 'JNP', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8b], rel: .rel32}
 	InstrEnc{mnemonic: 'JL', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8c], rel: .rel32}
 	InstrEnc{mnemonic: 'JNGE', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8c], rel: .rel32}
 	InstrEnc{mnemonic: 'JGE', operands: [.rel32], op_order: .i, opcode: [u8(0x0f), 0x8d], rel: .rel32}
@@ -700,6 +701,7 @@ pub const generated_insns_table = [
 	InstrEnc{mnemonic: 'SETP', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9a], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETPE', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9a], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETPO', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9b], reg_field: .slash_d0}
+	InstrEnc{mnemonic: 'SETNP', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9b], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETL', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9c], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETNGE', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9c], reg_field: .slash_d0}
 	InstrEnc{mnemonic: 'SETGE', operands: [.rm8], op_order: .m, opcode: [u8(0x0f), 0x9d], reg_field: .slash_d0}

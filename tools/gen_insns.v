@@ -38,10 +38,10 @@ const supported_canons = [
 	'CALL', 'JMP',
 	// Jcc family (16 conditional jumps)
 	'JE', 'JNE', 'JL', 'JG', 'JLE', 'JGE', 'JNB', 'JBE', 'JNBE', 'JP', 'JA', 'JB', 'JS', 'JNS',
-	'JO', 'JNO', 'JC', 'JNC', 'JZ', 'JNZ', 'JNA', 'JAE', 'JNGE', 'JNL', 'JNG', 'JNLE', 'JPE', 'JPO',
+	'JO', 'JNO', 'JC', 'JNC', 'JZ', 'JNZ', 'JNA', 'JAE', 'JNGE', 'JNL', 'JNG', 'JNLE', 'JPE', 'JPO', 'JNP',
 	// SETcc family
 	'SETO', 'SETNO', 'SETB', 'SETNB', 'SETAE', 'SETE', 'SETNE', 'SETBE', 'SETA', 'SETPO',
-	'SETL', 'SETGE', 'SETLE', 'SETG', 'SETC', 'SETNC', 'SETZ', 'SETNZ', 'SETP', 'SETPE',
+	'SETL', 'SETGE', 'SETLE', 'SETG', 'SETC', 'SETNC', 'SETZ', 'SETNZ', 'SETP', 'SETPE', 'SETNP',
 	'SETS', 'SETNS', 'SETNA', 'SETNBE', 'SETNGE', 'SETNL', 'SETNG', 'SETNLE',
 	// CMOVcc family
 	'CMOVO', 'CMOVNO', 'CMOVB', 'CMOVNB', 'CMOVAE', 'CMOVE', 'CMOVNE', 'CMOVBE', 'CMOVA',
