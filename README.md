@@ -171,3 +171,8 @@ See `LICENSE-NASM` for the BSD-2-clause notice covering the bundled
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+It also bundles `third_party/insns.dat` from [NASM](https://www.nasm.us/), the
+Netwide Assembler, which `tools/gen_insns.v` uses to generate
+`encoder/insns_table.gen.v`. That bundled file and any code generated from it
+remain under NASM's 2-clause BSD license — see [LICENSE-NASM](LICENSE-NASM).
