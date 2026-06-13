@@ -44,119 +44,26 @@ pub mut:
 
 pub enum InstrKind {
 	@none
+	instr
+	// Section & symbol-attribute directives (consumed in addr.v).
 	section
 	global
 	local
 	hidden
 	internal
 	protected
+	weak
+	set_type
+	// Layout & label directives.
+	label
+	align
+	// Data-emitting directives: the bytes live in Instr.code; the tag is intent.
 	string
 	byte
 	word
 	long
 	quad
 	zero
-	add
-	sub
-	instr_or
-	adc
-	sbb
-	xor
-	and
-	imul
-	idiv
-	div
-	neg
-	mul
-	lea
-	mov
-	movabsq
-	rep
-	test
-	movzx
-	movsx
-	not
-	cqto
-	cltq
-	cltd
-	cwtl
-	cmp
-	shl
-	shr
-	sar
-	sal
-	pop
-	push
-	call
-	seto
-	setno
-	setb
-	setnb
-	setae
-	setbe
-	seta
-	setpo
-	setl
-	setg
-	setle
-	setge
-	sete
-	setne
-	jmp
-	jne
-	je
-	jl
-	jg
-	jle
-	jge
-	jbe
-	jnb
-	jnbe
-	jp
-	ja
-	js
-	jb
-	jns
-	ret
-	syscall
-	nop
-	hlt
-	leave
-	cmovs
-	cmovns
-	cmovg
-	cmovge
-	cmovl
-	cmovle
-	cvttss2sil
-	cvtsi2ssq
-	cvtsi2sdq
-	cvtsd2ss
-	cvtss2sd
-	movss
-	movsd
-	movd
-	ucomiss
-	ucomisd
-	comisd
-	comiss
-	subss
-	subsd
-	addss
-	addsd
-	mulss
-	mulsd
-	divss
-	divsd
-	movaps
-	movups
-	xorpd
-	xorps
-	pxor
-	label
-	align
-	weak
-	set_type
 }
 
 const stb_local            = 0

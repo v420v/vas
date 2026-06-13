@@ -14,7 +14,7 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 		return false
 	}
 
-	e.set_current_instr(canon_to_kind(c.name))
+	e.set_current_instr(.instr)
 	// Reset per-instruction AVX-512 decorator state (sticky from the previous
 	// instruction otherwise).
 	e.mask_reg = 8
