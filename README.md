@@ -4,6 +4,16 @@
 [![Mach-O CI](https://github.com/v420v/vas/actions/workflows/ci-macho.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci-macho.yml)
 [![PE CI](https://github.com/v420v/vas/actions/workflows/ci-pe.yml/badge.svg)](https://github.com/v420v/vas/actions/workflows/ci-pe.yml)
 
+vas is a small x86-64 assembler written in [V](https://vlang.io). It assembles the
+same AT&T-syntax assembly as the GNU assembler (`as`), with instruction encodings
+taken straight from NASM's table (`insns.dat`).
+
+vas can assemble the *unmodified* gcc/g++ output of
+real-world programs, including [SQLite](https://www.sqlite.org) and
+[Lua](https://www.lua.org), without any changes to the generated assembly.
+vas is also self-hosting: it assembles the assembly that V and gcc produce from
+its own source, and the rebuilt assembler reproduces itself byte-for-byte.
+
 ## Installation
 
 ### Docker setup
