@@ -239,14 +239,21 @@ fn (mut l Lexer) read_string() token.Token {
 	pos := l.current_pos()
 	l.advance()
 	mut lit := []u8{}
-	for l.c != `"` {
+	for l.c != `"` && l.c != `\0` {
 		if l.c == `\\` {
 			lit << l.read_escaped_char()
+			if l.c == `\0` {
+				break
+			}
 			l.advance()
 		} else {
 			lit << l.c
 			l.advance()
 		}
+	}
+	if l.c == `\0` {
+		error.print(pos, 'unterminated string literal')
+		exit(1)
 	}
 	l.advance()
 	return token.Token{
