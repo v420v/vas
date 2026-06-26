@@ -12,12 +12,12 @@ jobs:
 
     steps:
       - name: Install V
-        uses: vlang/setup-v@v1
+        uses: vlang/setup-v@2c790c60223ed135f6949d1358675e4fd004b801  # v1
         with:
           check-latest: true
 
       - name: Checkout ${{ github.event.repository.name }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install MinGW cross-compiler
         run: sudo apt-get install -y mingw-w64
