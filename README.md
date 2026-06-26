@@ -38,8 +38,11 @@ docker run --rm -it -v "${pwd}:/root/env" vas
 Requires the V compiler to be installed.
 
 ```sh
-v . -prod
+make
 ```
+
+This runs `v . -prod -o vas`, producing an optimised release binary. For a
+debug build (with debug symbols, no optimisations) use `make debug`.
 
 ## Usage
 
