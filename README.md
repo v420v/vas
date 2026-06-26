@@ -109,6 +109,8 @@ ELF / Mach-O / PE programs.
 
 ## Testing
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide on building, running tests, adding test cases, and regenerating the instruction table.
+
 Regression tests live under `tests/cases/`, split by output format:
 
 ```
