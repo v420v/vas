@@ -203,11 +203,15 @@ fn (mut l Lexer) read_escaped_char() u8 {
 			eprintln('error: invalid hex escape sequence');
 			exit(1)
 		}
-
-		for is_hex_digit(l.c) {
-			c = (c << 4) + from_hex(l.c)
+		// Mirror the octal branch: leave l.c on the last digit consumed so
+		// the caller's l.advance() steps past it correctly.  Cap at two hex
+		// digits to match GAS byte semantics.
+		c = from_hex(l.c)
+		if is_hex_digit(l.peak(1)) {
 			l.advance()
+			c = (c << 4) + from_hex(l.c)
 		}
+		return c
 	}
 
 	if l.c == `a` {
