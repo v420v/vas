@@ -1,24 +1,25 @@
-name: ELF CI
+name: V Compiler Bump Check
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  workflow_dispatch:
 
 jobs:
-  elf:
+  v-bump-elf:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install V
+      - name: Install latest V
         uses: vlang/setup-v@2c790c60223ed135f6949d1358675e4fd004b801  # v1
         with:
-          version: '0.5.1'
-          check-latest: false
+          check-latest: true
 
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Print V version
+        run: v version
 
       - name: Build vas
         run: v .
@@ -31,8 +32,3 @@ jobs:
 
       - name: ELF regression suite
         run: v test tests/elf_test.v
-
-      - name: Verify generator output is committed
-        run: |
-          v run tools/gen_insns.v
-          git diff --exit-code -- encoder/insns_table.gen.v

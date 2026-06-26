@@ -14,7 +14,8 @@ jobs:
       - name: Install V
         uses: vlang/setup-v@2c790c60223ed135f6949d1358675e4fd004b801  # v1
         with:
-          check-latest: true
+          version: '0.5.1'
+          check-latest: false
 
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
