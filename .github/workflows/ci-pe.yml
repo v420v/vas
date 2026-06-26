@@ -25,6 +25,9 @@ jobs:
       - name: Build vas
         run: v .
 
+      - name: Vet
+        run: v vet .
+
       - name: Smoke test (assemble + cross-link)
         run: |
           ./vas -f pe examples/windows/hello.s
