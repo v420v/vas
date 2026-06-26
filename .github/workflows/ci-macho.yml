@@ -29,4 +29,4 @@ jobs:
           arch -x86_64 ./hello.out
 
       - name: Mach-O regression suite
-        run: v test tests/macho_test.v
+        run: make test

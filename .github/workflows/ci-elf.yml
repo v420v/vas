@@ -29,7 +29,7 @@ jobs:
           ./main
 
       - name: ELF regression suite
-        run: v test tests/elf_test.v
+        run: make test
 
       - name: Verify generator output is committed
         run: |

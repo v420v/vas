@@ -31,4 +31,4 @@ jobs:
           x86_64-w64-mingw32-gcc -o hello.exe examples/windows/hello.o
 
       - name: PE regression suite
-        run: v test tests/pe_test.v
+        run: make test
