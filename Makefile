@@ -3,5 +3,5 @@ build:
 	v . -o vas
 
 clean:
-	rm *.o *.out ./vas examples/*.o
+	rm -f *.o *.out ./vas examples/*.o
 
