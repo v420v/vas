@@ -58,6 +58,12 @@ fn main() {
 		format_flag
 	}
 
+	valid_formats := ['elf', 'macho', 'pe']
+	if effective_format !in valid_formats {
+		eprintln('error: unknown format `${effective_format}` — valid values: ${valid_formats.join(', ')}')
+		exit(1)
+	}
+
 	mut l := lexer.new(file_name, program)
 	mut en := encoder.new(mut l, file_name)
 	en.encode()
