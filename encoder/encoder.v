@@ -486,14 +486,33 @@ fn (mut e Encoder) seg_to_expr(seg string, pos token.Position) Expr {
 	}
 }
 
-fn (mut e Encoder) parse_expr() Expr {
-	expr := e.parse_factor()
-	if e.tok.kind in [.plus, .minus, .mul, .div] {
+// parse_term handles `*` and `/` (higher precedence), left-associatively.
+fn (mut e Encoder) parse_term() Expr {
+	mut expr := e.parse_factor()
+	for e.tok.kind in [.mul, .div] {
 		op := e.tok.kind
 		pos := e.tok.pos
 		e.next()
-		right_hs := e.parse_expr()
-		return Binop{
+		right_hs := e.parse_factor()
+		expr = Binop{
+			left_hs: expr
+			right_hs: right_hs
+			op: op
+			pos: pos
+		}
+	}
+	return expr
+}
+
+// parse_expr handles `+` and `-` (lower precedence), left-associatively.
+fn (mut e Encoder) parse_expr() Expr {
+	mut expr := e.parse_term()
+	for e.tok.kind in [.plus, .minus] {
+		op := e.tok.kind
+		pos := e.tok.pos
+		e.next()
+		right_hs := e.parse_term()
+		expr = Binop{
 			left_hs: expr
 			right_hs: right_hs
 			op: op
