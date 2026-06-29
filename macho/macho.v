@@ -28,6 +28,10 @@ const n_sect = u8(0x0e)
 
 const no_sect = u8(0)
 
+// nlist_64 n_desc flags for weak symbols
+const n_weak_ref = u16(0x0040) // undefined weak reference
+const n_weak_def = u16(0x0080) // defined weak symbol
+
 // x86-64 Mach-O relocation types
 const x86_64_reloc_unsigned = u8(0)
 const x86_64_reloc_signed   = u8(1)
@@ -344,7 +348,35 @@ pub fn (mut m Macho) build_symtab_strtab() {
 		}
 	}
 
-	// 3. Undefined external symbols
+	// 3. Weak symbols (defined weak → N_WEAK_DEF, undefined weak → N_WEAK_REF)
+	for name, sym in m.user_defined_symbols {
+		if sym.binding != 2 { continue } // not weak (stb_weak)
+		if sym.symbol_type == 3 { continue } // stt_section
+		strx := u32(m.strtab.len)
+		m.strtab << name.bytes()
+		m.strtab << u8(0x00)
+		m.symtab_indices[name] = m.symtab.len
+		if sym.section_name == '' {
+			// undefined weak reference
+			m.symtab << Nlist64{
+				n_strx: strx
+				n_type: n_undf | n_ext
+				n_sect: no_sect
+				n_desc: n_weak_ref
+			}
+		} else {
+			// defined weak symbol
+			m.symtab << Nlist64{
+				n_strx:  strx
+				n_type:  n_sect | n_ext
+				n_sect:  u8(m.section_idx[sym.section_name])
+				n_desc:  n_weak_def
+				n_value: u64(sym.addr)
+			}
+		}
+	}
+
+	// 4. Undefined external symbols
 	for sym_name in m.rela_symbols {
 		strx := u32(m.strtab.len)
 		m.strtab << sym_name.bytes()
