@@ -689,6 +689,26 @@ fn eval_expr(expr Expr) int {
 	return int(eval_expr_get_symbol_64(expr, mut empty))
 }
 
+// eval_count evaluates a reservation-count expression and validates the result.
+// Unlike eval_expr it calls eval_expr_get_symbol_64 directly and rejects values
+// that would be silently truncated: negative (would flip sign) or > 2^31-1
+// (would wrap to zero or a smaller value in an int cast). Used by .zero / .skip
+// / .space / .fill so that oversized or malformed counts produce a clear error
+// instead of silently emitting wrong byte counts.
+fn eval_count(expr Expr) int {
+	mut empty := []string{}
+	val := eval_expr_get_symbol_64(expr, mut empty)
+	if val < 0 {
+		error.print(e_pos(expr), 'count must not be negative (got ${val})')
+		exit(1)
+	}
+	if val > 0x7fff_ffff {
+		error.print(e_pos(expr), 'count ${val} exceeds 2147483647; too large to reserve in a single object file')
+		exit(1)
+	}
+	return int(val)
+}
+
 // eval_reloc_expr evaluates a data expression into a constant plus a list of
 // symbol terms with signed coefficients (+1 for `sym`, -1 for `-sym`). `sign`
 // is inherited from any enclosing subtraction/negation; start the walk with
