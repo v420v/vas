@@ -340,11 +340,20 @@ pub fn (mut m Macho) build_symtab_strtab() {
 		m.strtab << name.bytes()
 		m.strtab << u8(0x00)
 		m.symtab_indices[name] = m.symtab.len
-		m.symtab << Nlist64{
-			n_strx:  strx
-			n_type:  n_sect | n_ext
-			n_sect:  u8(m.section_idx[sym.section_name])
-			n_value: u64(sym.addr)
+		if sym.section_name == '' {
+			// undefined global placeholder — must be N_UNDF|N_EXT, n_sect=0
+			m.symtab << Nlist64{
+				n_strx: strx
+				n_type: n_undf | n_ext
+				n_sect: no_sect
+			}
+		} else {
+			m.symtab << Nlist64{
+				n_strx:  strx
+				n_type:  n_sect | n_ext
+				n_sect:  u8(m.section_idx[sym.section_name])
+				n_value: u64(sym.addr)
+			}
 		}
 	}
 
@@ -418,10 +427,9 @@ pub fn (mut m Macho) build_relocations() {
 		mut r_symbolnum := u32(0)
 
 		if sym := m.user_defined_symbols[r.uses] {
-			if sym.binding == 1 { // stb_global — reference via symbol table
+			if sym.binding == 1 || sym.section_name == '' { // stb_global or undefined placeholder — external reloc
 				r_extern    = 1
 				r_symbolnum = u32(m.symtab_indices[r.uses])
-				// Field stays 0 (encoder already wrote 0 for unresolved refs).
 			} else { // stb_local — section-relative relocation
 				r_extern    = 0
 				r_symbolnum = u32(m.section_idx[sym.section_name])
