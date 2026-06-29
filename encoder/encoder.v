@@ -656,12 +656,26 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 						arr)
 				}
 				.mul {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) * eval_expr_get_symbol_64(expr.right_hs, mut
-						arr)
+					mut lr := []string{}
+					mut rr := []string{}
+					l := eval_expr_get_symbol_64(expr.left_hs, mut lr)
+					r := eval_expr_get_symbol_64(expr.right_hs, mut rr)
+					if lr.len != 0 || rr.len != 0 {
+						error.print(expr.pos, 'cannot multiply or divide a symbol in an expression')
+						exit(1)
+					}
+					l * r
 				}
 				.div {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) / eval_expr_get_symbol_64(expr.right_hs, mut
-						arr)
+					mut lr := []string{}
+					mut rr := []string{}
+					l := eval_expr_get_symbol_64(expr.left_hs, mut lr)
+					r := eval_expr_get_symbol_64(expr.right_hs, mut rr)
+					if lr.len != 0 || rr.len != 0 {
+						error.print(expr.pos, 'cannot multiply or divide a symbol in an expression')
+						exit(1)
+					}
+					l / r
 				}
 				else {
 					panic('not implemented yet')

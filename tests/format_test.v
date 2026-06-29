@@ -47,3 +47,37 @@ fn test_wrong_case_format_exits_nonzero() {
 	assert result.exit_code != 0, 'expected non-zero exit for wrong-case format "ELF", got 0'
 	assert result.output.contains('ELF'), 'error message should name the bad format'
 }
+
+// Regression test for issue #40: a symbol inside * or / in a constant/count
+// expression must produce a diagnostic instead of silently evaluating to 0.
+fn test_symbol_in_mul_expr_errors() {
+	tmp := os.temp_dir()
+	s_path := os.join_path(tmp, 'sym_mul_test.s')
+	os.write_file(s_path, 'sym = 5\n.zero sym*2\n') or {
+		assert false, 'cannot write temp file: ${err}'
+		return
+	}
+	defer {
+		os.rm(s_path) or {}
+	}
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit when symbol appears inside *, got 0'
+	assert result.output.contains('cannot multiply or divide a symbol in an expression'),
+		'expected error message about symbol in mul/div, got: ${result.output}'
+}
+
+fn test_symbol_in_div_expr_errors() {
+	tmp := os.temp_dir()
+	s_path := os.join_path(tmp, 'sym_div_test.s')
+	os.write_file(s_path, 'sym = 5\n.zero 10/sym\n') or {
+		assert false, 'cannot write temp file: ${err}'
+		return
+	}
+	defer {
+		os.rm(s_path) or {}
+	}
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit when symbol appears inside /, got 0'
+	assert result.output.contains('cannot multiply or divide a symbol in an expression'),
+		'expected error message about symbol in mul/div, got: ${result.output}'
+}
