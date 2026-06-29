@@ -53,7 +53,7 @@ fn test_wrong_case_format_exits_nonzero() {
 fn test_symbol_in_mul_expr_errors() {
 	tmp := os.temp_dir()
 	s_path := os.join_path(tmp, 'sym_mul_test.s')
-	os.write_file(s_path, 'sym = 5\n.zero sym*2\n') or {
+	os.write_file(s_path, '.set sym, 5\n.zero sym*2\n') or {
 		assert false, 'cannot write temp file: ${err}'
 		return
 	}
@@ -69,7 +69,7 @@ fn test_symbol_in_mul_expr_errors() {
 fn test_symbol_in_div_expr_errors() {
 	tmp := os.temp_dir()
 	s_path := os.join_path(tmp, 'sym_div_test.s')
-	os.write_file(s_path, 'sym = 5\n.zero 10/sym\n') or {
+	os.write_file(s_path, '.set sym, 5\n.zero 10/sym\n') or {
 		assert false, 'cannot write temp file: ${err}'
 		return
 	}
