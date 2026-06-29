@@ -248,7 +248,21 @@ pub fn (mut p Pe) build_symtab_strtab() {
 			image_sym_class_external)
 	}
 
-	// 3. Undefined external symbols
+	// 3. Weak symbols — COFF has no native weak binding; treat as external.
+	//    section_name == '' means undefined; otherwise defined.
+	for name, sym in p.user_defined_symbols {
+		if sym.binding != 2 { continue } // not weak (stb_weak)
+		if sym.symbol_type == 3 { continue }
+		p.sym_indices[name] = p.syms.len
+		if sym.section_name == '' {
+			p.syms << p.make_sym(name, i16(0), 0, image_sym_class_external)
+		} else {
+			p.syms << p.make_sym(name, i16(p.section_idx[sym.section_name]),
+				u32(sym.addr), image_sym_class_external)
+		}
+	}
+
+	// 4. Undefined external symbols
 	for sym_name in p.rela_symbols {
 		p.sym_indices[sym_name] = p.syms.len
 		p.syms << p.make_sym(sym_name, i16(0), 0, image_sym_class_external)
