@@ -433,10 +433,11 @@ fn (mut e Encoder) parse_factor() Expr {
 			return e.split_minus_ident(lit, ident_pos)
 		}
 		.minus {
+			pos := e.tok.pos
 			e.next()
 			expr := e.parse_factor()
 			return Neg{
-				pos: e.tok.pos
+				pos: pos
 				expr: expr
 			}
 		}
