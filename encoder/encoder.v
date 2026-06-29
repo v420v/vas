@@ -861,7 +861,6 @@ fn is_noop_directive(name_upper string) bool {
 		'.SIZE',
 		'.ADDRSIG',
 		'.ADDRSIG_SYM',
-		'.WEAK',
 		'.LOC',
 		'.LINE',
 		'.CV_LOC',
