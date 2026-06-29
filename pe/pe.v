@@ -163,11 +163,26 @@ fn section_characteristics(name string, elf_flags int) u32 {
 }
 
 // Maps ELF relocation types to COFF AMD64 relocation types.
+// Aborts with a clear diagnostic for ELF relocation widths that have no COFF
+// equivalent rather than silently emitting a wider relocation that would
+// overwrite adjacent bytes (e.g. r_x86_64_16 / r_x86_64_8 → ADDR32 was wrong).
 fn elf_rtype_to_coff(rtype u64) u16 {
 	match rtype {
-		r_x86_64_64                                          { return image_rel_amd64_addr64 }
-		r_x86_64_32, r_x86_64_32s, r_x86_64_16, r_x86_64_8 { return image_rel_amd64_addr32 }
-		else                                                  { return image_rel_amd64_rel32 }
+		r_x86_64_64               { return image_rel_amd64_addr64 }
+		r_x86_64_32, r_x86_64_32s { return image_rel_amd64_addr32 }
+		r_x86_64_16 {
+			eprintln('pe: error: R_X86_64_16 has no COFF/AMD64 equivalent — `.word sym` is unsupported for PE output')
+			exit(1)
+		}
+		r_x86_64_8 {
+			eprintln('pe: error: R_X86_64_8 has no COFF/AMD64 equivalent — `.byte sym` is unsupported for PE output')
+			exit(1)
+		}
+		r_x86_64_pc64 {
+			eprintln('pe: error: R_X86_64_PC64 has no COFF/AMD64 equivalent — 64-bit PC-relative relocation is unsupported for PE output')
+			exit(1)
+		}
+		else { return image_rel_amd64_rel32 }
 	}
 }
 
