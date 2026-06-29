@@ -153,7 +153,7 @@ pub fn new(out_file string, keep_locals bool, rela_text_users []encoder.Rela, us
 	mut idx := 1
 	for name, section in user_defined_sections {
 		sectname, segname := elf_section_to_macho(name, section.flags)
-		is_zerofill := name == '.bss'
+		is_zerofill := name == '.bss' || name.starts_with('.bss.')
 		m.sections << MachoSection{
 			elf_name:    name
 			sectname:    sectname
@@ -222,7 +222,7 @@ fn section_type_flags(name string, elf_flags int) u32 {
 
 fn section_align_pow(name string, _ int) u32 {
 	if name == '.text' || name.starts_with('.text.') { return 2 } // 4-byte
-	if name == '.data' || name == '.bss' { return 3 } // 8-byte
+	if name == '.data' || name == '.bss' || name.starts_with('.bss.') { return 3 } // 8-byte
 	return 0
 }
 
