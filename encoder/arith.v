@@ -25,8 +25,8 @@ fn (mut e Encoder) add_imm_rela(symbol string, imm_val int, size DataSize) {
 			e.current_instr.code << [u8(0), 0, 0, 0]
 		}
 		.suffix_quad {
-			rela.rtype = encoder.r_x86_64_32s
-			e.current_instr.code << [u8(0), 0, 0, 0]
+			rela.rtype = encoder.r_x86_64_64
+			e.current_instr.code << [u8(0), 0, 0, 0, 0, 0, 0, 0]
 		}
 		else {}
 	}
