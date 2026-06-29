@@ -34,6 +34,9 @@ jobs:
       - name: ELF regression suite
         run: v test tests/elf_test.v
 
+      - name: Format regression suite
+        run: v test tests/format_test.v
+
       - name: Verify generator output is committed
         run: |
           v run tools/gen_insns.v
