@@ -75,6 +75,10 @@ fn (mut e Encoder) fill() {
 			e.next()
 			mut used := []string{}
 			value = eval_expr_get_symbol_64(e.parse_expr(), mut used)
+			if used.len > 0 {
+				error.print(e.tok.pos, '.fill with symbol references not supported')
+				exit(1)
+			}
 		}
 	}
 	if size <= 0 || repeat <= 0 {
