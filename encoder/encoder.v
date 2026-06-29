@@ -403,10 +403,11 @@ fn (mut e Encoder) parse_register() Expr {
 fn (mut e Encoder) parse_factor() Expr {
 	match e.tok.kind {
 		.number {
+			pos := e.tok.pos
 			lit := e.tok.lit
 			e.next()
 			return Number{
-				pos: e.tok.pos
+				pos: pos
 				lit: lit
 			}
 		}
