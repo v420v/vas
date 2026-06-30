@@ -662,8 +662,12 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 						arr)
 				}
 				.div {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) / eval_expr_get_symbol_64(expr.right_hs, mut
-						arr)
+					r := eval_expr_get_symbol_64(expr.right_hs, mut arr)
+					if r == 0 {
+						error.print(expr.pos, 'division by zero')
+						exit(1)
+					}
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) / r
 				}
 				else {
 					panic('not implemented yet')
