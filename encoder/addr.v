@@ -28,20 +28,41 @@ fn section_flags(flags string) int {
 }
 
 fn (mut e Encoder) change_symbol_binding(instr Instr, binding u8) {
-	mut s := e.user_defined_symbols[instr.symbol_name] or { return }
-
-	if binding == encoder.stb_global && s.kind == .section {
-		error.print(instr.pos, 'sections cannot be global')
-		exit(1)
+	if mut s := e.user_defined_symbols[instr.symbol_name] {
+		if binding == encoder.stb_global && s.kind == .section {
+			error.print(instr.pos, 'sections cannot be global')
+			exit(1)
+		}
+		s.binding = binding
+	} else {
+		// Symbol not defined in this translation unit; create an undefined
+		// placeholder so the backend emits the correct binding (e.g. STB_WEAK)
+		// rather than silently discarding the directive.
+		e.user_defined_symbols[instr.symbol_name] = &Instr{
+			kind:        .label
+			pos:         instr.pos
+			section_name: ''
+			symbol_name: instr.symbol_name
+			binding:     binding
+		}
 	}
-
-	s.binding = binding
 }
 
 fn (mut e Encoder) change_symbol_visibility(instr Instr, visibility u8) {
-	mut s := e.user_defined_symbols[instr.symbol_name] or { return }
-
-	s.visibility = visibility
+	if mut s := e.user_defined_symbols[instr.symbol_name] {
+		s.visibility = visibility
+	} else {
+		// Symbol not defined locally; create a placeholder so the backend
+		// records the visibility on the undefined reference.
+		e.user_defined_symbols[instr.symbol_name] = &Instr{
+			kind:        .label
+			pos:         instr.pos
+			section_name: ''
+			symbol_name: instr.symbol_name
+			binding:     encoder.stb_global
+			visibility:  visibility
+		}
+	}
 }
 
 fn (mut e Encoder) fix_same_section_relocations() {
