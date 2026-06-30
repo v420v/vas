@@ -28,6 +28,10 @@ const n_sect = u8(0x0e)
 
 const no_sect = u8(0)
 
+// nlist_64 n_desc flags for weak symbols
+const n_weak_ref = u16(0x0040) // undefined weak reference
+const n_weak_def = u16(0x0080) // defined weak symbol
+
 // x86-64 Mach-O relocation types
 const x86_64_reloc_unsigned = u8(0)
 const x86_64_reloc_signed   = u8(1)
@@ -336,15 +340,52 @@ pub fn (mut m Macho) build_symtab_strtab() {
 		m.strtab << name.bytes()
 		m.strtab << u8(0x00)
 		m.symtab_indices[name] = m.symtab.len
-		m.symtab << Nlist64{
-			n_strx:  strx
-			n_type:  n_sect | n_ext
-			n_sect:  u8(m.section_idx[sym.section_name])
-			n_value: u64(sym.addr)
+		if sym.section_name == '' {
+			// undefined global placeholder — must be N_UNDF|N_EXT, n_sect=0
+			m.symtab << Nlist64{
+				n_strx: strx
+				n_type: n_undf | n_ext
+				n_sect: no_sect
+			}
+		} else {
+			m.symtab << Nlist64{
+				n_strx:  strx
+				n_type:  n_sect | n_ext
+				n_sect:  u8(m.section_idx[sym.section_name])
+				n_value: u64(sym.addr)
+			}
 		}
 	}
 
-	// 3. Undefined external symbols
+	// 3. Weak symbols (defined weak → N_WEAK_DEF, undefined weak → N_WEAK_REF)
+	for name, sym in m.user_defined_symbols {
+		if sym.binding != 2 { continue } // not weak (stb_weak)
+		if sym.symbol_type == 3 { continue } // stt_section
+		strx := u32(m.strtab.len)
+		m.strtab << name.bytes()
+		m.strtab << u8(0x00)
+		m.symtab_indices[name] = m.symtab.len
+		if sym.section_name == '' {
+			// undefined weak reference
+			m.symtab << Nlist64{
+				n_strx: strx
+				n_type: n_undf | n_ext
+				n_sect: no_sect
+				n_desc: n_weak_ref
+			}
+		} else {
+			// defined weak symbol
+			m.symtab << Nlist64{
+				n_strx:  strx
+				n_type:  n_sect | n_ext
+				n_sect:  u8(m.section_idx[sym.section_name])
+				n_desc:  n_weak_def
+				n_value: u64(sym.addr)
+			}
+		}
+	}
+
+	// 4. Undefined external symbols
 	for sym_name in m.rela_symbols {
 		strx := u32(m.strtab.len)
 		m.strtab << sym_name.bytes()
@@ -386,10 +427,9 @@ pub fn (mut m Macho) build_relocations() {
 		mut r_symbolnum := u32(0)
 
 		if sym := m.user_defined_symbols[r.uses] {
-			if sym.binding == 1 { // stb_global — reference via symbol table
+			if sym.binding == 1 || sym.section_name == '' { // stb_global or undefined placeholder — external reloc
 				r_extern    = 1
 				r_symbolnum = u32(m.symtab_indices[r.uses])
-				// Field stays 0 (encoder already wrote 0 for unresolved refs).
 			} else { // stb_local — section-relative relocation
 				r_extern    = 0
 				r_symbolnum = u32(m.section_idx[sym.section_name])
