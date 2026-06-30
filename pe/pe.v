@@ -16,6 +16,9 @@ const image_scn_mem_read               = u32(0x40000000)
 const image_scn_mem_write              = u32(0x80000000)
 const image_scn_align_4bytes           = u32(0x00300000)
 const image_scn_align_8bytes           = u32(0x00400000)
+// Set when a section has more than 0xFFFF relocations; real count goes in
+// the VirtualAddress field of a synthetic leading relocation entry.
+const image_scn_lnk_nreloc_ovfl       = u32(0x01000000)
 
 // Symbol storage classes
 const image_sym_class_external = u8(2)
@@ -163,11 +166,26 @@ fn section_characteristics(name string, elf_flags int) u32 {
 }
 
 // Maps ELF relocation types to COFF AMD64 relocation types.
+// Aborts with a clear diagnostic for ELF relocation widths that have no COFF
+// equivalent rather than silently emitting a wider relocation that would
+// overwrite adjacent bytes (e.g. r_x86_64_16 / r_x86_64_8 → ADDR32 was wrong).
 fn elf_rtype_to_coff(rtype u64) u16 {
 	match rtype {
-		r_x86_64_64                                          { return image_rel_amd64_addr64 }
-		r_x86_64_32, r_x86_64_32s, r_x86_64_16, r_x86_64_8 { return image_rel_amd64_addr32 }
-		else                                                  { return image_rel_amd64_rel32 }
+		r_x86_64_64               { return image_rel_amd64_addr64 }
+		r_x86_64_32, r_x86_64_32s { return image_rel_amd64_addr32 }
+		r_x86_64_16 {
+			eprintln('pe: error: R_X86_64_16 has no COFF/AMD64 equivalent — `.word sym` is unsupported for PE output')
+			exit(1)
+		}
+		r_x86_64_8 {
+			eprintln('pe: error: R_X86_64_8 has no COFF/AMD64 equivalent — `.byte sym` is unsupported for PE output')
+			exit(1)
+		}
+		r_x86_64_pc64 {
+			eprintln('pe: error: R_X86_64_PC64 has no COFF/AMD64 equivalent — 64-bit PC-relative relocation is unsupported for PE output')
+			exit(1)
+		}
+		else { return image_rel_amd64_rel32 }
 	}
 }
 
@@ -248,7 +266,21 @@ pub fn (mut p Pe) build_symtab_strtab() {
 			image_sym_class_external)
 	}
 
-	// 3. Undefined external symbols
+	// 3. Weak symbols — COFF has no native weak binding; treat as external.
+	//    section_name == '' means undefined; otherwise defined.
+	for name, sym in p.user_defined_symbols {
+		if sym.binding != 2 { continue } // not weak (stb_weak)
+		if sym.symbol_type == 3 { continue }
+		p.sym_indices[name] = p.syms.len
+		if sym.section_name == '' {
+			p.syms << p.make_sym(name, i16(0), 0, image_sym_class_external)
+		} else {
+			p.syms << p.make_sym(name, i16(p.section_idx[sym.section_name]),
+				u32(sym.addr), image_sym_class_external)
+		}
+	}
+
+	// 4. Undefined external symbols
 	for sym_name in p.rela_symbols {
 		p.sym_indices[sym_name] = p.syms.len
 		p.syms << p.make_sym(sym_name, i16(0), 0, image_sym_class_external)
@@ -366,10 +398,13 @@ pub fn (mut p Pe) write_pe() {
 	}
 
 	// Relocation table offsets (10 bytes per entry).
+	// When a section has more than 0xFFFF relocations a synthetic overflow
+	// entry is prepended, so allocate one extra slot in that case.
 	for i, s in p.sections {
 		if s.relocs.len == 0 { continue }
 		reloc_off[i] = cur
-		cur += u32(s.relocs.len) * 10
+		n_entries := if s.relocs.len > 0xffff { s.relocs.len + 1 } else { s.relocs.len }
+		cur += u32(n_entries) * 10
 	}
 
 	symtab_off  := cur
@@ -384,6 +419,12 @@ pub fn (mut p Pe) write_pe() {
 		raw_size := if s.is_bss { s.size } else { u32(s.data.len) }
 		raw_ptr  := if s.is_bss { u32(0) } else { sect_off[i] }
 
+		// COFF overflow encoding: when reloc count exceeds the 16-bit field
+		// capacity, set IMAGE_SCN_LNK_NRELOC_OVFL and store 0xFFFF in the
+		// header; the real count (+1 for the synthetic entry) lives in the
+		// VirtualAddress of the first (synthetic) relocation record.
+		nreloc := if s.relocs.len > 0xffff { u16(0xffff) } else { u16(s.relocs.len) }
+		chars  := if s.relocs.len > 0xffff { s.chars | image_scn_lnk_nreloc_ovfl } else { s.chars }
 		sect_hdrs << CoffSectionHeader{
 			name:                   n
 			virtual_size:           0
@@ -392,9 +433,9 @@ pub fn (mut p Pe) write_pe() {
 			pointer_to_raw_data:    raw_ptr
 			pointer_to_relocations: reloc_off[i]
 			pointer_to_linenumbers: 0
-			number_of_relocations:  u16(s.relocs.len)
+			number_of_relocations:  nreloc
 			number_of_linenumbers:  0
-			characteristics:        s.chars
+			characteristics:        chars
 		}
 	}
 
@@ -424,6 +465,15 @@ pub fn (mut p Pe) write_pe() {
 
 	// Relocation tables.
 	for s in p.sections {
+		if s.relocs.len > 0xffff {
+			// Synthetic overflow entry: VirtualAddress carries the true count
+			// (real relocs + 1 for this synthetic entry), per COFF spec §5.2.
+			write_coff_reloc(mut fp, CoffReloc{
+				virtual_address:    u32(s.relocs.len + 1)
+				symbol_table_index: 0
+				typ:                0
+			})
+		}
 		for r in s.relocs {
 			write_coff_reloc(mut fp, r)
 		}
