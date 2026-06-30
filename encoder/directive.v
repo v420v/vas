@@ -35,7 +35,7 @@ fn (mut e Encoder) zero() {
 	// an absolute-memory reference.
 	operand := e.parse_expr()
 
-	n := eval_expr(operand)
+	n := eval_count(operand)
 
 	for _ in 0..n {
 		e.current_instr.code << 0
@@ -48,7 +48,7 @@ fn (mut e Encoder) zero() {
 fn (mut e Encoder) skip() {
 	e.set_current_instr(.zero)
 
-	n := eval_expr(e.parse_expr())
+	n := eval_count(e.parse_expr())
 	mut fill := u8(0)
 	if e.tok.kind == .comma {
 		e.next()
@@ -65,12 +65,12 @@ fn (mut e Encoder) skip() {
 fn (mut e Encoder) fill() {
 	e.set_current_instr(.zero)
 
-	repeat := eval_expr(e.parse_expr())
+	repeat := eval_count(e.parse_expr())
 	mut size := 1
 	mut value := i64(0)
 	if e.tok.kind == .comma {
 		e.next()
-		size = eval_expr(e.parse_expr())
+		size = eval_count(e.parse_expr())
 		if e.tok.kind == .comma {
 			e.next()
 			mut used := []string{}
