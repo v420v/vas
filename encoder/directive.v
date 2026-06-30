@@ -103,6 +103,25 @@ fn (mut e Encoder) fill() {
 fn (mut e Encoder) align_directive(is_p2 bool) {
 	pos := e.tok.pos
 	first := eval_expr(e.parse_expr())
+
+	if is_p2 {
+		// 1 << 31 overflows to a negative int; GNU as caps the exponent at 30.
+		if first < 0 || first > 30 {
+			error.print(pos, '.p2align exponent must be in the range 0..30 (got ${first})')
+			exit(1)
+		}
+	} else {
+		if first < 0 {
+			error.print(pos, 'alignment must be a positive value (got ${first})')
+			exit(1)
+		}
+		// Alignment of 0 or 1 is a no-op; anything else must be a power of two.
+		if first > 1 && (first & (first - 1)) != 0 {
+			error.print(pos, 'alignment ${first} is not a power of two')
+			exit(1)
+		}
+	}
+
 	align_bytes := if is_p2 { 1 << u32(first) } else { first }
 
 	mut fill := -1
