@@ -225,37 +225,69 @@ fn (mut e Encoder) octa() {
 // IEEE 754 single-precision (`.float` / `.single`).
 fn (mut e Encoder) float_data() {
 	e.set_current_instr(.long)
-	if e.tok.kind != .number {
-		error.print(e.tok.pos, 'expected float literal')
-		exit(1)
+	for {
+		mut neg := false
+		if e.tok.kind == .minus {
+			neg = true
+			e.next()
+		} else if e.tok.kind == .plus {
+			e.next()
+		}
+		if e.tok.kind != .number {
+			error.print(e.tok.pos, 'expected float literal')
+			exit(1)
+		}
+		mut val64 := strconv.atof64(e.tok.lit) or {
+			error.print(e.tok.pos, 'invalid float literal')
+			exit(1)
+		}
+		if neg {
+			val64 = -val64
+		}
+		e.next()
+		bits32 := mbits.f32_bits(f32(val64))
+		mut hex := []u8{len: 4}
+		binary.little_endian_put_u32(mut hex, bits32)
+		e.current_instr.code << hex
+		if e.tok.kind != .comma {
+			break
+		}
+		e.next()
 	}
-	val64 := strconv.atof64(e.tok.lit) or {
-		error.print(e.tok.pos, 'invalid float literal')
-		exit(1)
-	}
-	e.next()
-	bits32 := mbits.f32_bits(f32(val64))
-	mut hex := []u8{len: 4}
-	binary.little_endian_put_u32(mut hex, bits32)
-	e.current_instr.code << hex
 }
 
 // IEEE 754 double-precision (`.double`).
 fn (mut e Encoder) double_data() {
 	e.set_current_instr(.quad)
-	if e.tok.kind != .number {
-		error.print(e.tok.pos, 'expected float literal')
-		exit(1)
+	for {
+		mut neg := false
+		if e.tok.kind == .minus {
+			neg = true
+			e.next()
+		} else if e.tok.kind == .plus {
+			e.next()
+		}
+		if e.tok.kind != .number {
+			error.print(e.tok.pos, 'expected float literal')
+			exit(1)
+		}
+		mut val := strconv.atof64(e.tok.lit) or {
+			error.print(e.tok.pos, 'invalid float literal')
+			exit(1)
+		}
+		if neg {
+			val = -val
+		}
+		e.next()
+		bits64 := mbits.f64_bits(val)
+		mut hex := []u8{len: 8}
+		binary.little_endian_put_u64(mut hex, bits64)
+		e.current_instr.code << hex
+		if e.tok.kind != .comma {
+			break
+		}
+		e.next()
 	}
-	val := strconv.atof64(e.tok.lit) or {
-		error.print(e.tok.pos, 'invalid float literal')
-		exit(1)
-	}
-	e.next()
-	bits64 := mbits.f64_bits(val)
-	mut hex := []u8{len: 8}
-	binary.little_endian_put_u64(mut hex, bits64)
-	e.current_instr.code << hex
 }
 
 // `.uleb128 N`: variable-length unsigned integer (DWARF).
