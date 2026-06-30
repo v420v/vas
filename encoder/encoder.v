@@ -403,10 +403,11 @@ fn (mut e Encoder) parse_register() Expr {
 fn (mut e Encoder) parse_factor() Expr {
 	match e.tok.kind {
 		.number {
+			pos := e.tok.pos
 			lit := e.tok.lit
 			e.next()
 			return Number{
-				pos: e.tok.pos
+				pos: pos
 				lit: lit
 			}
 		}
@@ -433,10 +434,11 @@ fn (mut e Encoder) parse_factor() Expr {
 			return e.split_minus_ident(lit, ident_pos)
 		}
 		.minus {
+			pos := e.tok.pos
 			e.next()
 			expr := e.parse_factor()
 			return Neg{
-				pos: e.tok.pos
+				pos: pos
 				expr: expr
 			}
 		}
@@ -660,8 +662,12 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 						arr)
 				}
 				.div {
-					eval_expr_get_symbol_64(expr.left_hs, mut arr) / eval_expr_get_symbol_64(expr.right_hs, mut
-						arr)
+					r := eval_expr_get_symbol_64(expr.right_hs, mut arr)
+					if r == 0 {
+						error.print(expr.pos, 'division by zero')
+						exit(1)
+					}
+					eval_expr_get_symbol_64(expr.left_hs, mut arr) / r
 				}
 				else {
 					panic('not implemented yet')
@@ -687,6 +693,26 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 fn eval_expr(expr Expr) int {
 	mut empty := []string{}
 	return int(eval_expr_get_symbol_64(expr, mut empty))
+}
+
+// eval_count evaluates a reservation-count expression and validates the result.
+// Unlike eval_expr it calls eval_expr_get_symbol_64 directly and rejects values
+// that would be silently truncated: negative (would flip sign) or > 2^31-1
+// (would wrap to zero or a smaller value in an int cast). Used by .zero / .skip
+// / .space / .fill so that oversized or malformed counts produce a clear error
+// instead of silently emitting wrong byte counts.
+fn eval_count(expr Expr) int {
+	mut empty := []string{}
+	val := eval_expr_get_symbol_64(expr, mut empty)
+	if val < 0 {
+		error.print(e_pos(expr), 'count must not be negative (got ${val})')
+		exit(1)
+	}
+	if val > 0x7fff_ffff {
+		error.print(e_pos(expr), 'count ${val} exceeds 2147483647; too large to reserve in a single object file')
+		exit(1)
+	}
+	return int(val)
 }
 
 // eval_reloc_expr evaluates a data expression into a constant plus a list of
