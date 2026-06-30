@@ -35,7 +35,7 @@ fn (mut e Encoder) zero() {
 	// an absolute-memory reference.
 	operand := e.parse_expr()
 
-	n := eval_expr(operand)
+	n := eval_count(operand)
 
 	for _ in 0..n {
 		e.current_instr.code << 0
@@ -48,7 +48,7 @@ fn (mut e Encoder) zero() {
 fn (mut e Encoder) skip() {
 	e.set_current_instr(.zero)
 
-	n := eval_expr(e.parse_expr())
+	n := eval_count(e.parse_expr())
 	mut fill := u8(0)
 	if e.tok.kind == .comma {
 		e.next()
@@ -65,16 +65,20 @@ fn (mut e Encoder) skip() {
 fn (mut e Encoder) fill() {
 	e.set_current_instr(.zero)
 
-	repeat := eval_expr(e.parse_expr())
+	repeat := eval_count(e.parse_expr())
 	mut size := 1
 	mut value := i64(0)
 	if e.tok.kind == .comma {
 		e.next()
-		size = eval_expr(e.parse_expr())
+		size = eval_count(e.parse_expr())
 		if e.tok.kind == .comma {
 			e.next()
 			mut used := []string{}
 			value = eval_expr_get_symbol_64(e.parse_expr(), mut used)
+			if used.len > 0 {
+				error.print(e.tok.pos, '.fill with symbol references not supported')
+				exit(1)
+			}
 		}
 	}
 	if size <= 0 || repeat <= 0 {
@@ -99,6 +103,25 @@ fn (mut e Encoder) fill() {
 fn (mut e Encoder) align_directive(is_p2 bool) {
 	pos := e.tok.pos
 	first := eval_expr(e.parse_expr())
+
+	if is_p2 {
+		// 1 << 31 overflows to a negative int; GNU as caps the exponent at 30.
+		if first < 0 || first > 30 {
+			error.print(pos, '.p2align exponent must be in the range 0..30 (got ${first})')
+			exit(1)
+		}
+	} else {
+		if first < 0 {
+			error.print(pos, 'alignment must be a positive value (got ${first})')
+			exit(1)
+		}
+		// Alignment of 0 or 1 is a no-op; anything else must be a power of two.
+		if first > 1 && (first & (first - 1)) != 0 {
+			error.print(pos, 'alignment ${first} is not a power of two')
+			exit(1)
+		}
+	}
+
 	align_bytes := if is_p2 { 1 << u32(first) } else { first }
 
 	mut fill := -1
@@ -226,13 +249,23 @@ fn (mut e Encoder) octa() {
 fn (mut e Encoder) float_data() {
 	e.set_current_instr(.long)
 	for {
+		mut neg := false
+		if e.tok.kind == .minus {
+			neg = true
+			e.next()
+		} else if e.tok.kind == .plus {
+			e.next()
+		}
 		if e.tok.kind != .number {
 			error.print(e.tok.pos, 'expected float literal')
 			exit(1)
 		}
-		val64 := strconv.atof64(e.tok.lit) or {
+		mut val64 := strconv.atof64(e.tok.lit) or {
 			error.print(e.tok.pos, 'invalid float literal')
 			exit(1)
+		}
+		if neg {
+			val64 = -val64
 		}
 		e.next()
 		bits32 := mbits.f32_bits(f32(val64))
@@ -250,13 +283,23 @@ fn (mut e Encoder) float_data() {
 fn (mut e Encoder) double_data() {
 	e.set_current_instr(.quad)
 	for {
+		mut neg := false
+		if e.tok.kind == .minus {
+			neg = true
+			e.next()
+		} else if e.tok.kind == .plus {
+			e.next()
+		}
 		if e.tok.kind != .number {
 			error.print(e.tok.pos, 'expected float literal')
 			exit(1)
 		}
-		val := strconv.atof64(e.tok.lit) or {
+		mut val := strconv.atof64(e.tok.lit) or {
 			error.print(e.tok.pos, 'invalid float literal')
 			exit(1)
+		}
+		if neg {
+			val = -val
 		}
 		e.next()
 		bits64 := mbits.f64_bits(val)

@@ -384,7 +384,7 @@ pub fn (mut e Elf) build_shstrtab() {
 
 // TODO: refactor later...
 pub fn (mut e Elf) build_headers() {
-	mut section_offs := sizeof(Elf64_Ehdr)
+	mut section_offs := u64(sizeof(Elf64_Ehdr))
 	mut section_idx := {'': 0}
 
 	e.section_headers << Elf64_Shdr{
@@ -402,7 +402,7 @@ pub fn (mut e Elf) build_headers() {
 			sh_type: u32(if nobits { sht_nobits } else { sht_progbits })
 			sh_flags: u64(section.flags)
 			sh_addr: 0
-			sh_offset: u64(section_offs)
+			sh_offset: section_offs
 			sh_size: u64(section.code.len)
 			sh_link: 0
 			sh_info: 0
@@ -411,17 +411,17 @@ pub fn (mut e Elf) build_headers() {
 		}
 		// A NOBITS section reserves no bytes in the file.
 		if !nobits {
-			section_offs += u32(section.code.len)
+			section_offs += u64(section.code.len)
 		}
 		section_idx[name] = section_idx.len
 	}
 
 	strtab_ofs := section_offs
-	strtab_size := u32(e.strtab.len)
+	strtab_size := u64(e.strtab.len)
 	section_idx['.strtab'] = section_idx.len
 
 	symtab_ofs := strtab_ofs + strtab_size
-	symtab_size := sizeof(Elf64_Sym) * u32(e.symtab.len)
+	symtab_size := u64(sizeof(Elf64_Sym)) * u64(e.symtab.len)
 	section_idx['.symtab'] = section_idx.len
 
 	e.section_headers << [
@@ -430,8 +430,8 @@ pub fn (mut e Elf) build_headers() {
 			sh_type: sht_strtab
 			sh_flags: 0
 			sh_addr: 0
-			sh_offset: u64(strtab_ofs)
-			sh_size: u64(strtab_size)
+			sh_offset: strtab_ofs
+			sh_size: strtab_size
 			sh_link: 0
 			sh_info: 0
 			sh_addralign: u64(1)
@@ -442,8 +442,8 @@ pub fn (mut e Elf) build_headers() {
 			sh_type: sht_symtab
 			sh_flags: 0
 			sh_addr: 0
-			sh_offset: u64(symtab_ofs)
-			sh_size: u64(symtab_size)
+			sh_offset: symtab_ofs
+			sh_size: symtab_size
 			sh_link: u32(section_idx['.strtab']) // section number of .strtab
 			sh_info: u32(e.local_symbols_count) // Number of local symbols
 			sh_addralign: u64(8)
@@ -454,14 +454,14 @@ pub fn (mut e Elf) build_headers() {
 	section_offs = symtab_ofs + symtab_size
 
 	for name in e.rela_section_names {
-		size := u32(e.rela[name].len) * sizeof(Elf64_Rela)
+		size := u64(e.rela[name].len) * u64(sizeof(Elf64_Rela))
 		e.section_headers << Elf64_Shdr{
 			sh_name: u32(e.section_name_offs[name])
 			sh_type: sht_rela,
 			sh_flags: u64(shf_info_link)
 			sh_addr: 0
-			sh_offset: u64(section_offs)
-			sh_size: u64(size)
+			sh_offset: section_offs
+			sh_size: size
 			sh_link: u32(section_idx['.symtab'])
 			sh_info: u32(section_idx[name[5..]]) // target section index. if `.rela.text` the target will be `.text`
 			sh_addralign: u64(8)
@@ -475,7 +475,7 @@ pub fn (mut e Elf) build_headers() {
 		sh_type: sht_strtab
 		sh_flags: 0
 		sh_addr: 0
-		sh_offset: u64(section_offs)
+		sh_offset: section_offs
 		sh_size: u64(e.shstrtab.len)
 		sh_link: 0
 		sh_info: 0
@@ -483,7 +483,7 @@ pub fn (mut e Elf) build_headers() {
 		sh_entsize: 0
 	}
 
-	sectionheader_ofs := section_offs + u32(e.shstrtab.len)
+	sectionheader_ofs := section_offs + u64(e.shstrtab.len)
 
 	e.ehdr = Elf64_Ehdr{
 		e_ident: [
