@@ -580,7 +580,10 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 		}
 
 		if sym_used {
-			e.add_imm_rela(sym[0], int(imm_val), size)
+			// A 4-byte immediate in a REX.W instruction is sign-extended to
+			// 64 bits by the CPU, so it needs R_X86_64_32S rather than the
+			// zero-extended R_X86_64_32.
+			e.add_imm_rela(sym[0], int(imm_val), size, enc.rex_w)
 		} else if enc.imm == .iq {
 			mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
 			binary.little_endian_put_u64(mut &hex, u64(imm_val))
