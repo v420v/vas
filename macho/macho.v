@@ -37,7 +37,6 @@ const x86_64_reloc_unsigned = u8(0)
 const x86_64_reloc_signed   = u8(1)
 const x86_64_reloc_branch   = u8(2)
 const x86_64_reloc_got_load = u8(3)
-const x86_64_reloc_got      = u8(4)
 
 // ELF rtype mirrors (from encoder package)
 const r_x86_64_64       = u64(1)

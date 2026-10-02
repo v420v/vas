@@ -87,15 +87,8 @@ const stt_notype           = 0
 const stt_object           = 1
 const stt_func             = 2
 const stt_section          = 3
-const stt_file             = 4
 const stt_common           = 5
 const stt_tls              = 6
-const stt_relc             = 8
-const stt_srelc            = 9
-const stt_loos             = 10
-const stt_hios             = 12
-const stt_loproc           = 13
-const stt_hiproc           = 14
 const sht_null             = 0
 const sht_progbits         = 1
 const sht_symtab           = 2
@@ -109,18 +102,12 @@ const shf_merge            = 0x10
 const shf_strings          = 0x20
 const shf_info_link        = 0x40
 const shf_link_order       = 0x80
-const shf_os_nonconforming = 0x100
-const shf_group            = 0x200
 const shf_tls              = 0x400
 const r_x86_64_none	  	= u64(0)
 const r_x86_64_64		  	= u64(1)
 const r_x86_64_pc32	  	= u64(2)
 const r_x86_64_got32	  	= u64(3)
 const r_x86_64_plt32	  	= u64(4)
-const r_x86_64_copy	  	= u64(5)
-const r_x86_64_glob_dat 	= u64(6)
-const r_x86_64_jump_slot	= u64(7)
-const r_x86_64_relative 	= u64(8)
 const r_x86_64_gotpcrel 	= u64(9)
 const r_x86_64_32		  	= u64(10)
 const r_x86_64_32s	  	    = u64(11)
@@ -137,7 +124,6 @@ const r_x86_64_pc64	  	= u64(24)
 const r_x86_64_gotoff64    = u64(25)
 const r_x86_64_gotpcrelx   = u64(41)
 const r_x86_64_rex_gotpcrelx = u64(42)
-const stv_default			= 0
 const stv_internal		    = 1
 const stv_hidden			= 2
 const stv_protected		= 3
@@ -186,7 +172,7 @@ fn add_padding(mut code []u8) {
 	}
 }
 
-fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
+fn (mut e Elf) elf_symbol(symbol_binding int) {
 	for name, symbol in e.user_defined_symbols {
 		if symbol.binding != symbol_binding {
 			continue
@@ -201,15 +187,9 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 
 		e.symtab_symbol_indexs[name] = e.symtab_symbol_indexs.len
 
-		unsafe { *off += str.len + 1 }
 		st_shndx := u16(e.user_defined_section_idx[symbol.section_name])
-		mut st_name := u32(0)
-
-		if symbol.symbol_type == stt_section {
-			st_name = 0
-		} else {
-			st_name = u32(*off)
-		}
+		// the name is appended at the end of strtab, so its offset is the current length
+		st_name := if symbol.symbol_type == stt_section { u32(0) } else { u32(e.strtab.len) }
 
 		e.symtab << Elf64_Sym{
 			st_name: st_name
@@ -221,25 +201,22 @@ fn (mut e Elf) elf_symbol(symbol_binding int, mut off &int, mut str &string) {
 
 		e.strtab << name.bytes()
 		e.strtab << 0x00
-		str = name
 	}
 }
 
 // Add rela symbol to symtab and strtab
 // This function should be called after processing local symbols.
-fn (mut e Elf) elf_rela_symbol(mut off &int, mut str &string) {
+fn (mut e Elf) elf_rela_symbol() {
 	for symbol_name in e.rela_symbols {
-		unsafe {*off += str.len + 1}
 		e.symtab_symbol_indexs[symbol_name] = e.symtab_symbol_indexs.len
 
 		e.symtab << Elf64_Sym{
-			st_name: u32(*off)
+			st_name: u32(e.strtab.len)
 			st_info: u8((stb_global << 4) + (stt_notype & 0xf))
 			st_shndx: 0
 		}
 		e.strtab << symbol_name.bytes()
 		e.strtab << 0x00
-		str = symbol_name
 	}
 }
 
@@ -339,13 +316,10 @@ pub fn (mut e Elf) build_symtab_strtab() {
 	e.symtab_symbol_indexs[''] = e.symtab_symbol_indexs.len // null symbol
 	e.local_symbols_count++
 
-	mut off := 0
-	mut str := ''
-
-	e.elf_symbol(stb_local, mut &off, mut &str)  // local
-	e.elf_rela_symbol(mut &off, mut &str)            // rela local
-	e.elf_symbol(stb_global, mut &off, mut &str) // global
-	e.elf_symbol(2, mut &off, mut &str)          // weak (STB_WEAK)
+	e.elf_symbol(stb_local)  // local
+	e.elf_rela_symbol()      // rela local
+	e.elf_symbol(stb_global) // global
+	e.elf_symbol(2)          // weak (STB_WEAK)
 
 	add_padding(mut e.strtab)
 }
