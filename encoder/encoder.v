@@ -73,15 +73,8 @@ const stt_notype           = 0
 const stt_object           = 1
 const stt_func             = 2
 const stt_section          = 3
-const stt_file             = 4
 const stt_common           = 5
 const stt_tls              = 6
-const stt_relc             = 8
-const stt_srelc            = 9
-const stt_loos             = 10
-const stt_hios             = 12
-const stt_loproc           = 13
-const stt_hiproc           = 14
 const sht_null             = 0
 const sht_progbits         = 1
 const sht_symtab           = 2
@@ -94,18 +87,12 @@ const shf_merge            = 0x10
 const shf_strings          = 0x20
 const shf_info_link        = 0x40
 const shf_link_order       = 0x80
-const shf_os_nonconforming = 0x100
-const shf_group            = 0x200
 const shf_tls              = 0x400
 const r_x86_64_none        = u64(0)
 const r_x86_64_64          = u64(1)
 const r_x86_64_pc32        = u64(2)
 const r_x86_64_got32       = u64(3)
 const r_x86_64_plt32       = u64(4)
-const r_x86_64_copy        = u64(5)
-const r_x86_64_glob_dat    = u64(6)
-const r_x86_64_jump_slot   = u64(7)
-const r_x86_64_relative    = u64(8)
 const r_x86_64_gotpcrel    = u64(9)
 const r_x86_64_32          = u64(10)
 const r_x86_64_32s         = u64(11)
@@ -113,9 +100,6 @@ const r_x86_64_16          = u64(12)
 const r_x86_64_pc16        = u64(13)
 const r_x86_64_8           = u64(14)
 const r_x86_64_pc8         = u64(15)
-const r_x86_64_dtpmod64    = u64(16)
-const r_x86_64_dtpoff64    = u64(17)
-const r_x86_64_tpoff64     = u64(18)
 const r_x86_64_tlsgd       = u64(19)
 const r_x86_64_tlsld       = u64(20)
 const r_x86_64_dtpoff32    = u64(21)
@@ -123,10 +107,8 @@ const r_x86_64_gottpoff    = u64(22)
 const r_x86_64_tpoff32     = u64(23)
 const r_x86_64_pc64        = u64(24)
 const r_x86_64_gotoff64    = u64(25)
-const r_x86_64_gotpc32     = u64(26)
 const r_x86_64_gotpcrelx   = u64(41)
 const r_x86_64_rex_gotpcrelx = u64(42)
-const stv_default          = 0
 const stv_internal         = 1
 const stv_hidden           = 2
 const stv_protected        = 3
@@ -309,14 +291,6 @@ const mod_indirection_with_disp32  = u8(2)
 const mod_regi                     = u8(3)
 const rex_w                        = u8(0x48)
 const operand_size_prefix16        = u8(0x66)
-const slash_0                      = 0 // /0
-const slash_1                      = 1 // /1
-const slash_2                      = 2 // /2
-const slash_3                      = 3 // /3
-const slash_4                      = 4 // /4
-const slash_5                      = 5 // /5
-const slash_6                      = 6 // /6
-const slash_7                      = 7 // /7
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
@@ -794,26 +768,6 @@ fn e_pos(expr Expr) token.Position {
 		Register { expr.pos }
 		Star { expr.pos }
 		Xmm { expr.pos }
-	}
-}
-
-fn get_size_by_suffix(name string) DataSize {
-	return match name.to_upper()[name.len - 1] {
-		`Q` {
-			DataSize.suffix_quad
-		}
-		`L` {
-			DataSize.suffix_long
-		}
-		`W` {
-			DataSize.suffix_word
-		}
-		`B` {
-			DataSize.suffix_byte
-		}
-		else {
-			panic('unkown DataSize')
-		}
 	}
 }
 

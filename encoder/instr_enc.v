@@ -729,9 +729,9 @@ fn classify_memory_size(s DataSize) OpClass {
 }
 
 fn classify_immediate_value(im Immediate, size_hint DataSize) OpClass {
-	mut sym := []string{}
-	v := eval_expr_get_symbol_64(im.expr, mut sym)
-	if sym.len > 0 {
+	mut syms := []string{}
+	v := eval_expr_get_symbol_64(im.expr, mut syms)
+	if syms.len > 0 {
 		return OpClass.imm32
 	}
 	if v == 1 {
@@ -752,7 +752,7 @@ fn classify_immediate_value(im Immediate, size_hint DataSize) OpClass {
 	if v >= -32768 && v <= 65535 && size_hint != .suffix_quad && size_hint != .suffix_long {
 		return OpClass.imm16
 	}
-	if v >= -(i64(1) << 31) && v <= ((i64(1) << 32) - 1) {
+	if v >= i64(min_i32) && v <= i64(max_u32) {
 		return OpClass.imm32
 	}
 	return OpClass.imm64
