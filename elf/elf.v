@@ -124,6 +124,10 @@ const r_x86_64_pc64	  	= u64(24)
 const r_x86_64_gotoff64    = u64(25)
 const r_x86_64_gotpcrelx   = u64(41)
 const r_x86_64_rex_gotpcrelx = u64(42)
+const r_x86_64_dtpoff64    = u64(17)
+const r_x86_64_tpoff64     = u64(18)
+const r_x86_64_got64       = u64(27)
+const r_x86_64_pltoff64    = u64(31)
 const stv_internal		    = 1
 const stv_hidden			= 2
 const stv_protected		= 3
@@ -162,7 +166,8 @@ fn is_nobits(name string) bool {
 fn is_symbol_reloc(rtype u64) bool {
 	return rtype in [r_x86_64_plt32, r_x86_64_gotpcrel, r_x86_64_gotpcrelx, r_x86_64_rex_gotpcrelx,
 		r_x86_64_gottpoff, r_x86_64_tlsgd, r_x86_64_tlsld, r_x86_64_tpoff32, r_x86_64_dtpoff32,
-		r_x86_64_got32, r_x86_64_gotoff64]
+		r_x86_64_got32, r_x86_64_gotoff64, r_x86_64_got64, r_x86_64_tpoff64, r_x86_64_dtpoff64,
+		r_x86_64_pltoff64]
 }
 
 fn add_padding(mut code []u8) {
@@ -228,8 +233,14 @@ pub fn (mut e Elf) rela_text_users() {
 	for r in e.rela_text_users {
 		mut index := 0
 
-		mut r_addend := if r.rtype in [r_x86_64_32s, r_x86_64_32, r_x86_64_64, r_x86_64_16, r_x86_64_8,
-			r_x86_64_tpoff32, r_x86_64_dtpoff32, r_x86_64_got32, r_x86_64_gotoff64] {
+		// The PC-relative adjustment (`offset - code.len`) accounts for the bytes
+		// of an instruction that follow the displacement field. A data directive
+		// (`.long sym@PLT`, `.long sym@GOTPCREL`) carries the plain constant, as
+		// in GNU as and clang.
+		is_data := r.instr.kind in [.byte, .word, .long, .quad]
+		mut r_addend := if is_data || r.rtype in [r_x86_64_32s, r_x86_64_32, r_x86_64_64, r_x86_64_16,
+			r_x86_64_8, r_x86_64_tpoff32, r_x86_64_dtpoff32, r_x86_64_got32, r_x86_64_gotoff64,
+			r_x86_64_got64, r_x86_64_tpoff64, r_x86_64_dtpoff64, r_x86_64_pltoff64] {
 			i64(0)
 		} else if r.rtype in [r_x86_64_pc32, r_x86_64_plt32, r_x86_64_gotpcrel, r_x86_64_gotpcrelx,
 			r_x86_64_rex_gotpcrelx, r_x86_64_gottpoff, r_x86_64_tlsgd, r_x86_64_tlsld] {

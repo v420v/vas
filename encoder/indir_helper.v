@@ -22,20 +22,61 @@ fn (mut e Encoder) add_segment_override_prefix(indir Indirection) {
 	}
 }
 
-// disp_modifier finds the `@MODIFIER` carried by a symbol inside a displacement
-// expression (e.g. the `tpoff` in `%fs:x@tpoff` or `gotpcrel` in
-// `sym@gotpcrel(%rip)`).
-fn disp_modifier(expr Expr) string {
+// expr_modifier finds the `@MODIFIER` carried by a symbol inside an expression
+// (e.g. the `tpoff` in `%fs:x@tpoff`, `gotpcrel` in `sym@gotpcrel(%rip)`,
+// or `got` in `.quad sym@got` / `movabsq $sym@got, %rax`).
+fn expr_modifier(expr Expr) string {
 	return match expr {
 		Ident { expr.modifier }
 		Binop {
-			m := disp_modifier(expr.left_hs)
-			if m != '' { m } else { disp_modifier(expr.right_hs) }
+			m := expr_modifier(expr.left_hs)
+			if m != '' { m } else { expr_modifier(expr.right_hs) }
 		}
-		Neg { disp_modifier(expr.expr) }
-		Immediate { disp_modifier(expr.expr) }
+		Neg { expr_modifier(expr.expr) }
+		Immediate { expr_modifier(expr.expr) }
 		else { '' }
 	}
+}
+
+// modifier_reloc_for_width maps `sym@MODIFIER` in a data directive or an
+// immediate of `width` bytes to its relocation type. These are GOT-, TLS- or
+// PLT-relative *values*, so the type depends on the field width: GOT, TPOFF
+// and DTPOFF come in 32- and 64-bit flavours, GOTOFF and PLTOFF are 64-bit
+// only, and PLT, GOTPCREL, GOTTPOFF, TLSGD and TLSLD are 32-bit only (as in
+// GNU as and clang). Anything else is rejected instead of silently degrading
+// to a plain absolute relocation.
+fn modifier_reloc_for_width(modifier string, width int, expr Expr) u64 {
+	rt := match width {
+		4 {
+			match modifier {
+				'got' { encoder.r_x86_64_got32 }
+				'tpoff' { encoder.r_x86_64_tpoff32 }
+				'dtpoff' { encoder.r_x86_64_dtpoff32 }
+				'plt' { encoder.r_x86_64_plt32 }
+				'gotpcrel' { encoder.r_x86_64_gotpcrel }
+				'gottpoff' { encoder.r_x86_64_gottpoff }
+				'tlsgd' { encoder.r_x86_64_tlsgd }
+				'tlsld' { encoder.r_x86_64_tlsld }
+				else { encoder.r_x86_64_none }
+			}
+		}
+		8 {
+			match modifier {
+				'got' { encoder.r_x86_64_got64 }
+				'tpoff' { encoder.r_x86_64_tpoff64 }
+				'dtpoff' { encoder.r_x86_64_dtpoff64 }
+				'gotoff' { encoder.r_x86_64_gotoff64 }
+				'pltoff' { encoder.r_x86_64_pltoff64 }
+				else { encoder.r_x86_64_none }
+			}
+		}
+		else { encoder.r_x86_64_none }
+	}
+	if rt == encoder.r_x86_64_none {
+		error.print(e_pos(expr), '`@${modifier}` cannot be used with a ${width}-byte value')
+		exit(1)
+	}
+	return rt
 }
 
 // modifier_to_reloc maps a `@MODIFIER` to its x86-64 relocation type. The bool
@@ -113,7 +154,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 		if used_symbols.len == 1 {
 			// `%seg:sym@tpoff` etc. select a TLS/GOT relocation; otherwise this
 			// is a plain absolute 32-bit reference.
-			mrt, mok := modifier_to_reloc(disp_modifier(indir.disp))
+			mrt, mok := modifier_to_reloc(expr_modifier(indir.disp))
 			e.rela_text_users << encoder.Rela{
 				instr:  e.current_instr
 				uses:   used_symbols[0]
@@ -196,7 +237,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 	}
 
 	if disp_need_rela {
-		mrt, mok := modifier_to_reloc(disp_modifier(indir.disp))
+		mrt, mok := modifier_to_reloc(expr_modifier(indir.disp))
 		rtype := if mok {
 			// `sym@gotpcrel(%rip)`, `sym@gottpoff(%rip)`, `sym@tlsgd(%rip)`, ...
 			mrt

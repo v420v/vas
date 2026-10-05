@@ -573,13 +573,25 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 		return
 	}
 
+	// `sym@MODIFIER` selects a GOT/TLS/PLT-relative relocation instead of the
+	// plain absolute one implied by the width.
+	mut rt := rtype
+	modifier := expr_modifier(expr)
+	if modifier != '' {
+		if refs.len != 1 || refs[0].coeff != 1 {
+			error.print(e_pos(expr), '`@${modifier}` needs a single symbol (`sym@${modifier}` or `sym@${modifier} + const`)')
+			exit(1)
+		}
+		rt = modifier_reloc_for_width(modifier, width, expr)
+	}
+
 	if refs.len == 1 && refs[0].coeff == 1 {
 		e.rela_text_users << Rela{
 			uses:   refs[0].name
 			instr:  e.current_instr
 			offset: offset
 			adjust: int(cst)
-			rtype:  rtype
+			rtype:  rt
 		}
 		for _ in 0 .. width {
 			e.current_instr.code << u8(0)
@@ -612,7 +624,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 		instr:  e.current_instr
 		offset: offset
 		adjust: int(cst)
-		rtype:  rtype
+		rtype:  rt
 	}
 	for _ in 0 .. width {
 		e.current_instr.code << u8(0)

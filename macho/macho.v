@@ -268,7 +268,10 @@ fn elf_rtype_to_macho(rtype u64) (u8, u8, u8) {
 		r_x86_64_plt32   { return x86_64_reloc_branch,   1, 2 }
 		r_x86_64_gotpcrel { return x86_64_reloc_got_load, 1, 2 }
 		r_x86_64_pc64    { return x86_64_reloc_signed,   1, 3 }
-		else             { return x86_64_reloc_unsigned, 0, 2 }
+		else {
+			eprintln('macho: error: ELF relocation type ${rtype} has no Mach-O equivalent (GOT/TLS-relative references are ELF-only)')
+			exit(1)
+		}
 	}
 }
 
