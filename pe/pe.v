@@ -332,7 +332,14 @@ pub fn (mut p Pe) build_relocations() {
 		r_va := u32(r.instr.addr + r.offset)
 		coff_type := elf_rtype_to_coff(r.rtype)
 		sym_idx, sym_off := p.reloc_target(r.uses)
-		inline := i64(r.adjust) + sym_off
+		mut inline := i64(r.adjust) + sym_off
+		// Bytes after the displacement field (an immediate, as in
+		// `movl $1, g(%rip)`). The CPU adds the whole instruction to RIP, but
+		// REL32 is relative to the end of the 4-byte field, so shrink the
+		// displacement by that tail.
+		if coff_type == image_rel_amd64_rel32 {
+			inline -= i64(r.instr.code.len) - r.offset - 4
+		}
 
 		// `A - B + k` across sections (A = r.uses, B = r.uses2 in this
 		// section): REL32 against A with inline (k + A_off) + 4 + site - B,
