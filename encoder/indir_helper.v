@@ -138,7 +138,15 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 	return false, low3 == 4, low3 == 5
 }
 
-fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
+// disp8_fits reports whether `disp` can be stored as an 8-bit displacement.
+// EVEX instructions compress it (disp8*N): the byte holds disp / scale, so the
+// displacement must be a multiple of the scale. scale is 1 otherwise.
+fn disp8_fits(disp int, scale int) bool {
+	return disp % scale == 0 && is_in_i8_range(disp / scale)
+}
+
+// `disp_scale` is the EVEX disp8*N factor (1 for non-EVEX instructions).
+fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale int) {
 	if !indir.has_base && !indir.has_index_scale {
 		// Bare-displacement form like `%fs:0` or `disp` (absolute addressing).
 		// In 64-bit mode this requires ModR/M mod=00 r/m=100 (SIB follows)
@@ -198,7 +206,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
 		} else if disp == 0 && !base_is_bp {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
-		} else if is_in_i8_range(disp) {
+		} else if disp8_fits(disp, disp_scale) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
 		} else if is_in_i32_range(disp) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
@@ -212,7 +220,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.base_offset%8)
 		} else if disp == 0 && !base_is_bp {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, indir.base.base_offset%8)
-		} else if is_in_i8_range(disp) {
+		} else if disp8_fits(disp, disp_scale) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, indir.base.base_offset%8)
 		} else if is_in_i32_range(disp) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.base_offset%8)
@@ -267,8 +275,8 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8) {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(disp))
 				e.current_instr.code << hex
-			} else if is_in_i8_range(disp) {
-				e.current_instr.code << u8(disp)
+			} else if disp8_fits(disp, disp_scale) {
+				e.current_instr.code << u8(disp / disp_scale)
 			} else if is_in_i32_range(disp) {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(disp))

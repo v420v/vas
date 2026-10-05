@@ -284,6 +284,7 @@ struct GenRow {
 	evex_w       u8
 	evex_pp      u8
 	evex_mm      u8
+	tuple        string // EVEX tuple type (fv, hv, t1s, ...) for disp8*N
 }
 
 struct Stats {
@@ -310,6 +311,7 @@ struct RawLine {
 	mnemonic    string
 	operand_str string
 	enc_tag     string
+	enc_tuple   string // EVEX rows only: `[tag:tuple: body]`
 	enc_body    string
 	flags       []string
 }
@@ -365,16 +367,19 @@ fn tokenize_line(line string) ?RawLine {
 
 	// encoding inside brackets:
 	//   1 colon : `[tag: body]`              — most non-EVEX rows
-	//   2 colons: `[tag:tuple_type: body]`   — EVEX rows. We currently ignore tuple_type
-	//                                          (no disp8 compression yet) but must skip
-	//                                          past it to reach the body.
+	//   2 colons: `[tag:tuple_type: body]`   — EVEX rows; tuple_type (fv, hv, t1s, ...)
+	//                                          drives disp8*N displacement compression
 	//   0 colons: `[ body]`                  — zero-operand instructions like `[ c3]`
 	mut tag := ''
+	mut tuple := ''
 	mut enc_body := enc
 	enc_parts := enc.split(':')
 	if enc_parts.len >= 2 {
 		tag = enc_parts[0].trim_space()
 		enc_body = enc_parts[enc_parts.len - 1].trim_space()
+	}
+	if enc_parts.len == 3 {
+		tuple = enc_parts[1].trim_space()
 	}
 
 	mut flags := []string{}
@@ -390,6 +395,7 @@ fn tokenize_line(line string) ?RawLine {
 		mnemonic:    mnemonic
 		operand_str: operand_str
 		enc_tag:     tag
+		enc_tuple:   tuple
 		enc_body:    enc_body
 		flags:       flags
 	}
@@ -1105,6 +1111,7 @@ fn (mut s Stats) try_emit(raw RawLine, mut out []GenRow) {
 				evex_w:       enc.evex_w
 				evex_pp:      enc.evex_pp
 				evex_mm:      enc.evex_mm
+				tuple:        raw.enc_tuple
 			}
 			s.emitted++
 		}
@@ -1317,6 +1324,9 @@ fn emit_v_file(rows []GenRow) string {
 			s += ', evex_w: ${r.evex_w}'
 			s += ', evex_pp: ${r.evex_pp}'
 			s += ', evex_mm: ${r.evex_mm}'
+			if r.tuple != '' {
+				s += ', tuple: .${r.tuple}'
+			}
 		}
 		s += '}\n'
 	}

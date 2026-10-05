@@ -560,37 +560,15 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 		if rm_kind == 1 {
 			e.current_instr.code << compose_mod_rm(encoder.mod_regi, digit_or_reg, rm_reg.base_offset % 8)
 		} else if rm_kind == 2 {
-			e.add_modrm_sib_disp(rm_indir, digit_or_reg)
+			disp_scale := if enc.evex_present { evex_disp8_scale(enc, e.broadcast) } else { 1 }
+			e.add_modrm_sib_disp(rm_indir, digit_or_reg, disp_scale)
 		}
 	}
 
 	// 6) Immediate
 	if imm_idx >= 0 {
 		op := ops[imm_idx] as Immediate
-		mut syms := []string{}
-		imm_val := eval_expr_get_symbol_64(op.expr, mut syms)
-		sym_used := syms.len == 1
-
-		size := match enc.imm {
-			.ib { DataSize.suffix_byte }
-			.iw { DataSize.suffix_word }
-			.id { DataSize.suffix_long }
-			.iq { DataSize.suffix_quad }
-			.@none { DataSize.suffix_byte }
-		}
-
-		if sym_used {
-			// A 4-byte immediate in a REX.W instruction is sign-extended to
-			// 64 bits by the CPU, so it needs R_X86_64_32S rather than the
-			// zero-extended R_X86_64_32.
-			e.add_imm_rela(syms[0], int(imm_val), size, enc.rex_w, op.expr)
-		} else if enc.imm == .iq {
-			mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
-			binary.little_endian_put_u64(mut &hex, u64(imm_val))
-			e.current_instr.code << hex
-		} else {
-			e.add_imm_value2(int(imm_val), size)
-		}
+		e.emit_immediate(enc, op)
 	}
 
 	// 6b) AMD FMA4 /is4 byte: imm8 whose upper nibble holds the 3rd source
@@ -601,35 +579,95 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 
 	// 7) Relative (label → rel32 / rel8)
 	if enc.rel != .@none && label_idx >= 0 {
-		op := ops[label_idx] as Ident
-		rel_offset := i64(e.current_instr.code.len)
-		nbytes := match enc.rel {
-			.rel8 { 1 }
-			.rel32 { 4 }
-			.@none { 0 }
-		}
-		for _ in 0 .. nbytes {
-			e.current_instr.code << u8(0)
-		}
-		// A branch target spelled `sym@PLT` (e.g. a tail-call `jmp foo@PLT`), and
-		// every CALL, go through the PLT; otherwise it's a plain relative branch
-		// (same-section targets are resolved away by fix_same_section_relocations).
-		rtype := if op.modifier == 'plt' || enc.mnemonic == 'CALL' {
-			encoder.r_x86_64_plt32
-		} else {
-			// A relative branch is PC-relative. Same-section targets are
-			// resolved to a constant by fix_same_section_relocations; otherwise
-			// a PC32 relocation is emitted (correct for cross-section local
-			// targets and PIE, where an absolute 32S would be rejected).
-			encoder.r_x86_64_pc32
-		}
-		e.rela_text_users << &Rela{
-			uses:   op.lit
-			instr:  e.current_instr
-			offset: rel_offset
-			rtype:  u64(rtype)
-			adjust: 0
-		}
-		e.current_instr.is_jmp_or_call = true
+		e.emit_relative(enc, ops[label_idx] as Ident)
 	}
+}
+
+// evex_disp8_scale returns N for the compressed disp8*N displacement of an
+// EVEX memory operand (Intel SDM Vol. 2, Tables 2-34 and 2-35): the access is
+// a multiple of N bytes, so an 8-bit displacement is stored divided by N.
+fn evex_disp8_scale(enc InstrEnc, broadcast bool) int {
+	vl := 16 << enc.evex_l // 128/256/512-bit vector in bytes
+	elem := if enc.evex_w == 1 { 8 } else { 4 }
+	return match enc.tuple {
+		.fv { if broadcast { elem } else { vl } }
+		.hv { if broadcast { elem } else { vl / 2 } }
+		.fvm { vl }
+		.t1s { elem }
+		.t1s8 { 1 }
+		.t1s16 { 2 }
+		.t1f32 { 4 }
+		.t1f64 { 8 }
+		.t2 { 2 * elem }
+		.t4 { 4 * elem }
+		.t8 { 32 }
+		.hvm { vl / 2 }
+		.qvm { vl / 4 }
+		.ovm { vl / 8 }
+		.m128 { 16 }
+		.dup { if vl == 16 { 8 } else { vl } }
+		.none { 1 }
+	}
+}
+
+// 6) Immediate operand: a literal at the encoding's width, or a placeholder
+// plus relocation when it references a symbol.
+fn (mut e Encoder) emit_immediate(enc InstrEnc, op Immediate) {
+	mut syms := []string{}
+	imm_val := eval_expr_get_symbol_64(op.expr, mut syms)
+	sym_used := syms.len == 1
+
+	size := match enc.imm {
+		.ib { DataSize.suffix_byte }
+		.iw { DataSize.suffix_word }
+		.id { DataSize.suffix_long }
+		.iq { DataSize.suffix_quad }
+		.@none { DataSize.suffix_byte }
+	}
+
+	if sym_used {
+		// A 4-byte immediate in a REX.W instruction is sign-extended to
+		// 64 bits by the CPU, so it needs R_X86_64_32S rather than the
+		// zero-extended R_X86_64_32.
+		e.add_imm_rela(syms[0], int(imm_val), size, enc.rex_w, op.expr)
+	} else if enc.imm == .iq {
+		mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
+		binary.little_endian_put_u64(mut &hex, u64(imm_val))
+		e.current_instr.code << hex
+	} else {
+		e.add_imm_value2(int(imm_val), size)
+	}
+}
+
+// 7) Relative branch target (label → rel32 / rel8).
+fn (mut e Encoder) emit_relative(enc InstrEnc, op Ident) {
+	rel_offset := i64(e.current_instr.code.len)
+	nbytes := match enc.rel {
+		.rel8 { 1 }
+		.rel32 { 4 }
+		.@none { 0 }
+	}
+	for _ in 0 .. nbytes {
+		e.current_instr.code << u8(0)
+	}
+	// A branch target spelled `sym@PLT` (e.g. a tail-call `jmp foo@PLT`), and
+	// every CALL, go through the PLT; otherwise it's a plain relative branch
+	// (same-section targets are resolved away by fix_same_section_relocations).
+	rtype := if op.modifier == 'plt' || enc.mnemonic == 'CALL' {
+		encoder.r_x86_64_plt32
+	} else {
+		// A relative branch is PC-relative. Same-section targets are
+		// resolved to a constant by fix_same_section_relocations; otherwise
+		// a PC32 relocation is emitted (correct for cross-section local
+		// targets and PIE, where an absolute 32S would be rejected).
+		encoder.r_x86_64_pc32
+	}
+	e.rela_text_users << &Rela{
+		uses:   op.lit
+		instr:  e.current_instr
+		offset: rel_offset
+		rtype:  u64(rtype)
+		adjust: 0
+	}
+	e.current_instr.is_jmp_or_call = true
 }
