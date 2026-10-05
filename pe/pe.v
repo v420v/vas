@@ -202,7 +202,11 @@ fn elf_rtype_to_coff(rtype u64) u16 {
 			eprintln('pe: error: R_X86_64_PC64 has no COFF/AMD64 equivalent — 64-bit PC-relative relocation is unsupported for PE output')
 			exit(1)
 		}
-		else { return image_rel_amd64_rel32 }
+		r_x86_64_pc32, r_x86_64_plt32, r_x86_64_gotpcrel { return image_rel_amd64_rel32 }
+		else {
+			eprintln('pe: error: ELF relocation type ${rtype} has no COFF/AMD64 equivalent (GOT/TLS-relative references are ELF-only)')
+			exit(1)
+		}
 	}
 }
 
