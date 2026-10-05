@@ -26,6 +26,14 @@ fn test_modifier_width_clean_error() {
 	assert result.output.contains('cannot be used with a 4-byte value'), 'expected width error in output, got: ${result.output}'
 }
 
+fn test_leb128_symbol_clean_error() {
+	s_path := os.join_path(errors_dir, 'leb128_symbol.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for `.uleb128 extern_sym`, got 0'
+	assert !result.output.contains('panic'), 'expected clean error, got panic: ${result.output}'
+	assert result.output.contains('label difference'), 'expected LEB128 error in output, got: ${result.output}'
+}
+
 fn test_tls_data_rejected_for_macho_and_pe() {
 	s_path := os.join_path(errors_dir, 'tls_data_macho.s')
 	for format in ['macho', 'pe'] {

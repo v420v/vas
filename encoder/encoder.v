@@ -166,6 +166,15 @@ pub mut:
 	// cross-section label-difference PC-relative form.
 	set_addend bool
 	addend     i64
+	// `.uleb128`/`.sleb128 A-B`: resolved after layout into a fixed 5-byte
+	// padded LEB128 (see resolve_label_diffs); never reaches a backend.
+	leb LebKind
+}
+
+pub enum LebKind {
+	none
+	uleb
+	sleb
 }
 
 // SymRef is one symbol term of a relocatable expression, with its integer

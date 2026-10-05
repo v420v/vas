@@ -315,38 +315,108 @@ fn (mut e Encoder) double_data() {
 
 // `.uleb128 N`: variable-length unsigned integer (DWARF).
 fn (mut e Encoder) uleb128() {
-	e.set_current_instr(.byte)
-	mut v := u64(eval_expr(e.parse_expr()))
-	for {
-		mut b := u8(v & 0x7f)
-		v >>= 7
-		if v != 0 {
-			b |= 0x80
-		}
-		e.current_instr.code << b
-		if v == 0 {
-			break
-		}
-	}
+	e.leb128(false)
 }
 
 // `.sleb128 N`: variable-length signed integer (DWARF).
 fn (mut e Encoder) sleb128() {
+	e.leb128(true)
+}
+
+// A constant is written in the minimal encoding. A same-section label
+// difference (`.uleb128 .Lend-.Lstart`, the LSDA/DWARF pattern) is only known
+// after layout, and encoding it minimally would change its own length, so it
+// gets a fixed 5-byte padded LEB128 (DWARF allows padding) that
+// resolve_label_diffs fills in. x86-64 has no LEB128 relocations, so any other
+// symbolic value is an error, as in GNU as and clang.
+fn (mut e Encoder) leb128(signed bool) {
 	e.set_current_instr(.byte)
-	mut v := i64(eval_expr(e.parse_expr()))
-	for {
-		b := u8(v & 0x7f)
-		// Arithmetic shift right to preserve sign.
-		v >>= 7
-		sign_bit := b & 0x40
-		more := !((v == 0 && sign_bit == 0) || (v == -1 && sign_bit != 0))
-		if more {
-			e.current_instr.code << (b | 0x80)
-		} else {
-			e.current_instr.code << b
-			break
+	expr := e.parse_expr()
+	mut refs := []SymRef{}
+	cst := eval_reloc_expr(expr, 1, mut refs)
+	if refs.len == 0 {
+		e.current_instr.code << encode_leb128(cst, signed)
+		return
+	}
+	plus, minus := label_diff_terms(refs) or {
+		name := if signed { '.sleb128' } else { '.uleb128' }
+		error.print(e_pos(expr), '`${name}` needs a constant or a same-section label difference `A-B`')
+		exit(1)
+	}
+	e.rela_text_users << Rela{
+		uses:   plus
+		uses2:  minus
+		instr:  e.current_instr
+		offset: e.current_instr.code.len
+		adjust: int(cst)
+		leb:    if signed { LebKind.sleb } else { LebKind.uleb }
+	}
+	e.current_instr.code << leb128_fixed(0, signed) or { panic('unreachable') }
+}
+
+// Minimal LEB128 encoding of `v` (unsigned values are taken as u64).
+fn encode_leb128(v i64, signed bool) []u8 {
+	mut out := []u8{}
+	if signed {
+		mut x := v
+		for {
+			b := u8(x & 0x7f)
+			x >>= 7 // arithmetic shift keeps the sign
+			if (x == 0 && b & 0x40 == 0) || (x == -1 && b & 0x40 != 0) {
+				out << b
+				return out
+			}
+			out << (b | 0x80)
 		}
 	}
+	mut x := u64(v)
+	for {
+		b := u8(x & 0x7f)
+		x >>= 7
+		if x == 0 {
+			out << b
+			return out
+		}
+		out << (b | 0x80)
+	}
+	return out
+}
+
+// Fixed 5-byte LEB128 (35 value bits) with padding continuation bytes, used
+// where the value is patched in after layout. Fails if `v` does not fit.
+fn leb128_fixed(v i64, signed bool) ![]u8 {
+	limit := i64(u64(1) << 34)
+	fits := if signed { v >= -limit && v < limit } else { u64(v) >> 35 == 0 }
+	if !fits {
+		return error('LEB128 value ${v} does not fit in 5 bytes')
+	}
+	mut out := []u8{len: 5}
+	mut x := u64(v)
+	for i in 0 .. 5 {
+		out[i] = u8(x & 0x7f) | if i < 4 { u8(0x80) } else { u8(0) }
+		x >>= 7
+	}
+	return out
+}
+
+// label_diff_terms splits the symbol terms of `A - B` into (A, B); anything
+// other than exactly one +1 term and one -1 term is not a label difference.
+fn label_diff_terms(refs []SymRef) ?(string, string) {
+	if refs.len != 2 {
+		return none
+	}
+	mut plus := ''
+	mut minus := ''
+	for ref in refs {
+		if ref.coeff == 1 && plus == '' {
+			plus = ref.name
+		} else if ref.coeff == -1 && minus == '' {
+			minus = ref.name
+		} else {
+			return none
+		}
+	}
+	return plus, minus
 }
 
 // `.set name, expr` / `.equ name, expr` / `.equiv name, expr`. Stores a
@@ -600,21 +670,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 	}
 
 	// Label difference: exactly one +1 term and one -1 term.
-	mut plus := ''
-	mut minus := ''
-	mut ok := refs.len == 2
-	if ok {
-		for ref in refs {
-			if ref.coeff == 1 && plus == '' {
-				plus = ref.name
-			} else if ref.coeff == -1 && minus == '' {
-				minus = ref.name
-			} else {
-				ok = false
-			}
-		}
-	}
-	if !ok || plus == '' || minus == '' {
+	plus, minus := label_diff_terms(refs) or {
 		error.print(e_pos(expr), 'unsupported relocatable expression (allowed: `sym`, `sym±const`, same-section `A-B`)')
 		exit(1)
 	}
