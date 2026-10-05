@@ -11,10 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install V
-        uses: vlang/setup-v@2c790c60223ed135f6949d1358675e4fd004b801  # v1
-        with:
-          check-latest: true
+      # Prebuilt release zip, pinned: compiler and vlib stay in sync and the
+      # build is reproducible. vlang/setup-v instead runs `make`, whose
+      # bootstrap pulls the newest vc/v.c (V master) and currently panics
+      # (EmbedFileData: manual_stdlib_c_headers.h) before compiling anything.
+      - name: Install V 0.5.2
+        run: |
+          curl -sSL -o "$RUNNER_TEMP/v.zip" https://github.com/vlang/v/releases/download/0.5.2/v_linux.zip
+          unzip -q "$RUNNER_TEMP/v.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/v" >> "$GITHUB_PATH"
 
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
