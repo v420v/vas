@@ -71,7 +71,10 @@ fn (mut e Encoder) fix_same_section_relocations() {
 			if symbol.section_name != rela.instr.section_name {
 				continue
 			}
-			if symbol.binding == encoder.stb_global {
+			// Only local symbols can be resolved here: a global may be
+			// interposed and a weak definition replaced by the linker, so their
+			// references must stay relocations against the symbol.
+			if symbol.binding != encoder.stb_local {
 				continue
 			}
 
@@ -226,7 +229,9 @@ fn (mut e Encoder) resolve_label_diffs() {
 		}
 
 		mut a := i64(rela.adjust) + site - minus_addr
-		if plus_binding != encoder.stb_global {
+		// ELF references a local endpoint through its section symbol, so its
+		// offset moves into the addend; globals and weaks are referenced by name.
+		if plus_binding == encoder.stb_local {
 			a += plus_addr
 		}
 		rela.rtype = pc_type

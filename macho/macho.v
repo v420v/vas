@@ -533,7 +533,7 @@ pub fn (mut m Macho) build_relocations() {
 		mut addend := i64(r.adjust) - tail
 
 		if sym := m.user_defined_symbols[r.uses] {
-			if sym.binding == 1 || sym.section_name == '' { // stb_global or undefined placeholder — external reloc
+			if sym.binding != 0 || sym.section_name == '' { // global, weak or undefined — external reloc
 				r_extern    = 1
 				r_symbolnum = u32(m.symtab_indices[r.uses])
 			} else { // stb_local — section-relative relocation
