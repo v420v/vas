@@ -144,6 +144,30 @@ pub:
 	evex_w       u8
 	evex_pp      u8
 	evex_mm      u8
+	// EVEX tuple type (NASM's `[rm:fv: ...]` field). Together with the vector
+	// length, EVEX.W and broadcasting it fixes N for the compressed disp8*N
+	// memory displacement (Intel SDM Vol. 2, section 2.7.5).
+	tuple TupleType
+}
+
+pub enum TupleType {
+	none
+	fv    // Full Vector
+	hv    // Half Vector
+	fvm   // Full Vector Mem
+	t1s   // Tuple1 Scalar, element size from EVEX.W
+	t1s8  // Tuple1 Scalar, 8-bit element
+	t1s16 // Tuple1 Scalar, 16-bit element
+	t1f32 // Tuple1 Fixed, 32-bit
+	t1f64 // Tuple1 Fixed, 64-bit
+	t2    // Tuple2
+	t4    // Tuple4
+	t8    // Tuple8
+	hvm   // Half Mem
+	qvm   // Quarter Mem
+	ovm   // Eighth Mem
+	m128  // Mem128
+	dup   // MOVDDUP
 }
 
 pub const insns_table = [
