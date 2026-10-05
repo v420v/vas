@@ -243,16 +243,21 @@ fn (mut p Pe) make_sym(name string, section_number i16, value u32, storage_class
 }
 
 // Build the symbol table and string table.
-// Order: locals → defined globals → undefined externals.
+// Order: section symbols → locals → defined globals → undefined externals.
 pub fn (mut p Pe) build_symtab_strtab() {
-	// 1. Local symbols. `.L` labels are dropped unless keep_locals, except
-	//    those targeted by a relocation: vas emits no COFF section symbols
-	//    yet, so every relocation needs its target in the symbol table.
-	needed := p.relocated_symbols()
+	// 0. One static symbol per section (value 0). Relocations against local
+	//    symbols go through these with the offset folded into the inline
+	//    addend, as GAS does, so `.L` labels never need to be emitted.
+	for s in p.sections {
+		p.sym_indices[s.elf_name] = p.syms.len
+		p.syms << p.make_sym(s.name, i16(p.section_idx[s.elf_name]), 0, image_sym_class_static)
+	}
+
+	// 1. Local symbols (skip section markers and .L labels unless keep_locals)
 	for name, sym in p.user_defined_symbols {
 		if sym.binding != 0 { continue } // not local
-		if sym.symbol_type == 3 { continue } // stt_section — no COFF equivalent
-		if !p.keep_locals && name.to_upper().starts_with('.L') && name !in needed { continue }
+		if sym.symbol_type == 3 { continue } // stt_section — emitted above
+		if !p.keep_locals && name.to_upper().starts_with('.L') { continue }
 
 		p.sym_indices[name] = p.syms.len
 		p.syms << p.make_sym(name, i16(p.section_idx[sym.section_name]), u32(sym.addr),
@@ -290,15 +295,16 @@ pub fn (mut p Pe) build_symtab_strtab() {
 	}
 }
 
-// Symbols targeted by a relocation that still has to be emitted.
-fn (p &Pe) relocated_symbols() map[string]bool {
-	mut names := map[string]bool{}
-	for r in p.rela_text_users {
-		if !r.is_already_resolved {
-			names[r.uses] = true
+// Relocation target for `name`: a defined local symbol is referenced through
+// its section symbol with the symbol's offset folded into the inline addend
+// (as GAS does); everything else through its own symbol table entry.
+fn (p &Pe) reloc_target(name string) (u32, i64) {
+	if sym := p.user_defined_symbols[name] {
+		if sym.binding == 0 && sym.section_name != '' {
+			return u32(p.sym_indices[sym.section_name]), sym.addr
 		}
 	}
-	return names
+	return u32(p.sym_indices[name]), 0
 }
 
 // Convert ELF relocations to COFF IMAGE_RELOCATION records.
@@ -308,8 +314,8 @@ fn (p &Pe) relocated_symbols() map[string]bool {
 //   ADDR64: sym_section_va + sym.value + inline
 //   ADDR32: sym_section_va + sym.value + inline
 //
-// Since sym.value == sym.addr (offset within section) is already in the symbol
-// table, we only need to embed r.adjust as the inline addend.
+// The inline addend is r.adjust plus, for section-relative targets, the
+// symbol's offset within its section (see reloc_target).
 pub fn (mut p Pe) build_relocations() {
 	for r in p.rela_text_users {
 		if r.is_already_resolved { continue }
@@ -325,11 +331,13 @@ pub fn (mut p Pe) build_relocations() {
 
 		r_va := u32(r.instr.addr + r.offset)
 		coff_type := elf_rtype_to_coff(r.rtype)
-		sym_idx := u32(p.sym_indices[r.uses])
+		sym_idx, sym_off := p.reloc_target(r.uses)
+		inline := i64(r.adjust) + sym_off
 
 		// `A - B + k` across sections (A = r.uses, B = r.uses2 in this
-		// section): REL32 against A with inline k + 4 + site - B, because the
-		// linker computes S + inline - (site + 4) and B - site is a constant.
+		// section): REL32 against A with inline (k + A_off) + 4 + site - B,
+		// because the linker computes S + inline - (site + 4) and B - site is
+		// a constant.
 		if r.set_addend {
 			if r.rtype != r_x86_64_pc32 {
 				eprintln('pe: error: label difference `${r.uses}-${r.uses2}` must be 4 bytes wide for PE output')
@@ -342,7 +350,7 @@ pub fn (mut p Pe) build_relocations() {
 				}
 				b_off = b.addr
 			}
-			embed_i32(mut p.sections[sect_i].data, i32(r_va), i32(i64(r.adjust) + 4 + i64(r_va) - b_off))
+			embed_i32(mut p.sections[sect_i].data, i32(r_va), i32(inline + 4 + i64(r_va) - b_off))
 			p.sections[sect_i].relocs << CoffReloc{
 				virtual_address:    r_va
 				symbol_table_index: sym_idx
@@ -351,13 +359,10 @@ pub fn (mut p Pe) build_relocations() {
 			continue
 		}
 
-		// Embed r.adjust as the inline addend into section data.
-		if r.adjust != 0 {
-			if coff_type == image_rel_amd64_addr64 {
-				embed_i64(mut p.sections[sect_i].data, i32(r_va), i64(r.adjust))
-			} else {
-				embed_i32(mut p.sections[sect_i].data, i32(r_va), i32(r.adjust))
-			}
+		if coff_type == image_rel_amd64_addr64 {
+			embed_i64(mut p.sections[sect_i].data, i32(r_va), inline)
+		} else {
+			embed_i32(mut p.sections[sect_i].data, i32(r_va), i32(inline))
 		}
 
 		p.sections[sect_i].relocs << CoffReloc{
