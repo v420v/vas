@@ -38,6 +38,9 @@ const x86_64_reloc_signed   = u8(1)
 const x86_64_reloc_branch   = u8(2)
 const x86_64_reloc_got_load = u8(3)
 const x86_64_reloc_subtractor = u8(5)
+const x86_64_reloc_signed_1 = u8(6) // SIGNED with the addend reduced by 1 (imm8 follows the displacement)
+const x86_64_reloc_signed_2 = u8(7) // ... by 2 (imm16)
+const x86_64_reloc_signed_4 = u8(8) // ... by 4 (imm32)
 
 // ELF rtype mirrors (from encoder package)
 const r_x86_64_64       = u64(1)
@@ -495,10 +498,32 @@ pub fn (mut m Macho) build_relocations() {
 		}
 
 		r_address := i32(r.instr.addr + r.offset)
-		r_type, r_pcrel, r_length := elf_rtype_to_macho(r.rtype)
+		mut r_type, r_pcrel, r_length := elf_rtype_to_macho(r.rtype)
+
+		// Bytes after the displacement field (an immediate, as in
+		// `movl $1, g(%rip)`). The CPU adds the whole instruction to RIP, so
+		// the displacement shrinks by `tail`; SIGNED_1/2/4 tell the linker
+		// about the shift so it can still locate the real target.
+		mut tail := i64(0)
+		if r_pcrel == 1 {
+			tail = i64(r.instr.code.len) - r.offset - i64(u8(1) << r_length)
+		}
+		if r_type == x86_64_reloc_signed && tail != 0 {
+			r_type = match int(tail) {
+				1 { x86_64_reloc_signed_1 }
+				2 { x86_64_reloc_signed_2 }
+				4 { x86_64_reloc_signed_4 }
+				else {
+					eprintln('macho: error: ${tail} bytes follow the RIP-relative displacement of `${r.uses}`; only 1, 2 or 4 are supported')
+					exit(1)
+				}
+			}
+		}
 
 		mut r_extern   := u8(0)
 		mut r_symbolnum := u32(0)
+		// External relocations carry the addend relative to the symbol.
+		mut addend := i64(r.adjust) - tail
 
 		if sym := m.user_defined_symbols[r.uses] {
 			if sym.binding == 1 || sym.section_name == '' { // stb_global or undefined placeholder — external reloc
@@ -509,18 +534,18 @@ pub fn (mut m Macho) build_relocations() {
 				r_symbolnum = u32(m.section_idx[sym.section_name])
 				// For r_extern=0 Mach-O relocations the linker applies:
 				//   new_disp = target_section_final - source_section_final + initial_value
-				// so for pcrel we must pre-subtract (r_address + 4) from the addend.
-				addend := if r_pcrel == 1 {
-					sym.addr + i64(r.adjust) - i64(r_address) - 4
-				} else {
-					sym.addr + i64(r.adjust)
+				// so the content is the object-space displacement from
+				// (r_address + 4 + tail), i.e. from the end of the instruction.
+				addend += sym.addr
+				if r_pcrel == 1 {
+					addend -= i64(r_address) + 4
 				}
-				embed_addend(mut m.sections[sect_i].data, r_address, addend, r_length)
 			}
 		} else { // undefined external
 			r_extern    = 1
 			r_symbolnum = u32(m.symtab_indices[r.uses])
 		}
+		embed_addend(mut m.sections[sect_i].data, r_address, addend, r_length)
 
 		m.sections[sect_i].relocs << MachoReloc{
 			r_address:   r_address
