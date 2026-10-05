@@ -184,7 +184,7 @@ fn (mut e Encoder) resolve_aliases() {
 
 fn (mut e Encoder) resolve_label_diffs() {
 	for mut rela in e.rela_text_users {
-		if rela.uses2 == '' {
+		if rela.uses2 == '' || rela.set_addend {
 			continue
 		}
 		site := rela.instr.addr + rela.offset
@@ -232,7 +232,6 @@ fn (mut e Encoder) resolve_label_diffs() {
 		rela.rtype = pc_type
 		rela.set_addend = true
 		rela.addend = a
-		rela.uses2 = ''
 	}
 }
 

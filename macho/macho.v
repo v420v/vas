@@ -37,6 +37,7 @@ const x86_64_reloc_unsigned = u8(0)
 const x86_64_reloc_signed   = u8(1)
 const x86_64_reloc_branch   = u8(2)
 const x86_64_reloc_got_load = u8(3)
+const x86_64_reloc_subtractor = u8(5)
 
 // ELF rtype mirrors (from encoder package)
 const r_x86_64_64       = u64(1)
@@ -312,11 +313,13 @@ pub fn (mut m Macho) collect_rela_symbols() {
 pub fn (mut m Macho) build_symtab_strtab() {
 	m.strtab << u8(0x00) // string table always starts with a null byte
 
-	// 1. Local symbols (skip section markers and .L labels unless keep_locals)
+	// 1. Local symbols (skip section markers and .L labels unless keep_locals
+	//    or a label difference needs them as external relocation targets)
+	needed := m.label_diff_symbols()
 	for name, sym in m.user_defined_symbols {
 		if sym.binding != 0 { continue } // not local
 		if sym.symbol_type == 3 { continue } // stt_section — no Mach-O equivalent
-		if !m.keep_locals && name.to_upper().starts_with('.L') { continue }
+		if !m.keep_locals && name.to_upper().starts_with('.L') && name !in needed { continue }
 
 		strx := u32(m.strtab.len)
 		m.strtab << name.bytes()
@@ -399,6 +402,73 @@ pub fn (mut m Macho) build_symtab_strtab() {
 	}
 }
 
+// Endpoints of cross-section label differences (`.long A-B` with A and B in
+// different sections). Mach-O can only express them as a pair of *external*
+// relocations, so these symbols stay in the symbol table even when they are
+// `.L` locals.
+fn (m &Macho) label_diff_symbols() map[string]bool {
+	mut names := map[string]bool{}
+	for r in m.rela_text_users {
+		if r.set_addend && !r.is_already_resolved {
+			names[r.uses] = true
+			names[r.uses2] = true
+		}
+	}
+	return names
+}
+
+// Emit `A - B + k` (A = r.uses, B = r.uses2 in this section, k = r.adjust;
+// resolve_label_diffs already rewrote it to a PC-relative form). Both
+// endpoints are referenced as symbols (see label_diff_symbols): ld requires
+// r_extern=1 on a SUBTRACTOR, and an external reference needs no object-space
+// address lookup.
+//   B == `.`: one pc-relative SIGNED reloc against A. The linker computes
+//             A + inline - (site + 4), so inline = k + 4.
+//   otherwise: X86_64_RELOC_SUBTRACTOR(B) followed by X86_64_RELOC_UNSIGNED(A)
+//             with k inline.
+fn (mut m Macho) add_label_diff_reloc(sect_i int, r encoder.Rela) {
+	r_address := i32(r.instr.addr + r.offset)
+	r_length := match r.rtype {
+		r_x86_64_pc64 { u8(3) }
+		r_x86_64_pc32 { u8(2) }
+		else {
+			eprintln('macho: error: label difference `${r.uses}-${r.uses2}` must be 4 or 8 bytes wide for Mach-O output')
+			exit(1)
+		}
+	}
+	if r.uses2 == '.' {
+		if r_length != 2 {
+			eprintln('macho: error: `${r.uses} - .` must be 4 bytes wide for Mach-O output')
+			exit(1)
+		}
+		embed_addend(mut m.sections[sect_i].data, r_address, i64(r.adjust) + 4, r_length)
+		m.sections[sect_i].relocs << MachoReloc{
+			r_address:   r_address
+			r_symbolnum: u32(m.symtab_indices[r.uses])
+			r_pcrel:     1
+			r_length:    r_length
+			r_extern:    1
+			r_type:      x86_64_reloc_signed
+		}
+		return
+	}
+	embed_addend(mut m.sections[sect_i].data, r_address, i64(r.adjust), r_length)
+	m.sections[sect_i].relocs << MachoReloc{
+		r_address:   r_address
+		r_symbolnum: u32(m.symtab_indices[r.uses2])
+		r_length:    r_length
+		r_extern:    1
+		r_type:      x86_64_reloc_subtractor
+	}
+	m.sections[sect_i].relocs << MachoReloc{
+		r_address:   r_address
+		r_symbolnum: u32(m.symtab_indices[r.uses])
+		r_length:    r_length
+		r_extern:    1
+		r_type:      x86_64_reloc_unsigned
+	}
+}
+
 // Convert ELF relocation entries to Mach-O relocation_info records.
 // For local (non-external) symbol references the addend is embedded directly
 // into the section data, as Mach-O uses implicit (REL) rather than explicit
@@ -418,6 +488,11 @@ pub fn (mut m Macho) build_relocations() {
 			}
 		}
 		if sect_i < 0 { continue }
+
+		if r.set_addend {
+			m.add_label_diff_reloc(sect_i, r)
+			continue
+		}
 
 		r_address := i32(r.instr.addr + r.offset)
 		r_type, r_pcrel, r_length := elf_rtype_to_macho(r.rtype)
