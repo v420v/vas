@@ -207,14 +207,30 @@ fn (mut e Encoder) resolve_label_diffs() {
 			mut section := e.user_defined_sections[rela.instr.section_name] or {
 				panic('resolve_label_diffs: unknown section `${rela.instr.section_name}`')
 			}
-			mut v := u64(val)
 			base := int(rela.instr.addr + rela.offset)
-			for i in 0 .. width {
-				section.code[base + i] = u8(v & 0xff)
-				v >>= 8
+			if rela.leb != .none {
+				bytes := leb128_fixed(val, rela.leb == .sleb) or {
+					error.print(rela.instr.pos, err.msg())
+					exit(1)
+				}
+				for i, b in bytes {
+					section.code[base + i] = b
+				}
+			} else {
+				mut v := u64(val)
+				for i in 0 .. width {
+					section.code[base + i] = u8(v & 0xff)
+					v >>= 8
+				}
 			}
 			rela.is_already_resolved = true
 			continue
+		}
+
+		// x86-64 has no LEB128 relocations: the difference must be a constant.
+		if rela.leb != .none {
+			error.print(rela.instr.pos, 'LEB128 label difference `${rela.uses}-${rela.uses2}` must stay within one section')
+			exit(1)
 		}
 
 		if minus_sec != rela.instr.section_name {
