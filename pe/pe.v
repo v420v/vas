@@ -14,8 +14,7 @@ const image_scn_cnt_uninitialized_data = u32(0x00000080)
 const image_scn_mem_execute            = u32(0x20000000)
 const image_scn_mem_read               = u32(0x40000000)
 const image_scn_mem_write              = u32(0x80000000)
-const image_scn_align_4bytes           = u32(0x00300000)
-const image_scn_align_8bytes           = u32(0x00400000)
+// IMAGE_SCN_ALIGN_nBYTES is (log2(n) + 1) << 20; see section_align_flag.
 // Set when a section has more than 0xFFFF relocations; real count goes in
 // the VirtualAddress field of a synthetic leading relocation entry.
 const image_scn_lnk_nreloc_ovfl       = u32(0x01000000)
@@ -124,7 +123,7 @@ pub fn new(out_file string, keep_locals bool, rela_text_users []encoder.Rela, us
 		p.sections << PeSection{
 			elf_name: name
 			name:     elf_section_to_coff(name)
-			chars:    section_characteristics(name, section.flags)
+			chars:    section_characteristics(name, section.flags, section.align)
 			is_bss:   is_bss
 			size:     u32(section.code.len)
 			data:     if is_bss { []u8{} } else { section.code.clone() }
@@ -149,20 +148,38 @@ fn elf_section_to_coff(name string) string {
 	}
 }
 
-fn section_characteristics(name string, elf_flags int) u32 {
-	if name == '.text' || name.starts_with('.text.') || elf_flags & 0x4 != 0 {
-		return image_scn_cnt_code | image_scn_mem_execute | image_scn_mem_read | image_scn_align_4bytes
+// IMAGE_SCN_ALIGN_nBYTES for a power-of-two byte alignment (COFF allows 1..8192).
+fn section_align_flag(align int) u32 {
+	mut pow := u32(0)
+	for (1 << pow) < align { pow++ }
+	if pow > 13 {
+		eprintln('pe: error: section alignment ${align} exceeds the COFF maximum of 8192')
+		exit(1)
+	}
+	return (pow + 1) << 20
+}
+
+// `align` is the largest alignment requested in the section
+// (`.p2align`/`.balign`/`.align`); it is never taken below the historical
+// defaults (4-byte code, 8-byte data) so sources without alignment directives
+// keep their layout.
+fn section_characteristics(name string, elf_flags int, align int) u32 {
+	is_code := name == '.text' || name.starts_with('.text.') || elf_flags & 0x4 != 0
+	min_align := if is_code { 4 } else { 8 }
+	align_flag := section_align_flag(if align > min_align { align } else { min_align })
+	if is_code {
+		return image_scn_cnt_code | image_scn_mem_execute | image_scn_mem_read | align_flag
 	}
 	if name == '.bss' || name.starts_with('.bss.') {
-		return image_scn_cnt_uninitialized_data | image_scn_mem_read | image_scn_mem_write | image_scn_align_8bytes
+		return image_scn_cnt_uninitialized_data | image_scn_mem_read | image_scn_mem_write | align_flag
 	}
 	if name == '.rodata' || name.starts_with('.rodata.') || name == '.cstring' {
-		return image_scn_cnt_initialized_data | image_scn_mem_read | image_scn_align_8bytes
+		return image_scn_cnt_initialized_data | image_scn_mem_read | align_flag
 	}
 	if elf_flags & 0x1 != 0 {
-		return image_scn_cnt_initialized_data | image_scn_mem_read | image_scn_mem_write | image_scn_align_8bytes
+		return image_scn_cnt_initialized_data | image_scn_mem_read | image_scn_mem_write | align_flag
 	}
-	return image_scn_cnt_initialized_data | image_scn_mem_read | image_scn_align_8bytes
+	return image_scn_cnt_initialized_data | image_scn_mem_read | align_flag
 }
 
 // Maps ELF relocation types to COFF AMD64 relocation types.

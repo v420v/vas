@@ -166,7 +166,7 @@ pub fn new(out_file string, keep_locals bool, rela_text_users []encoder.Rela, us
 			sectname:    sectname
 			segname:     segname
 			flags:       section_type_flags(name, section.flags)
-			align_pow:   section_align_pow(name, section.flags)
+			align_pow:   section_align_pow(name, section.align)
 			is_zerofill: is_zerofill
 			sect_size:   u64(section.code.len)
 			data:        if is_zerofill { []u8{} } else { section.code.clone() }
@@ -227,10 +227,17 @@ fn section_type_flags(name string, elf_flags int) u32 {
 	return s_regular
 }
 
-fn section_align_pow(name string, _ int) u32 {
-	if name == '.text' || name.starts_with('.text.') { return 2 } // 4-byte
-	if name == '.data' || name == '.bss' || name.starts_with('.bss.') { return 3 } // 8-byte
-	return 0
+// Section alignment as a power of two: the largest alignment requested in the
+// section (`.p2align`/`.balign`/`.align`), never below the historical defaults
+// (4-byte text, 8-byte data/bss) so sources without alignment directives keep
+// their layout.
+fn section_align_pow(name string, align int) u32 {
+	mut pow := u32(0)
+	if name == '.text' || name.starts_with('.text.') { pow = 2 } // 4-byte
+	if name == '.data' || name == '.bss' || name.starts_with('.bss.') { pow = 3 } // 8-byte
+	mut requested := u32(0)
+	for (1 << requested) < align { requested++ }
+	return if requested > pow { requested } else { pow }
 }
 
 // Copies a string into a fixed-size 16-byte zero-padded array.
@@ -586,7 +593,6 @@ pub fn (mut m Macho) write_macho() {
 	mut sect_off    := []u32{len: int(nsects), init: 0}
 	mut reloc_off   := []u32{len: int(nsects), init: 0}
 	mut seg_vmsize  := u64(0)
-	mut seg_filesize := u64(0)
 
 	for i, s in m.sections {
 		seg_vmsize += s.sect_size
@@ -597,8 +603,10 @@ pub fn (mut m Macho) write_macho() {
 		cur = align_up(cur, s.align_pow)
 		sect_off[i]   = cur
 		cur           += u32(s.data.len)
-		seg_filesize  += u64(s.data.len)
 	}
+	// The segment's file extent spans every section, including the alignment
+	// padding between them (#88).
+	seg_filesize := u64(cur - (hdr_sz + cmds_sz))
 
 	// Relocation tables follow section data.
 	for i, s in m.sections {
