@@ -245,11 +245,14 @@ fn (mut p Pe) make_sym(name string, section_number i16, value u32, storage_class
 // Build the symbol table and string table.
 // Order: locals → defined globals → undefined externals.
 pub fn (mut p Pe) build_symtab_strtab() {
-	// 1. Local symbols
+	// 1. Local symbols. `.L` labels are dropped unless keep_locals, except
+	//    those targeted by a relocation: vas emits no COFF section symbols
+	//    yet, so every relocation needs its target in the symbol table.
+	needed := p.relocated_symbols()
 	for name, sym in p.user_defined_symbols {
 		if sym.binding != 0 { continue } // not local
 		if sym.symbol_type == 3 { continue } // stt_section — no COFF equivalent
-		if !p.keep_locals && name.to_upper().starts_with('.L') { continue }
+		if !p.keep_locals && name.to_upper().starts_with('.L') && name !in needed { continue }
 
 		p.sym_indices[name] = p.syms.len
 		p.syms << p.make_sym(name, i16(p.section_idx[sym.section_name]), u32(sym.addr),
@@ -287,6 +290,17 @@ pub fn (mut p Pe) build_symtab_strtab() {
 	}
 }
 
+// Symbols targeted by a relocation that still has to be emitted.
+fn (p &Pe) relocated_symbols() map[string]bool {
+	mut names := map[string]bool{}
+	for r in p.rela_text_users {
+		if !r.is_already_resolved {
+			names[r.uses] = true
+		}
+	}
+	return names
+}
+
 // Convert ELF relocations to COFF IMAGE_RELOCATION records.
 //
 // COFF uses implicit (inline) addends.  The linker computes:
@@ -312,6 +326,30 @@ pub fn (mut p Pe) build_relocations() {
 		r_va := u32(r.instr.addr + r.offset)
 		coff_type := elf_rtype_to_coff(r.rtype)
 		sym_idx := u32(p.sym_indices[r.uses])
+
+		// `A - B + k` across sections (A = r.uses, B = r.uses2 in this
+		// section): REL32 against A with inline k + 4 + site - B, because the
+		// linker computes S + inline - (site + 4) and B - site is a constant.
+		if r.set_addend {
+			if r.rtype != r_x86_64_pc32 {
+				eprintln('pe: error: label difference `${r.uses}-${r.uses2}` must be 4 bytes wide for PE output')
+				exit(1)
+			}
+			mut b_off := i64(r_va)
+			if r.uses2 != '.' {
+				b := p.user_defined_symbols[r.uses2] or {
+					panic('pe: unknown label-difference subtrahend `${r.uses2}`')
+				}
+				b_off = b.addr
+			}
+			embed_i32(mut p.sections[sect_i].data, i32(r_va), i32(i64(r.adjust) + 4 + i64(r_va) - b_off))
+			p.sections[sect_i].relocs << CoffReloc{
+				virtual_address:    r_va
+				symbol_table_index: sym_idx
+				typ:                coff_type
+			}
+			continue
+		}
 
 		// Embed r.adjust as the inline addend into section data.
 		if r.adjust != 0 {

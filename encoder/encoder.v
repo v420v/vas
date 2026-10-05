@@ -150,10 +150,12 @@ pub mut:
 	adjust              int
 	is_already_resolved bool
 	// For label-difference data (`.long A-B`): `uses` is the addend symbol
-	// (+1), `uses2` the subtrahend (-1). After layout, resolve_label_diffs
-	// either folds it to a constant (both endpoints in one section) or, when
-	// the subtrahend anchors this data's own section, rewrites it into a
-	// PC-relative relocation against `uses` using the explicit `addend` below.
+	// (+1), `uses2` the subtrahend (-1, or `.` for the site itself). After
+	// layout, resolve_label_diffs either folds it to a constant (both
+	// endpoints in one section) or, when the subtrahend anchors this data's
+	// own section, rewrites it into a PC-relative relocation against `uses`
+	// using the explicit `addend` below. `uses2` is kept so that backends
+	// without RELA addends (Mach-O, PE) can still reach the subtrahend.
 	uses2 string
 	// When set, the backend emits this relocation with `addend` verbatim,
 	// bypassing its rtype-specific addend computation. Used for the
