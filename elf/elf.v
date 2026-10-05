@@ -248,7 +248,7 @@ pub fn (mut e Elf) rela_text_users() {
 		if r.set_addend {
 			mut idx := 0
 			if s := e.user_defined_symbols[r.uses] {
-				idx = if s.binding == stb_global {
+				idx = if s.binding != stb_local {
 					e.symtab_symbol_indexs[r.uses]
 				} else {
 					e.symtab_symbol_indexs[s.section_name]
@@ -272,8 +272,9 @@ pub fn (mut e Elf) rela_text_users() {
 			// GOT/PLT/TLS relocations are always resolved per-symbol (there is a
 			// GOT/TLS slot for the symbol itself), so they reference the symbol
 			// even when it is local — unlike ordinary local references, which
-			// are rewritten to be section-relative.
-			if is_symbol_reloc(r.rtype) || s.binding == stb_global {
+			// are rewritten to be section-relative. Global and weak symbols are
+			// always referenced by name: the linker may interpose or replace them.
+			if is_symbol_reloc(r.rtype) || s.binding != stb_local {
 				index = e.symtab_symbol_indexs[r.uses]
 			} else {
 				r_addend += s.addr
