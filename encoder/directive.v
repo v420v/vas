@@ -575,16 +575,14 @@ fn (mut e Encoder) parse_section_args() (string, string, token.Position) {
 }
 
 // `.pushsection name[, "flags"[, ...]]` — switch to `name`, remember the
-// current section on a stack so `.popsection` can restore it.
+// current section on a stack so `.popsection` can restore it. Like
+// `.section`, a new name creates the section (with or without flags);
+// an existing one keeps the flags it was first declared with.
 fn (mut e Encoder) pushsection() {
 	e.section_stack << e.current_section_name
 	e.previous_section_name = e.current_section_name
 	name, flags, pos := e.parse_section_args()
-	if flags != '' && name !in e.user_defined_sections {
-		e.add_section(name, flags, pos)
-	} else {
-		e.current_section_name = name
-	}
+	e.add_section(name, flags, pos)
 }
 
 fn (mut e Encoder) popsection() {
