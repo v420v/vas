@@ -525,6 +525,15 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 		}
 
 		if rw != 0 || rr != 0 || rx != 0 || rb != 0 || rex_required {
+			// With a REX prefix the encodings of %ah/%ch/%dh/%bh mean
+			// %spl/%bpl/%sil/%dil instead, so the two families cannot be
+			// mixed (GNU as / clang reject this too).
+			if has_reg {
+				reject_high_byte_with_rex(reg_slot)
+			}
+			if rm_kind == 1 {
+				reject_high_byte_with_rex(rm_reg)
+			}
 			e.current_instr.code << rex(rw, rr, rx, rb)
 		}
 	}
@@ -580,6 +589,13 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 	// 7) Relative (label → rel32 / rel8)
 	if enc.rel != .@none && label_idx >= 0 {
 		e.emit_relative(enc, ops[label_idx] as Ident)
+	}
+}
+
+fn reject_high_byte_with_rex(r Register) {
+	if r.size == .suffix_byte && r.base_offset >= 4 && r.base_offset <= 7 && !r.rex_required {
+		error.print(r.pos, '%${r.lit.to_lower()} cannot be used in an instruction that needs a REX prefix')
+		exit(1)
 	}
 }
 
