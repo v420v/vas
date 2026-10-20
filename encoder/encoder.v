@@ -624,6 +624,13 @@ fn (mut e Encoder) parse_operand() Expr {
 // `movabs` immediates — keep their exact bits instead of saturating at i64 max
 // (which turned -9223372036854775808 into 0x8000000000000001).
 fn parse_num_lit(lit string, pos token.Position) i64 {
+	// `0777` is octal, as in GNU as; strconv's base-0 parsing only knows `0o`.
+	if lit.len > 1 && lit[0] == `0` && lit[1].is_digit() {
+		return i64(strconv.parse_uint(lit[1..], 8, 64) or {
+			error.print(pos, 'invalid octal number `${lit}`')
+			exit(1)
+		})
+	}
 	return i64(strconv.parse_uint(lit, 0, 64) or {
 		error.print(pos, 'invalid number `${lit}`')
 		exit(1)

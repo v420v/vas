@@ -98,6 +98,12 @@ fn (mut l Lexer) read_number() token.Token {
 				l.advance()
 			}
 		}
+
+		// Leading-zero octal (`0777`, `010`). 8/9 are consumed too so that
+		// `0789` is one (invalid) token rather than `07` + `89`.
+		for l.c >= `0` && l.c <= `9` {
+			l.advance()
+		}
 	} else {
 		for l.c >= `0` && l.c <= `9` {
 			l.advance()

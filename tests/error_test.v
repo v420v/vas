@@ -71,3 +71,10 @@ fn test_weakref_clean_error() {
 	assert result.exit_code != 0, 'expected non-zero exit for .weakref, got 0'
 	assert result.output.contains('.weakref'), 'expected .weakref error in output, got: ${result.output}'
 }
+
+fn test_bad_octal_clean_error() {
+	s_path := os.join_path(errors_dir, 'bad_octal.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for `.long 0789`, got 0'
+	assert result.output.contains('octal'), 'expected octal error in output, got: ${result.output}'
+}
