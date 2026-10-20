@@ -1,6 +1,7 @@
 module encoder
 
 import error
+import token
 import encoding.binary
 
 fn (mut e Encoder) add_segment_override_prefix(indir Indirection) {
@@ -141,8 +142,16 @@ fn (indir Indirection) check_base_register() (bool, bool, bool) {
 // disp8_fits reports whether `disp` can be stored as an 8-bit displacement.
 // EVEX instructions compress it (disp8*N): the byte holds disp / scale, so the
 // displacement must be a multiple of the scale. scale is 1 otherwise.
-fn disp8_fits(disp int, scale int) bool {
+fn disp8_fits(disp i64, scale int) bool {
 	return disp % scale == 0 && is_in_i8_range(disp / scale)
+}
+
+// A memory displacement is at most a sign-extended 32-bit field.
+fn check_disp_range(disp i64, pos token.Position) {
+	if !is_in_i32_range(disp) {
+		error.print(pos, 'displacement ${disp} does not fit in a signed 32-bit field')
+		exit(1)
+	}
 }
 
 // `disp_scale` is the EVEX disp8*N factor (1 for non-EVEX instructions).
@@ -152,11 +161,12 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 		// In 64-bit mode this requires ModR/M mod=00 r/m=100 (SIB follows)
 		// + SIB index=100 (none) base=101 (no base) + 32-bit disp.
 		mut used_symbols := []string{}
-		disp := int(eval_expr_get_symbol_64(indir.disp, mut used_symbols))
+		disp := eval_expr_get_symbol_64(indir.disp, mut used_symbols)
 		if used_symbols.len >= 2 {
 			error.print(indir.disp.pos, 'invalid operand')
 			exit(1)
 		}
+		check_disp_range(disp, indir.disp.pos)
 		e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
 		e.current_instr.code << 0x25
 		if used_symbols.len == 1 {
@@ -182,12 +192,13 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 	base_is_ip, base_is_sp, base_is_bp := indir.check_base_register()
 
 	mut used_symbols := []string{}
-	disp := int(eval_expr_get_symbol_64(indir.disp, mut used_symbols))
+	disp := eval_expr_get_symbol_64(indir.disp, mut used_symbols)
 	if used_symbols.len >= 2 {
 		error.print(indir.disp.pos, 'invalid operand')
 		exit(1)
 	}
 	disp_need_rela := used_symbols.len == 1
+	check_disp_range(disp, indir.disp.pos)
 
 	if indir.has_index_scale {
 		if base_is_ip {
@@ -215,10 +226,8 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
 		} else if disp8_fits(disp, disp_scale) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, 0b100)
-		} else if is_in_i32_range(disp) {
-			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
 		} else {
-			panic('disp out range!')
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, 0b100)
 		}
 	} else {
 		if base_is_ip {
@@ -229,10 +238,8 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, indir.base.base_offset%8)
 		} else if disp8_fits(disp, disp_scale) {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp8, index, indir.base.base_offset%8)
-		} else if is_in_i32_range(disp) {
-			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.base_offset%8)
 		} else {
-			panic('disp out range!')
+			e.current_instr.code << compose_mod_rm(mod_indirection_with_disp32, index, indir.base.base_offset%8)
 		}
 	}
 
@@ -268,7 +275,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 			uses:   used_symbols[0]
 			offset: e.current_instr.code.len
 			rtype:  u64(rtype)
-			adjust: eval_expr(indir.disp)
+			adjust: disp
 		}
 		e.rela_text_users << rela
 		e.current_instr.code << [u8(0), 0, 0, 0]
@@ -284,7 +291,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 				e.current_instr.code << hex
 			} else if disp8_fits(disp, disp_scale) {
 				e.current_instr.code << u8(disp / disp_scale)
-			} else if is_in_i32_range(disp) {
+			} else {
 				mut hex := [u8(0), 0, 0, 0]
 				binary.little_endian_put_u32(mut &hex, u32(disp))
 				e.current_instr.code << hex
