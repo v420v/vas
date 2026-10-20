@@ -13,7 +13,7 @@ import encoding.binary
 // `expr` is the immediate's expression: a `sym@MODIFIER` in it (e.g.
 // `movabsq $sym@GOT, %rax`, `movq $x@TPOFF, %rax`) selects the GOT/TLS/PLT
 // flavour of the relocation for this width instead of the absolute one.
-fn (mut e Encoder) add_imm_rela(symbol string, imm_val int, size DataSize, sign_extended bool, expr Expr) {
+fn (mut e Encoder) add_imm_rela(symbol string, imm_val i64, size DataSize, sign_extended bool, expr Expr) {
 	width := match size {
 		.suffix_byte { 1 }
 		.suffix_word { 2 }
