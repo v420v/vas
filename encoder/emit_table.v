@@ -93,11 +93,22 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 	// Size hint per operand position. In Intel order: ops[0] = dst, ops[1] = src.
 	// For symmetric instructions src_size == dst_size, so this collapses; for
 	// V-prefixed mnemonics (size unknown) we fall back to the implied width.
+	// An unsuffixed mnemonic with a 64-bit register operand (`mov $x, %rax`)
+	// is a 64-bit operation for immediate-width purposes.
+	mut has_reg64 := false
+	for op in ops {
+		if op is Register && op.size == .suffix_quad {
+			has_reg64 = true
+		}
+	}
 	mut classes := []OpClass{}
 	for i, op in ops {
 		mut sz := if i == 0 { c.dst_size } else { c.src_size }
 		if sz == .suffix_unkown && implied != .suffix_unkown {
 			sz = implied
+		}
+		if sz == .suffix_unkown && has_reg64 && op is Immediate {
+			sz = .suffix_quad
 		}
 		classes << classify_operand(op, sz)
 	}
