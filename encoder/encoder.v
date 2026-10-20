@@ -130,13 +130,16 @@ pub mut:
 	section_name   string         @[required]
 	is_jmp_or_call bool
 	pos            token.Position @[required]
-	// For kind == .align: the alignment (in bytes), the explicit fill byte
-	// (-1 = default: NOPs in code, 0 in data), and the max bytes to skip
-	// (-1 = unlimited). The padding bytes are materialised into `code` during
+	// For kind == .align: the alignment (in bytes), the explicit fill value
+	// and its width in bytes (`.p2alignw` = 2, `.p2alignl` = 4; no explicit
+	// fill = NOPs in code, 0 in data), and the max bytes to skip (-1 =
+	// unlimited). The padding bytes are materialised into `code` during
 	// assign_addresses once the section offset is known.
-	align_bytes int
-	align_fill  int = -1
-	align_max   int = -1
+	align_bytes      int
+	align_has_fill   bool
+	align_fill       i64
+	align_fill_width int = 1
+	align_max        int = -1
 	// For a `.set name, sym` alias: the target symbol whose address/section
 	// this symbol inherits, resolved after layout. alias_addend is the constant
 	// added to the target's address for the `.set name, sym + const` form (gcc's
@@ -686,8 +689,12 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 }
 
 fn eval_expr(expr Expr) int {
+	return int(eval_expr_i64(expr))
+}
+
+fn eval_expr_i64(expr Expr) i64 {
 	mut empty := []string{}
-	return int(eval_expr_get_symbol_64(expr, mut empty))
+	return eval_expr_get_symbol_64(expr, mut empty)
 }
 
 // eval_count evaluates a reservation-count expression and validates the result.
@@ -1025,11 +1032,23 @@ fn (mut e Encoder) encode_instr() {
 		'.FILL' {
 			e.fill()
 		}
-		'.P2ALIGN', '.P2ALIGNL', '.P2ALIGNW' {
-			e.align_directive(true)
+		'.P2ALIGN' {
+			e.align_directive(true, 1)
 		}
-		'.BALIGN', '.BALIGNL', '.BALIGNW', '.ALIGN' {
-			e.align_directive(false)
+		'.P2ALIGNW' {
+			e.align_directive(true, 2)
+		}
+		'.P2ALIGNL' {
+			e.align_directive(true, 4)
+		}
+		'.BALIGN', '.ALIGN' {
+			e.align_directive(false, 1)
+		}
+		'.BALIGNW' {
+			e.align_directive(false, 2)
+		}
+		'.BALIGNL' {
+			e.align_directive(false, 4)
 		}
 		'.ULEB128' {
 			e.uleb128()

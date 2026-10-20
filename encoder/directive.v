@@ -99,8 +99,9 @@ fn (mut e Encoder) fill() {
 // power-of-two form (`.p2align 4` → align 16) from the byte-count forms
 // (`.balign 16`, and `.align` which on x86-64 ELF is also a byte count). The
 // actual padding bytes are generated in assign_addresses, once the section
-// offset is known.
-fn (mut e Encoder) align_directive(is_p2 bool) {
+// offset is known. `fill_width` is the byte width of the fill value (1, or 2
+// / 4 for the `w` / `l` variants).
+fn (mut e Encoder) align_directive(is_p2 bool, fill_width int) {
 	pos := e.tok.pos
 	first := eval_expr(e.parse_expr())
 
@@ -124,13 +125,15 @@ fn (mut e Encoder) align_directive(is_p2 bool) {
 
 	align_bytes := if is_p2 { 1 << u32(first) } else { first }
 
-	mut fill := -1
+	mut has_fill := false
+	mut fill := i64(0)
 	mut max := -1
 	if e.tok.kind == .comma {
 		e.next()
 		// The fill argument may be empty (`.p2align 4,,15`).
 		if e.tok.kind != .comma {
-			fill = eval_expr(e.parse_expr())
+			has_fill = true
+			fill = eval_expr_i64(e.parse_expr())
 		}
 		if e.tok.kind == .comma {
 			e.next()
@@ -144,12 +147,14 @@ fn (mut e Encoder) align_directive(is_p2 bool) {
 	}
 
 	e.instrs << &Instr{
-		kind:         .align
-		pos:          pos
-		section_name: e.current_section_name
-		align_bytes:  align_bytes
-		align_fill:   fill
-		align_max:    max
+		kind:             .align
+		pos:              pos
+		section_name:     e.current_section_name
+		align_bytes:      align_bytes
+		align_has_fill:   has_fill
+		align_fill:       fill
+		align_fill_width: fill_width
+		align_max:        max
 	}
 }
 
@@ -174,15 +179,19 @@ fn nop_pattern(n int) []u8 {
 // gen_align_fill produces `pad` bytes of alignment filler. Executable sections
 // with no explicit fill (or the conventional 0x90) get GNU as's optimized
 // multi-byte NOPs, chunked into runs of at most 11 bytes; everything else
-// repeats the fill byte (default 0).
-fn gen_align_fill(pad int, is_exec bool, fill int) []u8 {
+// repeats the little-endian `width`-byte fill value (default 0). `pad` must
+// be a multiple of `width` (checked by the caller).
+fn gen_align_fill(pad int, is_exec bool, has_fill bool, fill i64, width int) []u8 {
 	if pad <= 0 {
 		return []u8{}
 	}
-	use_nops := is_exec && (fill < 0 || fill == 0x90)
+	use_nops := is_exec && (!has_fill || (width == 1 && fill == 0x90))
 	if !use_nops {
-		b := u8(if fill < 0 { 0 } else { fill })
-		return []u8{len: pad, init: b}
+		mut out := []u8{cap: pad}
+		for i in 0 .. pad {
+			out << u8(fill >> (8 * (i % width)))
+		}
+		return out
 	}
 	mut out := []u8{cap: pad}
 	mut rem := pad
