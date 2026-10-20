@@ -776,7 +776,10 @@ fn classify_immediate_value(im Immediate, size_hint DataSize) OpClass {
 	if v >= -32768 && v <= 65535 && size_hint != .suffix_quad && size_hint != .suffix_long {
 		return OpClass.imm16
 	}
-	if v >= i64(min_i32) && v <= i64(max_u32) {
+	// A 64-bit operand sign-extends its imm32, so 0x80000000..0xffffffff
+	// cannot use it there (`movq $0xffffffff, %rax` must become `movabsq`).
+	hi := if size_hint == .suffix_quad { i64(0x7fff_ffff) } else { i64(max_u32) }
+	if v >= i64(min_i32) && v <= hi {
 		return OpClass.imm32
 	}
 	return OpClass.imm64

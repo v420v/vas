@@ -654,6 +654,16 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 	offset := i64(e.current_instr.code.len)
 
 	if refs.len == 0 {
+		// Accept both the signed and the unsigned range of the field
+		// (`.byte -128` .. `.byte 255`); anything else is a silent truncation.
+		if width < 8 {
+			lo := -i64(u64(1) << (8 * width - 1))
+			hi := i64((u64(1) << (8 * width)) - 1)
+			if cst < lo || cst > hi {
+				error.print(e_pos(expr), 'value ${cst} is out of range for a ${width}-byte field')
+				exit(1)
+			}
+		}
 		mut v := u64(cst)
 		for _ in 0 .. width {
 			e.current_instr.code << u8(v & 0xff)

@@ -100,3 +100,16 @@ fn test_align_fill_width_mismatch_clean_error() {
 	assert result.exit_code != 0, 'expected non-zero exit for 3 bytes of 4-byte fill, got 0'
 	assert result.output.contains('not a multiple'), 'expected padding error in output, got: ${result.output}'
 }
+
+fn test_data_value_out_of_range_clean_error() {
+	s_path := os.join_path(errors_dir, 'data_range.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for `.byte 300`, got 0'
+	assert result.output.contains('out of range'), 'expected range error in output, got: ${result.output}'
+}
+
+fn test_unsigned_imm32_on_quad_operand_rejected() {
+	s_path := os.join_path(errors_dir, 'imm32_unsigned_quad.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for `addq $0xffffffff, %rax`, got 0'
+}
