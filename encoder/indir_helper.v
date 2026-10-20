@@ -200,6 +200,13 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 			exit(1)
 		}
 
+		// SIB index = 100 means "no index", so %rsp/%esp cannot be an index
+		// register (%r12 is fine: REX.X distinguishes it).
+		if indir.index.base_offset == 4 {
+			error.print(indir.index.pos, '%${indir.index.lit.to_lower()} cannot be used as an index register')
+			exit(1)
+		}
+
 		if !indir.has_base {
 			e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
 		} else if disp_need_rela {
