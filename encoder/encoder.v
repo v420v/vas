@@ -800,11 +800,11 @@ fn align_to(n int, align int) int {
 	return (n + align - 1) / align * align
 }
 
-fn is_in_i8_range(n int) bool {
+fn is_in_i8_range(n i64) bool {
 	return -128 <= n && n <= 127
 }
 
-fn is_in_i32_range(n int) bool {
+fn is_in_i32_range(n i64) bool {
 	return n >= -2147483648 && n <= 2147483647
 }
 
