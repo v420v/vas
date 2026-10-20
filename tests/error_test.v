@@ -43,3 +43,10 @@ fn test_tls_data_rejected_for_macho_and_pe() {
 		assert result.output.contains('ELF-only'), 'expected ELF-only error for -f ${format}, got: ${result.output}'
 	}
 }
+
+fn test_bad_scale_nonzero_exit() {
+	s_path := os.join_path(errors_dir, 'bad_scale.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for scale factor 3, got 0'
+	assert result.output.contains('scale factor'), 'expected scale error in output, got: ${result.output}'
+}

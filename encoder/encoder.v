@@ -305,7 +305,6 @@ const mod_indirection_with_disp8   = u8(1)
 const mod_indirection_with_disp32  = u8(2)
 const mod_regi                     = u8(3)
 const rex_w                        = u8(0x48)
-const operand_size_prefix16        = u8(0x66)
 
 pub fn new(mut l lexer.Lexer, file_name string) &Encoder {
 	tok := l.lex()
@@ -786,48 +785,8 @@ fn e_pos(expr Expr) token.Position {
 	}
 }
 
-fn (regi Register) check_regi_size(size DataSize) {
-	if regi.size != size {
-		error.print(regi.pos, 'invalid size of register for instruction.')
-		exit(0)
-	}
-}
-
 fn rex(w u8, r u8, x u8, b u8) u8 {
 	return 64 | (w << 3) | (r << 2) | (x << 1) | b
-}
-
-fn (mut e Encoder) add_prefix(regi_r RegiAll, regi_i RegiAll, regi_b RegiAll, sizes []DataSize) {
-	mut w, mut r, mut x, mut b := u8(0), u8(0), u8(0), u8(0)
-
-	if regi_r.base_offset >= 8 {
-		r = 1
-	}
-
-	if regi_i.base_offset >= 8 {
-		x = 1
-	}
-
-	if regi_b.base_offset >= 8 {
-		b = 1
-	}
-
-	if DataSize.suffix_word in sizes {
-		e.current_instr.code << encoder.operand_size_prefix16
-	}
-	if DataSize.suffix_single in sizes {
-		e.current_instr.code << 0xF3
-	}
-	if DataSize.suffix_double in sizes {
-		e.current_instr.code << 0xF2
-	}
-	if DataSize.suffix_quad in sizes {
-		w = 1
-	}
-
-	if w != 0 || r != 0 || b != 0 || x != 0 || regi_r.rex_required || regi_b.rex_required {
-		e.current_instr.code << rex(w, r, x, b)
-	}
 }
 
 fn align_to(n int, align int) int {
