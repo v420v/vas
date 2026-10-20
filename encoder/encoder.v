@@ -844,6 +844,24 @@ fn prefix_byte(name_upper string) int {
 	}
 }
 
+// symbol_list handles the symbol-attribute directives that take one or more
+// comma-separated symbols (`.globl a, b`, `.weak x`, `.hidden f, g`, ...).
+fn (mut e Encoder) symbol_list(kind InstrKind, pos token.Position) {
+	for {
+		e.instrs << &Instr{
+			kind:         kind
+			pos:          pos
+			section_name: e.current_section_name
+			symbol_name:  e.tok.lit
+		}
+		e.expect(.ident)
+		if e.tok.kind != .comma {
+			break
+		}
+		e.next()
+	}
+}
+
 // define_label records a `name:` definition in the current section.
 fn (mut e Encoder) define_label(name string, pos token.Position) {
 	if name in e.user_defined_symbols {
@@ -938,61 +956,31 @@ fn (mut e Encoder) encode_instr() {
 			e.add_section('.bss', 'wa', pos)
 		}
 		'.GLOBAL', '.GLOBL' {
-			e.instrs << &Instr{
-				kind: .global
-				pos: pos
-				section_name: e.current_section_name
-				symbol_name: e.tok.lit
-			}
-			e.next()
+			e.symbol_list(.global, pos)
 		}
 		'.LOCAL' {
-			e.instrs << &Instr{
-				kind: .local
-				pos: pos
-				section_name: e.current_section_name
-				symbol_name: e.tok.lit
-			}
-			e.next()
+			e.symbol_list(.local, pos)
 		}
-		'.WEAK', '.WEAKREF' {
-			e.instrs << &Instr{
-				kind: .weak
-				pos: pos
-				section_name: e.current_section_name
-				symbol_name: e.tok.lit
-			}
-			e.next()
+		'.WEAK' {
+			e.symbol_list(.weak, pos)
+		}
+		'.WEAKREF' {
+			// `.weakref alias, target` defines an alias, not a list of weak
+			// symbols; treating it as `.weak` would mark the wrong symbols.
+			error.print(pos, '.weakref is not supported')
+			exit(1)
 		}
 		'.TYPE' {
 			e.type_directive(pos)
 		}
 		'.HIDDEN' {
-			e.instrs << &Instr{
-				kind: .hidden
-				pos: pos
-				section_name: e.current_section_name
-				symbol_name: e.tok.lit
-			}
-			e.next()
+			e.symbol_list(.hidden, pos)
 		}
 		'.INTERNAL' {
-			e.instrs << &Instr{
-				kind: .internal
-				pos: pos
-				section_name: e.current_section_name
-				symbol_name: e.tok.lit
-			}
-			e.next()
+			e.symbol_list(.internal, pos)
 		}
 		'.PROTECTED' {
-			e.instrs << &Instr{
-				kind: .protected
-				pos: pos
-				section_name: e.current_section_name
-				symbol_name: e.tok.lit
-			}
-			e.next()
+			e.symbol_list(.protected, pos)
 		}
 		'.STRING', '.ASCIZ' {
 			e.string()

@@ -64,3 +64,10 @@ fn test_high_byte_register_with_rex_rejected() {
 	assert result.exit_code != 0, 'expected non-zero exit for `movb %ah, %r8b`, got 0'
 	assert result.output.contains('REX'), 'expected REX error in output, got: ${result.output}'
 }
+
+fn test_weakref_clean_error() {
+	s_path := os.join_path(errors_dir, 'weakref.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for .weakref, got 0'
+	assert result.output.contains('.weakref'), 'expected .weakref error in output, got: ${result.output}'
+}
