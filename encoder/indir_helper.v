@@ -233,7 +233,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 		scale_num := u8(eval_expr(indir.scale))
 		if scale_num !in [1, 2, 4, 8] {
 			error.print(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
-			exit(0)
+			exit(1)
 		}
 		if indir.has_base {
 			e.current_instr.code << indir.base.base_offset%8 + (indir.index.base_offset%8 << 3) + (scale(scale_num) << 6)
