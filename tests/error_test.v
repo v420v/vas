@@ -57,3 +57,10 @@ fn test_rsp_index_rejected() {
 	assert result.exit_code != 0, 'expected non-zero exit for %rsp as SIB index, got 0'
 	assert result.output.contains('index register'), 'expected index-register error in output, got: ${result.output}'
 }
+
+fn test_high_byte_register_with_rex_rejected() {
+	s_path := os.join_path(errors_dir, 'high_byte_rex.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for `movb %ah, %r8b`, got 0'
+	assert result.output.contains('REX'), 'expected REX error in output, got: ${result.output}'
+}
