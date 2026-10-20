@@ -506,11 +506,12 @@ fn (mut e Encoder) common(make_global bool) {
 	sym_name := e.tok.lit
 	e.expect(.ident)
 	e.expect(.comma)
-	size := eval_expr(e.parse_expr())
+	// eval_count rejects negative / > 2^31-1 sizes instead of truncating them.
+	size := eval_count(e.parse_expr())
 	mut align := 1
 	if e.tok.kind == .comma {
 		e.next()
-		align = eval_expr(e.parse_expr())
+		align = eval_count(e.parse_expr())
 	}
 
 	if sym_name in e.user_defined_symbols {

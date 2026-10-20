@@ -78,3 +78,10 @@ fn test_bad_octal_clean_error() {
 	assert result.exit_code != 0, 'expected non-zero exit for `.long 0789`, got 0'
 	assert result.output.contains('octal'), 'expected octal error in output, got: ${result.output}'
 }
+
+fn test_comm_huge_size_clean_error() {
+	s_path := os.join_path(errors_dir, 'comm_huge.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for `.comm buf, 0x100000001`, got 0'
+	assert result.output.contains('exceeds'), 'expected size error in output, got: ${result.output}'
+}
