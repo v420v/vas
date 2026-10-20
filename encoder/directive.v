@@ -613,14 +613,19 @@ fn (mut e Encoder) previous_section() {
 	e.previous_section_name = tmp
 }
 
+// `.string "a"[, "b"...]` / `.asciz`: each literal is NUL-terminated.
 fn (mut e Encoder) string() {
 	e.set_current_instr(.string)
-
-	value := e.tok.lit
-	e.expect(.string)
-
-	e.current_instr.code = value.bytes()
-	e.current_instr.code << 0x00
+	for {
+		value := e.tok.lit
+		e.expect(.string)
+		e.current_instr.code << value.bytes()
+		e.current_instr.code << 0x00
+		if e.tok.kind != .comma {
+			break
+		}
+		e.next()
+	}
 }
 
 // emit_data_value parses one data operand and appends `width` little-endian
