@@ -93,3 +93,10 @@ fn test_disp_out_of_range_clean_error() {
 	assert !result.output.contains('panic'), 'expected clean error, got panic: ${result.output}'
 	assert result.output.contains('displacement'), 'expected displacement error in output, got: ${result.output}'
 }
+
+fn test_align_fill_width_mismatch_clean_error() {
+	s_path := os.join_path(errors_dir, 'align_fill_width.s')
+	result := os.execute('${vas_bin} -f elf ${s_path}')
+	assert result.exit_code != 0, 'expected non-zero exit for 3 bytes of 4-byte fill, got 0'
+	assert result.output.contains('not a multiple'), 'expected padding error in output, got: ${result.output}'
+}

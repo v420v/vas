@@ -151,8 +151,13 @@ pub fn (mut e Encoder) assign_addresses() {
 			if instr.align_max >= 0 && pad > instr.align_max {
 				pad = 0
 			}
+			if instr.align_has_fill && pad % instr.align_fill_width != 0 {
+				error.print(instr.pos, 'alignment padding (${pad} bytes) is not a multiple of the ${instr.align_fill_width}-byte fill value')
+				exit(1)
+			}
 			is_exec := section.flags & encoder.shf_execinstr != 0
-			instr.code = gen_align_fill(pad, is_exec, instr.align_fill)
+			instr.code = gen_align_fill(pad, is_exec, instr.align_has_fill, instr.align_fill,
+				instr.align_fill_width)
 			if instr.align_bytes > section.align {
 				section.align = instr.align_bytes
 			}
