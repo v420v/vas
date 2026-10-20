@@ -151,7 +151,7 @@ pub mut:
 	instr               &Instr
 	offset              i64
 	rtype               u64
-	adjust              int
+	adjust              i64
 	is_already_resolved bool
 	// For label-difference data (`.long A-B`): `uses` is the addend symbol
 	// (+1), `uses2` the subtrahend (-1, or `.` for the site itself). After

@@ -354,7 +354,7 @@ fn (mut e Encoder) leb128(signed bool) {
 		uses2:  minus
 		instr:  e.current_instr
 		offset: e.current_instr.code.len
-		adjust: int(cst)
+		adjust: cst
 		leb:    if signed { LebKind.sleb } else { LebKind.uleb }
 	}
 	e.current_instr.code << leb128_fixed(0, signed) or { panic('unreachable') }
@@ -670,7 +670,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 			uses:   refs[0].name
 			instr:  e.current_instr
 			offset: offset
-			adjust: int(cst)
+			adjust: cst
 			rtype:  rt
 		}
 		for _ in 0 .. width {
@@ -689,7 +689,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 		uses2:  minus
 		instr:  e.current_instr
 		offset: offset
-		adjust: int(cst)
+		adjust: cst
 		rtype:  rt
 	}
 	for _ in 0 .. width {

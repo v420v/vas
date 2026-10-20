@@ -645,7 +645,7 @@ fn (mut e Encoder) emit_immediate(enc InstrEnc, op Immediate) {
 		// A 4-byte immediate in a REX.W instruction is sign-extended to
 		// 64 bits by the CPU, so it needs R_X86_64_32S rather than the
 		// zero-extended R_X86_64_32.
-		e.add_imm_rela(syms[0], int(imm_val), size, enc.rex_w, op.expr)
+		e.add_imm_rela(syms[0], imm_val, size, enc.rex_w, op.expr)
 	} else if enc.imm == .iq {
 		mut hex := [u8(0), 0, 0, 0, 0, 0, 0, 0]
 		binary.little_endian_put_u64(mut &hex, u64(imm_val))
