@@ -227,21 +227,27 @@ fn (mut e Encoder) int_data() {
 	e.long()
 }
 
-// `.octa N` emits 16 bytes — low 8 from the i64 value, high 8 zero.
-// True 128-bit literals would require widening eval_expr; rarely used.
+// `.octa N[, N...]` emits 16 bytes per value — low 8 from the i64 value, high
+// 8 zero. True 128-bit literals would require widening eval_expr; rarely used.
 fn (mut e Encoder) octa() {
 	e.set_current_instr(.quad)
-	mut used := []string{}
-	val := eval_expr_get_symbol_64(e.parse_expr(), mut used)
-	if used.len > 0 {
-		error.print(e.tok.pos, '.octa with symbol references not supported')
-		exit(1)
-	}
-	mut lo := []u8{len: 8}
-	binary.little_endian_put_u64(mut lo, u64(val))
-	e.current_instr.code << lo
-	for _ in 0..8 {
-		e.current_instr.code << 0
+	for {
+		mut used := []string{}
+		val := eval_expr_get_symbol_64(e.parse_expr(), mut used)
+		if used.len > 0 {
+			error.print(e.tok.pos, '.octa with symbol references not supported')
+			exit(1)
+		}
+		mut lo := []u8{len: 8}
+		binary.little_endian_put_u64(mut lo, u64(val))
+		e.current_instr.code << lo
+		for _ in 0 .. 8 {
+			e.current_instr.code << 0
+		}
+		if e.tok.kind != .comma {
+			break
+		}
+		e.next()
 	}
 }
 
