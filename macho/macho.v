@@ -1,7 +1,9 @@
 module macho
 
 import encoder
+import error
 import os
+import token
 import encoding.binary
 
 const mh_magic_64            = u32(0xFEEDFACF)
@@ -257,7 +259,7 @@ fn pack_reloc_info(symbolnum u32, pcrel u8, length u8, is_extern u8, rtype u8) u
 
 // Returns (macho_type, pcrel, r_length).
 // r_length: 0=1B 1=2B 2=4B 3=8B
-fn elf_rtype_to_macho(rtype u64) (u8, u8, u8) {
+fn elf_rtype_to_macho(rtype u64, pos token.Position) (u8, u8, u8) {
 	match rtype {
 		r_x86_64_64      { return x86_64_reloc_unsigned, 0, 3 }
 		r_x86_64_32,
@@ -269,8 +271,7 @@ fn elf_rtype_to_macho(rtype u64) (u8, u8, u8) {
 		r_x86_64_gotpcrel { return x86_64_reloc_got_load, 1, 2 }
 		r_x86_64_pc64    { return x86_64_reloc_signed,   1, 3 }
 		else {
-			eprintln('macho: error: ELF relocation type ${rtype} has no Mach-O equivalent (GOT/TLS-relative references are ELF-only)')
-			exit(1)
+			error.fatal(pos, 'ELF relocation type ${rtype} has no Mach-O equivalent (GOT/TLS-relative references are ELF-only)')
 		}
 	}
 }
@@ -445,14 +446,12 @@ fn (mut m Macho) add_label_diff_reloc(sect_i int, r encoder.Rela) {
 		r_x86_64_pc64 { u8(3) }
 		r_x86_64_pc32 { u8(2) }
 		else {
-			eprintln('macho: error: label difference `${r.uses}-${r.uses2}` must be 4 or 8 bytes wide for Mach-O output')
-			exit(1)
+			error.fatal(r.instr.pos, 'label difference `${r.uses}-${r.uses2}` must be 4 or 8 bytes wide for Mach-O output')
 		}
 	}
 	if r.uses2 == '.' {
 		if r_length != 2 {
-			eprintln('macho: error: `${r.uses} - .` must be 4 bytes wide for Mach-O output')
-			exit(1)
+			error.fatal(r.instr.pos, '`${r.uses} - .` must be 4 bytes wide for Mach-O output')
 		}
 		embed_addend(mut m.sections[sect_i].data, r_address, i64(r.adjust) + 4, r_length)
 		m.sections[sect_i].relocs << MachoReloc{
@@ -508,7 +507,7 @@ pub fn (mut m Macho) build_relocations() {
 		}
 
 		r_address := i32(r.instr.addr + r.offset)
-		mut r_type, r_pcrel, r_length := elf_rtype_to_macho(r.rtype)
+		mut r_type, r_pcrel, r_length := elf_rtype_to_macho(r.rtype, r.instr.pos)
 
 		// Bytes after the displacement field (an immediate, as in
 		// `movl $1, g(%rip)`). The CPU adds the whole instruction to RIP, so
@@ -524,8 +523,7 @@ pub fn (mut m Macho) build_relocations() {
 				2 { x86_64_reloc_signed_2 }
 				4 { x86_64_reloc_signed_4 }
 				else {
-					eprintln('macho: error: ${tail} bytes follow the RIP-relative displacement of `${r.uses}`; only 1, 2 or 4 are supported')
-					exit(1)
+					error.fatal(r.instr.pos, '${tail} bytes follow the RIP-relative displacement of `${r.uses}`; only 1, 2 or 4 are supported')
 				}
 			}
 		}
@@ -575,16 +573,15 @@ fn align_up(n u32, pow u32) u32 {
 }
 
 // Serialize any struct directly into the file as raw bytes.
-fn write_struct[T](mut fp os.File, s T) {
+fn write_struct[T](mut fp os.File, s T) ! {
 	unsafe {
-		fp.write((&u8(voidptr(&s))).vbytes(int(sizeof(T)))) or {
-			panic('macho: write error')
-		}
+		fp.write((&u8(voidptr(&s))).vbytes(int(sizeof(T))))!
 	}
 }
 
 // Write the complete Mach-O object file.
-pub fn (mut m Macho) write_macho() {
+// write_macho writes the object file; the error is the failed open or write.
+pub fn (mut m Macho) write_macho() ! {
 	nsects := u32(m.sections.len)
 
 	hdr_sz    := u32(sizeof(MachHeader64))
@@ -673,17 +670,15 @@ pub fn (mut m Macho) write_macho() {
 		reserved:   0
 	}
 
-	mut fp := os.open_file(m.out_file, 'w') or {
-		panic('macho: cannot open `${m.out_file}`')
-	}
+	mut fp := os.open_file(m.out_file, 'w')!
 	defer { fp.close() }
 
-	write_struct(mut fp, hdr)
-	write_struct(mut fp, seg_cmd)
+	write_struct(mut fp, hdr)!
+	write_struct(mut fp, seg_cmd)!
 	for s64 in sec64s {
-		write_struct(mut fp, s64)
+		write_struct(mut fp, s64)!
 	}
-	write_struct(mut fp, symtab_cmd)
+	write_struct(mut fp, symtab_cmd)!
 
 	// Section data (with alignment padding between sections).
 	mut written := hdr_sz + cmds_sz
@@ -691,8 +686,8 @@ pub fn (mut m Macho) write_macho() {
 		if s.is_zerofill || s.data.len == 0 { continue }
 		aligned := align_up(written, s.align_pow)
 		pad := int(aligned - written)
-		for _ in 0 .. pad { fp.write_u8(0) or {} }
-		fp.write(s.data) or { panic('macho: error writing `${s.elf_name}`') }
+		for _ in 0 .. pad { fp.write_u8(0)! }
+		fp.write(s.data)!
 		written = aligned + u32(s.data.len)
 	}
 
@@ -701,20 +696,20 @@ pub fn (mut m Macho) write_macho() {
 		for r in s.relocs {
 			mut addr_b := [u8(0), 0, 0, 0]
 			binary.little_endian_put_u32(mut addr_b, u32(r.r_address))
-			fp.write(addr_b) or {}
+			fp.write(addr_b)!
 
 			mut info_b := [u8(0), 0, 0, 0]
 			info := pack_reloc_info(r.r_symbolnum, r.r_pcrel, r.r_length, r.r_extern, r.r_type)
 			binary.little_endian_put_u32(mut info_b, info)
-			fp.write(info_b) or {}
+			fp.write(info_b)!
 		}
 	}
 
 	// Symbol table.
 	for sym in m.symtab {
-		write_struct(mut fp, sym)
+		write_struct(mut fp, sym)!
 	}
 
 	// String table.
-	fp.write(m.strtab) or { panic('macho: error writing string table') }
+	fp.write(m.strtab)!
 }

@@ -206,8 +206,7 @@ fn (mut l Lexer) read_escaped_char() u8 {
 	if l.c == `x` {
 		l.advance()
 		if !is_hex_digit(l.c) {
-			eprintln('error: invalid hex escape sequence');
-			exit(1)
+			error.fatal(l.current_pos(), 'invalid hex escape sequence')
 		}
 		// Mirror the octal branch: leave l.c on the last digit consumed so
 		// the caller's l.advance() steps past it correctly.  Cap at two hex
@@ -262,8 +261,7 @@ fn (mut l Lexer) read_string() token.Token {
 		}
 	}
 	if l.c == `\0` {
-		error.print(pos, 'unterminated string literal')
-		exit(1)
+		error.fatal(pos, 'unterminated string literal')
 	}
 	l.advance()
 	return token.Token{
@@ -338,8 +336,7 @@ pub fn (mut l Lexer) lex() token.Token {
 				}
 				else {
 					c := [l.c].bytestr()
-					error.print(pos, 'unexpected token `${c}`')
-					exit(1)
+					error.fatal(pos, 'unexpected token `${c}`')
 				}
 			}
 		}

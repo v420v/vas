@@ -14,8 +14,7 @@ fn (mut e Encoder) add_section(section_name string, flag string, pos token.Posit
 
 	if s := e.user_defined_symbols[section_name] {
 		if s.kind == .label {
-			error.print(pos, 'symbol `$section_name` is already defined')
-			exit(1)
+			error.fatal(pos, 'symbol `$section_name` is already defined')
 		}
 	} else {
 		e.user_defined_symbols[section_name] = &instr
@@ -76,8 +75,7 @@ fn (mut e Encoder) fill() {
 			mut used := []string{}
 			value = eval_expr_get_symbol_64(e.parse_expr(), mut used)
 			if used.len > 0 {
-				error.print(e.tok.pos, '.fill with symbol references not supported')
-				exit(1)
+				error.fatal(e.tok.pos, '.fill with symbol references not supported')
 			}
 		}
 	}
@@ -108,18 +106,15 @@ fn (mut e Encoder) align_directive(is_p2 bool, fill_width int) {
 	if is_p2 {
 		// 1 << 31 overflows to a negative int; GNU as caps the exponent at 30.
 		if first < 0 || first > 30 {
-			error.print(pos, '.p2align exponent must be in the range 0..30 (got ${first})')
-			exit(1)
+			error.fatal(pos, '.p2align exponent must be in the range 0..30 (got ${first})')
 		}
 	} else {
 		if first < 0 {
-			error.print(pos, 'alignment must be a positive value (got ${first})')
-			exit(1)
+			error.fatal(pos, 'alignment must be a positive value (got ${first})')
 		}
 		// Alignment of 0 or 1 is a no-op; anything else must be a power of two.
 		if first > 1 && (first & (first - 1)) != 0 {
-			error.print(pos, 'alignment ${first} is not a power of two')
-			exit(1)
+			error.fatal(pos, 'alignment ${first} is not a power of two')
 		}
 	}
 
@@ -244,8 +239,7 @@ fn (mut e Encoder) octa() {
 		mut used := []string{}
 		val := eval_expr_get_symbol_64(e.parse_expr(), mut used)
 		if used.len > 0 {
-			error.print(e.tok.pos, '.octa with symbol references not supported')
-			exit(1)
+			error.fatal(e.tok.pos, '.octa with symbol references not supported')
 		}
 		mut lo := []u8{len: 8}
 		binary.little_endian_put_u64(mut lo, u64(val))
@@ -272,12 +266,10 @@ fn (mut e Encoder) float_data() {
 			e.next()
 		}
 		if e.tok.kind != .number {
-			error.print(e.tok.pos, 'expected float literal')
-			exit(1)
+			error.fatal(e.tok.pos, 'expected float literal')
 		}
 		mut val64 := strconv.atof64(e.tok.lit) or {
-			error.print(e.tok.pos, 'invalid float literal')
-			exit(1)
+			error.fatal(e.tok.pos, 'invalid float literal')
 		}
 		if neg {
 			val64 = -val64
@@ -306,12 +298,10 @@ fn (mut e Encoder) double_data() {
 			e.next()
 		}
 		if e.tok.kind != .number {
-			error.print(e.tok.pos, 'expected float literal')
-			exit(1)
+			error.fatal(e.tok.pos, 'expected float literal')
 		}
 		mut val := strconv.atof64(e.tok.lit) or {
-			error.print(e.tok.pos, 'invalid float literal')
-			exit(1)
+			error.fatal(e.tok.pos, 'invalid float literal')
 		}
 		if neg {
 			val = -val
@@ -355,8 +345,7 @@ fn (mut e Encoder) leb128(signed bool) {
 	}
 	plus, minus := label_diff_terms(refs) or {
 		name := if signed { '.sleb128' } else { '.uleb128' }
-		error.print(e_pos(expr), '`${name}` needs a constant or a same-section label difference `A-B`')
-		exit(1)
+		error.fatal(e_pos(expr), '`${name}` needs a constant or a same-section label difference `A-B`')
 	}
 	e.rela_text_users << Rela{
 		uses:   plus
@@ -366,7 +355,7 @@ fn (mut e Encoder) leb128(signed bool) {
 		adjust: cst
 		leb:    if signed { LebKind.sleb } else { LebKind.uleb }
 	}
-	e.current_instr.code << leb128_fixed(0, signed) or { panic('unreachable') }
+	e.current_instr.code << leb128_fixed(0, signed) or { error.internal('unreachable') }
 }
 
 // Minimal LEB128 encoding of `v` (unsigned values are taken as u64).
@@ -447,8 +436,7 @@ fn (mut e Encoder) set_directive(strict bool) {
 	// Pure constant → a parse-time alias inlined wherever the name appears.
 	if refs.len == 0 {
 		if strict && name in e.set_aliases {
-			error.print(pos, '.equiv: `${name}` already defined')
-			exit(1)
+			error.fatal(pos, '.equiv: `${name}` already defined')
 		}
 		e.set_aliases[name] = val
 		return
@@ -462,8 +450,7 @@ fn (mut e Encoder) set_directive(strict bool) {
 	// defined later).
 	if refs.len == 1 && refs[0].coeff == 1 {
 		if name in e.user_defined_symbols {
-			error.print(pos, 'symbol `${name}` is already defined')
-			exit(1)
+			error.fatal(pos, 'symbol `${name}` is already defined')
 		}
 		e.user_defined_symbols[name] = &Instr{
 			kind:         .label
@@ -476,8 +463,7 @@ fn (mut e Encoder) set_directive(strict bool) {
 		return
 	}
 
-	error.print(pos, '.set/.equ: unsupported expression (allowed: constant, or a single symbol)')
-	exit(1)
+	error.fatal(pos, '.set/.equ: unsupported expression (allowed: constant, or a single symbol)')
 }
 
 // `.type name, @function|@object|@tls_object|...` sets the symbol's ELF type.
@@ -524,8 +510,7 @@ fn (mut e Encoder) common(make_global bool) {
 	}
 
 	if sym_name in e.user_defined_symbols {
-		error.print(pos, 'symbol `${sym_name}` is already defined')
-		exit(1)
+		error.fatal(pos, 'symbol `${sym_name}` is already defined')
 	}
 
 	// `.comm`/`.lcomm` lay the symbol out in .bss. The requested alignment is
@@ -570,8 +555,7 @@ fn (mut e Encoder) common(make_global bool) {
 fn (mut e Encoder) parse_section_args() (string, string, token.Position) {
 	pos := e.tok.pos
 	if e.tok.kind !in [.ident, .string] {
-		error.print(pos, 'expected section name')
-		exit(1)
+		error.fatal(pos, 'expected section name')
 	}
 	section_name := e.tok.lit
 	e.next()
@@ -603,8 +587,7 @@ fn (mut e Encoder) pushsection() {
 
 fn (mut e Encoder) popsection() {
 	if e.section_stack.len == 0 {
-		error.print(e.tok.pos, '.popsection without matching .pushsection')
-		exit(1)
+		error.fatal(e.tok.pos, '.popsection without matching .pushsection')
 	}
 	saved := e.section_stack.last()
 	e.section_stack.delete_last()
@@ -660,8 +643,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 			lo := -i64(u64(1) << (8 * width - 1))
 			hi := i64((u64(1) << (8 * width)) - 1)
 			if cst < lo || cst > hi {
-				error.print(e_pos(expr), 'value ${cst} is out of range for a ${width}-byte field')
-				exit(1)
+				error.fatal(e_pos(expr), 'value ${cst} is out of range for a ${width}-byte field')
 			}
 		}
 		mut v := u64(cst)
@@ -678,8 +660,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 	modifier := expr_modifier(expr)
 	if modifier != '' {
 		if refs.len != 1 || refs[0].coeff != 1 {
-			error.print(e_pos(expr), '`@${modifier}` needs a single symbol (`sym@${modifier}` or `sym@${modifier} + const`)')
-			exit(1)
+			error.fatal(e_pos(expr), '`@${modifier}` needs a single symbol (`sym@${modifier}` or `sym@${modifier} + const`)')
 		}
 		rt = modifier_reloc_for_width(modifier, width, expr)
 	}
@@ -700,8 +681,7 @@ fn (mut e Encoder) emit_data_value(width int, rtype u64) {
 
 	// Label difference: exactly one +1 term and one -1 term.
 	plus, minus := label_diff_terms(refs) or {
-		error.print(e_pos(expr), 'unsupported relocatable expression (allowed: `sym`, `sym±const`, same-section `A-B`)')
-		exit(1)
+		error.fatal(e_pos(expr), 'unsupported relocatable expression (allowed: `sym`, `sym±const`, same-section `A-B`)')
 	}
 	e.rela_text_users << Rela{
 		uses:   plus

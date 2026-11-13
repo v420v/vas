@@ -2,6 +2,7 @@ module main
 
 import os
 import flag
+import error
 import lexer
 import encoder
 import elf
@@ -16,6 +17,14 @@ fn file_name_without_ext(file_name string) string {
 	} else {
 		bytes[..bytes.len - ext_len].bytestr()
 	}
+}
+
+// write_failed removes the partial object file so a failed run never leaves a
+// truncated `.o` behind for the linker to pick up.
+@[noreturn]
+fn write_failed(out_file string, err IError) {
+	os.rm(out_file) or {}
+	error.fatal_env('cannot write `${out_file}`: ${err}')
 }
 
 fn main() {
@@ -47,8 +56,7 @@ fn main() {
 		os.get_raw_lines_joined()
 	} else {
 		os.read_file(file_name) or {
-			eprintln('error: reading file `${file_name}`')
-			exit(1)
+			error.fatal_env('cannot read `${file_name}`: ${err}')
 		}
 	}
 
@@ -60,8 +68,7 @@ fn main() {
 
 	valid_formats := ['elf', 'macho', 'pe']
 	if effective_format !in valid_formats {
-		eprintln('error: unknown format `${effective_format}` — valid values: ${valid_formats.join(', ')}')
-		exit(1)
+		error.fatal_env('unknown format `${effective_format}` — valid values: ${valid_formats.join(', ')}')
 	}
 
 	mut l := lexer.new(file_name, program)
@@ -74,13 +81,13 @@ fn main() {
 		m.collect_rela_symbols()
 		m.build_symtab_strtab()
 		m.build_relocations()
-		m.write_macho()
+		m.write_macho() or { write_failed(out_file, err) }
 	} else if effective_format == 'pe' {
 		mut p := pe.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
 		p.collect_rela_symbols()
 		p.build_symtab_strtab()
 		p.build_relocations()
-		p.write_pe()
+		p.write_pe() or { write_failed(out_file, err) }
 	} else {
 		mut e := elf.new(out_file, keep_locals, en.rela_text_users, en.user_defined_sections, en.user_defined_symbols)
 		e.collect_rela_symbols()
@@ -88,6 +95,6 @@ fn main() {
 		e.rela_text_users()
 		e.build_shstrtab()
 		e.build_headers()
-		e.write_elf()
+		e.write_elf() or { write_failed(out_file, err) }
 	}
 }

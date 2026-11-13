@@ -74,8 +74,7 @@ fn modifier_reloc_for_width(modifier string, width int, expr Expr) u64 {
 		else { encoder.r_x86_64_none }
 	}
 	if rt == encoder.r_x86_64_none {
-		error.print(e_pos(expr), '`@${modifier}` cannot be used with a ${width}-byte value')
-		exit(1)
+		error.fatal(e_pos(expr), '`@${modifier}` cannot be used with a ${width}-byte value')
 	}
 	return rt
 }
@@ -112,7 +111,7 @@ fn scale(n u8) u8 {
 		8 {
 			return 3
 		} else {
-			panic('scale unreachable')
+			error.internal('scale unreachable')
 		}
 	}
 }
@@ -149,8 +148,7 @@ fn disp8_fits(disp i64, scale int) bool {
 // A memory displacement is at most a sign-extended 32-bit field.
 fn check_disp_range(disp i64, pos token.Position) {
 	if !is_in_i32_range(disp) {
-		error.print(pos, 'displacement ${disp} does not fit in a signed 32-bit field')
-		exit(1)
+		error.fatal(pos, 'displacement ${disp} does not fit in a signed 32-bit field')
 	}
 }
 
@@ -163,8 +161,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 		mut used_symbols := []string{}
 		disp := eval_expr_get_symbol_64(indir.disp, mut used_symbols)
 		if used_symbols.len >= 2 {
-			error.print(indir.disp.pos, 'invalid operand')
-			exit(1)
+			error.fatal(indir.disp.pos, 'invalid operand')
 		}
 		check_disp_range(disp, indir.disp.pos)
 		e.current_instr.code << compose_mod_rm(mod_indirection_with_no_disp, index, 0b100)
@@ -194,28 +191,24 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 	mut used_symbols := []string{}
 	disp := eval_expr_get_symbol_64(indir.disp, mut used_symbols)
 	if used_symbols.len >= 2 {
-		error.print(indir.disp.pos, 'invalid operand')
-		exit(1)
+		error.fatal(indir.disp.pos, 'invalid operand')
 	}
 	disp_need_rela := used_symbols.len == 1
 	check_disp_range(disp, indir.disp.pos)
 
 	if indir.has_index_scale {
 		if base_is_ip {
-			error.print(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
-			exit(1)
+			error.fatal(indir.index.pos, '%$indir.base.lit.to_lower() as base register can not have an index register')
 		}
 
 		if indir.base.size != indir.index.size && indir.has_base {
-			error.print(indir.base.pos, 'base register is $indir.base.size-bit, but index register is not')
-			exit(1)
+			error.fatal(indir.base.pos, 'base register is $indir.base.size-bit, but index register is not')
 		}
 
 		// SIB index = 100 means "no index", so %rsp/%esp cannot be an index
 		// register (%r12 is fine: REX.X distinguishes it).
 		if indir.index.base_offset == 4 {
-			error.print(indir.index.pos, '%${indir.index.lit.to_lower()} cannot be used as an index register')
-			exit(1)
+			error.fatal(indir.index.pos, '%${indir.index.lit.to_lower()} cannot be used as an index register')
 		}
 
 		if !indir.has_base {
@@ -246,8 +239,7 @@ fn (mut e Encoder) add_modrm_sib_disp(indir Indirection, index u8, disp_scale in
 	if indir.has_index_scale {
 		scale_num := u8(eval_expr(indir.scale))
 		if scale_num !in [1, 2, 4, 8] {
-			error.print(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
-			exit(1)
+			error.fatal(indir.scale.pos, 'scale factor in address must be 1, 2, 4 or 8')
 		}
 		if indir.has_base {
 			e.current_instr.code << indir.base.base_offset%8 + (indir.index.base_offset%8 << 3) + (scale(scale_num) << 6)

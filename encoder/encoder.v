@@ -340,10 +340,19 @@ fn (mut e Encoder) next() {
 
 fn (mut e Encoder) expect(exp token.TokenKind) {
 	if e.tok.kind != exp {
-		error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
-		exit(1)
+		error.fatal(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 	}
 	e.next()
+}
+
+// parse_gp_register parses the base or index register of a memory operand.
+fn (mut e Encoder) parse_gp_register() Register {
+	pos := e.tok.pos
+	reg := e.parse_register()
+	if reg is Register {
+		return reg
+	}
+	error.fatal(pos, 'base and index of a memory operand must be general-purpose registers')
 }
 
 fn (mut e Encoder) parse_register() Expr {
@@ -366,8 +375,7 @@ fn (mut e Encoder) parse_register() Expr {
 				st_reg.pos = pos
 				return st_reg
 			}
-			error.print(pos, 'unknown FPU register `%st(${idx})`')
-			exit(1)
+			error.fatal(pos, 'unknown FPU register `%st(${idx})`')
 		}
 		if mut st_reg := xmm_registers['ST'] {
 			st_reg.pos = pos
@@ -387,8 +395,7 @@ fn (mut e Encoder) parse_register() Expr {
 		return general_register
 	}
 
-	error.print(e.tok.pos, 'unkown register `${e.tok.lit}`')
-	exit(1)
+	error.fatal(e.tok.pos, 'unkown register `${e.tok.lit}`')
 }
 
 fn (mut e Encoder) parse_factor() Expr {
@@ -434,8 +441,7 @@ fn (mut e Encoder) parse_factor() Expr {
 			}
 		}
 		else {
-			error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
-			exit(1)
+			error.fatal(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 		}
 	}
 }
@@ -597,12 +603,12 @@ fn (mut e Encoder) parse_operand() Expr {
 			}
 			if e.tok.kind != .comma {
 				indirection.has_base = true
-				indirection.base = e.parse_register() as Register
+				indirection.base = e.parse_gp_register()
 			}
 			if e.tok.kind == .comma {
 				indirection.has_index_scale = true
 				e.next()
-				indirection.index = e.parse_register() as Register
+				indirection.index = e.parse_gp_register()
 				indirection.scale = &Expr(if e.tok.kind == .comma {
 					e.expect(.comma)
 					e.parse_expr()
@@ -617,8 +623,7 @@ fn (mut e Encoder) parse_operand() Expr {
 			return indirection
 		}
 	}
-	error.print(e.tok.pos, 'unexpected token `${e.tok.lit}`')
-	exit(1)
+	error.fatal(e.tok.pos, 'unexpected token `${e.tok.lit}`')
 }
 
 // parse_num_lit parses a non-negative numeric literal (a leading `-` is a
@@ -630,13 +635,11 @@ fn parse_num_lit(lit string, pos token.Position) i64 {
 	// `0777` is octal, as in GNU as; strconv's base-0 parsing only knows `0o`.
 	if lit.len > 1 && lit[0] == `0` && lit[1].is_digit() {
 		return i64(strconv.parse_uint(lit[1..], 8, 64) or {
-			error.print(pos, 'invalid octal number `${lit}`')
-			exit(1)
+			error.fatal(pos, 'invalid octal number `${lit}`')
 		})
 	}
 	return i64(strconv.parse_uint(lit, 0, 64) or {
-		error.print(pos, 'invalid number `${lit}`')
-		exit(1)
+		error.fatal(pos, 'invalid number `${lit}`')
 	})
 }
 
@@ -662,13 +665,12 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 				.div {
 					r := eval_expr_get_symbol_64(expr.right_hs, mut arr)
 					if r == 0 {
-						error.print(expr.pos, 'division by zero')
-						exit(1)
+						error.fatal(expr.pos, 'division by zero')
 					}
 					eval_expr_get_symbol_64(expr.left_hs, mut arr) / r
 				}
 				else {
-					panic('not implemented yet')
+					error.internal('eval: unexpected binary operator `${expr.op}`')
 				}
 			}
 		}
@@ -683,7 +685,7 @@ fn eval_expr_get_symbol_64(expr Expr, mut arr []string) i64 {
 			eval_expr_get_symbol_64(expr.expr, mut arr)
 		}
 		else {
-			panic('not implmented yet')
+			error.fatal(expr.pos, 'invalid expression')
 		}
 	}
 }
@@ -707,12 +709,10 @@ fn eval_count(expr Expr) int {
 	mut empty := []string{}
 	val := eval_expr_get_symbol_64(expr, mut empty)
 	if val < 0 {
-		error.print(e_pos(expr), 'count must not be negative (got ${val})')
-		exit(1)
+		error.fatal(e_pos(expr), 'count must not be negative (got ${val})')
 	}
 	if val > 0x7fff_ffff {
-		error.print(e_pos(expr), 'count ${val} exceeds 2147483647; too large to reserve in a single object file')
-		exit(1)
+		error.fatal(e_pos(expr), 'count ${val} exceeds 2147483647; too large to reserve in a single object file')
 	}
 	return int(val)
 }
@@ -757,29 +757,25 @@ fn eval_reloc_expr(expr Expr, sign int, mut refs []SymRef) i64 {
 					l := eval_reloc_expr(expr.left_hs, 1, mut lr)
 					r := eval_reloc_expr(expr.right_hs, 1, mut rr)
 					if lr.len != 0 || rr.len != 0 {
-						error.print(expr.pos, 'cannot multiply or divide a symbol in an expression')
-						exit(1)
+						error.fatal(expr.pos, 'cannot multiply or divide a symbol in an expression')
 					}
 					res := if expr.op == .mul {
 						l * r
 					} else {
 						if r == 0 {
-							error.print(expr.pos, 'division by zero')
-							exit(1)
+							error.fatal(expr.pos, 'division by zero')
 						}
 						l / r
 					}
 					return i64(sign) * res
 				}
 				else {
-					error.print(expr.pos, 'unsupported operator in expression')
-					exit(1)
+					error.fatal(expr.pos, 'unsupported operator in expression')
 				}
 			}
 		}
 		else {
-			error.print(e_pos(expr), 'unexpected operand in data expression')
-			exit(1)
+			error.fatal(e_pos(expr), 'unexpected operand in data expression')
 		}
 	}
 }
@@ -879,8 +875,7 @@ fn (mut e Encoder) symbol_list(kind InstrKind, pos token.Position) {
 // define_label records a `name:` definition in the current section.
 fn (mut e Encoder) define_label(name string, pos token.Position) {
 	if name in e.user_defined_symbols {
-		error.print(pos, 'symbol `${name}` is already defined')
-		exit(1)
+		error.fatal(pos, 'symbol `${name}` is already defined')
 	}
 	instr := &Instr{
 		kind:         .label
@@ -981,8 +976,7 @@ fn (mut e Encoder) encode_instr() {
 		'.WEAKREF' {
 			// `.weakref alias, target` defines an alias, not a list of weak
 			// symbols; treating it as `.weak` would mark the wrong symbols.
-			error.print(pos, '.weakref is not supported')
-			exit(1)
+			error.fatal(pos, '.weakref is not supported')
 		}
 		'.TYPE' {
 			e.type_directive(pos)
@@ -1081,8 +1075,7 @@ fn (mut e Encoder) encode_instr() {
 		// MOVABSQ / CVT* mnemonics go through try_table_driven; LOCK/REP prefixes
 		// are handled above. Only directives remain in this dispatch.
 		else {
-			error.print(pos, 'unknown instruction `${instr_name}`')
-			exit(1)
+			error.fatal(pos, 'unknown instruction `${instr_name}`')
 		}
 	}
 }

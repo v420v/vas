@@ -113,3 +113,41 @@ fn test_unsigned_imm32_on_quad_operand_rejected() {
 	result := os.execute('${vas_bin} -f elf ${s_path}')
 	assert result.exit_code != 0, 'expected non-zero exit for `addq $0xffffffff, %rax`, got 0'
 }
+
+// Input errors are reported as `file:line: error: msg` with exit code 1: never
+// a V panic, and never the internal-error path (exit code 2), which is
+// reserved for bugs in vas itself.
+fn test_input_errors_are_positioned_and_exit_1() {
+	for name, want in {
+		'xmm_index.s':         'general-purpose'
+		'seg_register_disp.s': 'invalid expression'
+		'bad_hex_escape.s':    'invalid hex escape'
+		'bad_scale.s':         'scale factor'
+		'div_by_zero.s':       'division by zero'
+	} {
+		result := os.execute('${vas_bin} -f elf ${os.join_path(errors_dir, name)}')
+		assert result.exit_code == 1, '${name}: expected exit 1, got ${result.exit_code}: ${result.output}'
+		assert result.output.contains('${name}:'), '${name}: expected file:line prefix, got: ${result.output}'
+		assert result.output.contains(want), '${name}: expected `${want}`, got: ${result.output}'
+		assert !result.output.contains('panic') && !result.output.contains('internal error'), '${name}: ${result.output}'
+	}
+}
+
+fn test_backend_errors_carry_a_source_position() {
+	s_path := os.join_path(errors_dir, 'tls_data_macho.s')
+	for format in ['macho', 'pe'] {
+		result := os.execute('${vas_bin} -f ${format} ${s_path}')
+		assert result.exit_code == 1, '${format}: ${result.output}'
+		assert result.output.contains('tls_data_macho.s:'), '${format}: expected file:line prefix, got: ${result.output}'
+	}
+}
+
+fn test_unwritable_output_is_a_clean_error() {
+	src := os.join_path(project_root, 'main.s')
+	out := os.join_path(os.temp_dir(), 'vas_no_such_dir_${os.getpid()}', 'x.o')
+	result := os.execute('${vas_bin} -f elf ${src} -o ${out}')
+	assert result.exit_code == 1, 'expected exit 1, got ${result.exit_code}: ${result.output}'
+	assert result.output.contains('cannot write'), 'expected write error, got: ${result.output}'
+	assert !result.output.contains('panic'), 'expected clean error, got panic: ${result.output}'
+	assert !os.exists(out)
+}

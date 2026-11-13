@@ -172,8 +172,7 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 				msg += '\n    ... and ${extra} more'
 			}
 		}
-		error.print(pos, msg)
-		exit(1)
+		error.fatal(pos, msg)
 	}
 
 	e.emit_table(lookup_row(m), ops)
@@ -199,8 +198,7 @@ fn (mut e Encoder) consume_avx512_decorators(pos token.Position) {
 			if kop is Xmm && kop.size == .suffix_kreg {
 				e.mask_reg = kop.base_offset
 			} else {
-				error.print(pos, 'mask decorator requires a `%kN` register')
-				exit(1)
+				error.fatal(pos, 'mask decorator requires a `%kN` register')
 			}
 		} else if e.tok.kind == .ident {
 			match e.tok.lit {
@@ -260,7 +258,7 @@ fn reg_from_op(op Expr, ctx string) Register {
 	match op {
 		Register { return op }
 		Xmm { return xmm_to_reg(op) }
-		else { panic('emit_table: ${ctx} expected reg or xmm') }
+		else { error.internal('emit_table: ${ctx} expected reg or xmm') }
 	}
 }
 
@@ -273,7 +271,7 @@ fn rm_from_op(op Expr, ctx string) (int, Register, Indirection) {
 		Indirection { return 2, Register{
 			size: .suffix_unkown
 		}, op }
-		else { panic('emit_table: ${ctx} expected reg/xmm/mem') }
+		else { error.internal('emit_table: ${ctx} expected reg/xmm/mem') }
 	}
 }
 
@@ -312,7 +310,7 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 			match op0 {
 				Immediate { imm_idx = 0 }
 				Ident { label_idx = 0 }
-				else { panic('emit_table: /i expected imm or label') }
+				else { error.internal('emit_table: /i expected imm or label') }
 			}
 		}
 		.mr {
@@ -605,8 +603,7 @@ fn (mut e Encoder) emit_table(enc &InstrEnc, ops []Expr) {
 
 fn reject_high_byte_with_rex(r Register) {
 	if r.size == .suffix_byte && r.base_offset >= 4 && r.base_offset <= 7 && !r.rex_required {
-		error.print(r.pos, '%${r.lit.to_lower()} cannot be used in an instruction that needs a REX prefix')
-		exit(1)
+		error.fatal(r.pos, '%${r.lit.to_lower()} cannot be used in an instruction that needs a REX prefix')
 	}
 }
 

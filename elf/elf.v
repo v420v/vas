@@ -1,6 +1,7 @@
 module elf
 
 import encoder
+import error
 import os
 
 pub struct Elf {
@@ -380,7 +381,7 @@ pub fn (mut e Elf) build_headers() {
 
 	for name in e.user_defined_section_names {
 		section := e.user_defined_sections[name] or {
-			panic('[internal error] unkown section `$name`')
+			error.internal('elf: unknown section `${name}`')
 		}
 		nobits := is_nobits(name)
 		e.section_headers << Elf64_Shdr{
@@ -494,54 +495,48 @@ pub fn (mut e Elf) build_headers() {
 	}
 }
 
-fn write_bytes[T](mut fp os.File, s T, label string) {
+fn write_bytes[T](mut fp os.File, s T) ! {
 	unsafe {
 		ptr := &u8(voidptr(&s))
 		data := ptr.vbytes(int(sizeof(T)))
-		fp.write(data) or { panic('error writing `${label}`') }
+		fp.write(data)!
 	}
 }
 
-pub fn (mut e Elf) write_elf() {
-	mut fp := os.open_file(e.out_file, 'w') or { panic('error opening file `${e.out_file}`') }
+pub fn (mut e Elf) write_elf() ! {
+	mut fp := os.open_file(e.out_file, 'w')!
 
 	defer {
 		fp.close()
 	}
 
-	write_bytes(mut fp, e.ehdr, 'elf header')
+	write_bytes(mut fp, e.ehdr)!
 
 	for name in e.user_defined_section_names {
 		if is_nobits(name) {
 			continue // NOBITS sections carry no file content
 		}
 		section := e.user_defined_sections[name] or {
-			panic('unkown section $name')
+			error.internal('elf: unknown section `${name}`')
 		}
-		fp.write(section.code) or {
-			panic('error writing `$name`')
-		}
+		fp.write(section.code)!
 	}
 
-	fp.write(e.strtab) or {
-		panic('error writing `.strtab`')
-	}
+	fp.write(e.strtab)!
 
 	for s in e.symtab {
-		write_bytes(mut fp, s, '.symtab')
+		write_bytes(mut fp, s)!
 	}
 
 	for name in e.rela_section_names {
 		for r in e.rela[name] {
-			write_bytes(mut fp, r, '.rela.text')
+			write_bytes(mut fp, r)!
 		}
 	}
 
-	fp.write(e.shstrtab) or {
-		panic('error writing `.shstrtab`')
-	}
+	fp.write(e.shstrtab)!
 
 	for sh in e.section_headers {
-		write_bytes(mut fp, sh, 'section_headers')
+		write_bytes(mut fp, sh)!
 	}
 }

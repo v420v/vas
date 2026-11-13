@@ -30,8 +30,7 @@ fn section_flags(flags string) int {
 fn (mut e Encoder) change_symbol_binding(instr Instr, binding u8) {
 	if mut s := e.user_defined_symbols[instr.symbol_name] {
 		if binding == encoder.stb_global && s.kind == .section {
-			error.print(instr.pos, 'sections cannot be global')
-			exit(1)
+			error.fatal(instr.pos, 'sections cannot be global')
 		}
 		s.binding = binding
 	} else {
@@ -88,7 +87,7 @@ fn (mut e Encoder) fix_same_section_relocations() {
 			binary.little_endian_put_u32(mut &hex, u32(num))
 
 			mut section := e.user_defined_sections[rela.instr.section_name] or {
-				panic('this should not happen')
+				error.internal('unknown section `${rela.instr.section_name}`')
 			}
 
 			section.code[rela.instr.addr + rela.offset] = hex[0]
@@ -110,7 +109,7 @@ pub fn (mut e Encoder) assign_addresses() {
 		}
 
 		mut section := e.user_defined_sections[instr.section_name] or {
-			panic('this should not happen')
+			error.internal('unknown section `${instr.section_name}`')
 		}
 
 		match instr.kind {
@@ -152,8 +151,7 @@ pub fn (mut e Encoder) assign_addresses() {
 				pad = 0
 			}
 			if instr.align_has_fill && pad % instr.align_fill_width != 0 {
-				error.print(instr.pos, 'alignment padding (${pad} bytes) is not a multiple of the ${instr.align_fill_width}-byte fill value')
-				exit(1)
+				error.fatal(instr.pos, 'alignment padding (${pad} bytes) is not a multiple of the ${instr.align_fill_width}-byte fill value')
 			}
 			is_exec := section.flags & encoder.shf_execinstr != 0
 			instr.code = gen_align_fill(pad, is_exec, instr.align_has_fill, instr.align_fill,
@@ -179,8 +177,7 @@ fn (mut e Encoder) resolve_aliases() {
 			continue
 		}
 		target := e.user_defined_symbols[sym.alias_target] or {
-			error.print(sym.pos, 'undefined alias target `${sym.alias_target}` for `${sym.symbol_name}`')
-			exit(1)
+			error.fatal(sym.pos, 'undefined alias target `${sym.alias_target}` for `${sym.symbol_name}`')
 		}
 		sym.addr = target.addr + sym.alias_addend
 		sym.section_name = target.section_name
@@ -210,13 +207,12 @@ fn (mut e Encoder) resolve_label_diffs() {
 		if plus_sec == minus_sec {
 			val := (plus_addr - minus_addr) + i64(rela.adjust)
 			mut section := e.user_defined_sections[rela.instr.section_name] or {
-				panic('resolve_label_diffs: unknown section `${rela.instr.section_name}`')
+				error.internal('resolve_label_diffs: unknown section `${rela.instr.section_name}`')
 			}
 			base := int(rela.instr.addr + rela.offset)
 			if rela.leb != .none {
 				bytes := leb128_fixed(val, rela.leb == .sleb) or {
-					error.print(rela.instr.pos, err.msg())
-					exit(1)
+					error.fatal(rela.instr.pos, err.msg())
 				}
 				for i, b in bytes {
 					section.code[base + i] = b
@@ -234,13 +230,11 @@ fn (mut e Encoder) resolve_label_diffs() {
 
 		// x86-64 has no LEB128 relocations: the difference must be a constant.
 		if rela.leb != .none {
-			error.print(rela.instr.pos, 'LEB128 label difference `${rela.uses}-${rela.uses2}` must stay within one section')
-			exit(1)
+			error.fatal(rela.instr.pos, 'LEB128 label difference `${rela.uses}-${rela.uses2}` must stay within one section')
 		}
 
 		if minus_sec != rela.instr.section_name {
-			error.print(rela.instr.pos, 'label difference `${rela.uses}-${rela.uses2}` spans sections; not supported')
-			exit(1)
+			error.fatal(rela.instr.pos, 'label difference `${rela.uses}-${rela.uses2}` spans sections; not supported')
 		}
 		pc_type := match width {
 			8 { encoder.r_x86_64_pc64 }
@@ -266,8 +260,7 @@ fn (mut e Encoder) diff_endpoint(name string, site i64, cur_sec string, pos toke
 		return site, cur_sec, u8(encoder.stb_local)
 	}
 	s := e.user_defined_symbols[name] or {
-		error.print(pos, 'undefined symbol `${name}` in label difference')
-		exit(1)
+		error.fatal(pos, 'undefined symbol `${name}` in label difference')
 	}
 	return s.addr, s.section_name, s.binding
 }

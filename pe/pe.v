@@ -1,7 +1,9 @@
 module pe
 
 import encoder
+import error
 import os
+import token
 import encoding.binary
 
 // COFF machine type
@@ -149,12 +151,11 @@ fn elf_section_to_coff(name string) string {
 }
 
 // IMAGE_SCN_ALIGN_nBYTES for a power-of-two byte alignment (COFF allows 1..8192).
-fn section_align_flag(align int) u32 {
+fn section_align_flag(name string, align int) u32 {
 	mut pow := u32(0)
 	for (1 << pow) < align { pow++ }
 	if pow > 13 {
-		eprintln('pe: error: section alignment ${align} exceeds the COFF maximum of 8192')
-		exit(1)
+		error.fatal_env('section `${name}`: alignment ${align} exceeds the COFF maximum of 8192')
 	}
 	return (pow + 1) << 20
 }
@@ -166,7 +167,7 @@ fn section_align_flag(align int) u32 {
 fn section_characteristics(name string, elf_flags int, align int) u32 {
 	is_code := name == '.text' || name.starts_with('.text.') || elf_flags & 0x4 != 0
 	min_align := if is_code { 4 } else { 8 }
-	align_flag := section_align_flag(if align > min_align { align } else { min_align })
+	align_flag := section_align_flag(name, if align > min_align { align } else { min_align })
 	if is_code {
 		return image_scn_cnt_code | image_scn_mem_execute | image_scn_mem_read | align_flag
 	}
@@ -186,26 +187,22 @@ fn section_characteristics(name string, elf_flags int, align int) u32 {
 // Aborts with a clear diagnostic for ELF relocation widths that have no COFF
 // equivalent rather than silently emitting a wider relocation that would
 // overwrite adjacent bytes (e.g. r_x86_64_16 / r_x86_64_8 → ADDR32 was wrong).
-fn elf_rtype_to_coff(rtype u64) u16 {
+fn elf_rtype_to_coff(rtype u64, pos token.Position) u16 {
 	match rtype {
 		r_x86_64_64               { return image_rel_amd64_addr64 }
 		r_x86_64_32, r_x86_64_32s { return image_rel_amd64_addr32 }
 		r_x86_64_16 {
-			eprintln('pe: error: R_X86_64_16 has no COFF/AMD64 equivalent — `.word sym` is unsupported for PE output')
-			exit(1)
+			error.fatal(pos, 'R_X86_64_16 has no COFF/AMD64 equivalent — `.word sym` is unsupported for PE output')
 		}
 		r_x86_64_8 {
-			eprintln('pe: error: R_X86_64_8 has no COFF/AMD64 equivalent — `.byte sym` is unsupported for PE output')
-			exit(1)
+			error.fatal(pos, 'R_X86_64_8 has no COFF/AMD64 equivalent — `.byte sym` is unsupported for PE output')
 		}
 		r_x86_64_pc64 {
-			eprintln('pe: error: R_X86_64_PC64 has no COFF/AMD64 equivalent — 64-bit PC-relative relocation is unsupported for PE output')
-			exit(1)
+			error.fatal(pos, 'R_X86_64_PC64 has no COFF/AMD64 equivalent — 64-bit PC-relative relocation is unsupported for PE output')
 		}
 		r_x86_64_pc32, r_x86_64_plt32, r_x86_64_gotpcrel { return image_rel_amd64_rel32 }
 		else {
-			eprintln('pe: error: ELF relocation type ${rtype} has no COFF/AMD64 equivalent (GOT/TLS-relative references are ELF-only)')
-			exit(1)
+			error.fatal(pos, 'ELF relocation type ${rtype} has no COFF/AMD64 equivalent (GOT/TLS-relative references are ELF-only)')
 		}
 	}
 }
@@ -351,7 +348,7 @@ pub fn (mut p Pe) build_relocations() {
 		if sect_i < 0 { continue }
 
 		r_va := u32(r.instr.addr + r.offset)
-		coff_type := elf_rtype_to_coff(r.rtype)
+		coff_type := elf_rtype_to_coff(r.rtype, r.instr.pos)
 		sym_idx, sym_off := p.reloc_target(r.uses)
 		mut inline := i64(r.adjust) + sym_off
 		// Bytes after the displacement field (an immediate, as in
@@ -368,13 +365,12 @@ pub fn (mut p Pe) build_relocations() {
 		// a constant.
 		if r.set_addend {
 			if r.rtype != r_x86_64_pc32 {
-				eprintln('pe: error: label difference `${r.uses}-${r.uses2}` must be 4 bytes wide for PE output')
-				exit(1)
+				error.fatal(r.instr.pos, 'label difference `${r.uses}-${r.uses2}` must be 4 bytes wide for PE output')
 			}
 			mut b_off := i64(r_va)
 			if r.uses2 != '.' {
 				b := p.user_defined_symbols[r.uses2] or {
-					panic('pe: unknown label-difference subtrahend `${r.uses2}`')
+					error.internal('pe: unknown label-difference subtrahend `${r.uses2}`')
 				}
 				b_off = b.addr
 			}
@@ -402,14 +398,14 @@ pub fn (mut p Pe) build_relocations() {
 }
 
 // Serialize any struct whose size is free of padding as raw bytes.
-fn write_struct[T](mut fp os.File, s T) {
+fn write_struct[T](mut fp os.File, s T) ! {
 	unsafe {
-		fp.write((&u8(voidptr(&s))).vbytes(int(sizeof(T)))) or { panic('pe: write error') }
+		fp.write((&u8(voidptr(&s))).vbytes(int(sizeof(T))))!
 	}
 }
 
 // Write a CoffReloc as exactly 10 bytes (avoids struct tail-padding to 12).
-fn write_coff_reloc(mut fp os.File, r CoffReloc) {
+fn write_coff_reloc(mut fp os.File, r CoffReloc) ! {
 	mut buf := []u8{len: 10, init: 0}
 	mut b4 := [u8(0), 0, 0, 0]
 	binary.little_endian_put_u32(mut b4, r.virtual_address)
@@ -419,11 +415,11 @@ fn write_coff_reloc(mut fp os.File, r CoffReloc) {
 	mut b2 := [u8(0), 0]
 	binary.little_endian_put_u16(mut b2, r.typ)
 	buf[8] = b2[0]; buf[9] = b2[1]
-	fp.write(buf) or {}
+	fp.write(buf)!
 }
 
 // Write a CoffSym as exactly 18 bytes (avoids struct tail-padding to 20).
-fn write_coff_sym(mut fp os.File, s CoffSym) {
+fn write_coff_sym(mut fp os.File, s CoffSym) ! {
 	mut buf := []u8{len: 18, init: 0}
 	for i in 0 .. 8 { buf[i] = s.name[i] }
 	mut b4 := [u8(0), 0, 0, 0]
@@ -436,7 +432,7 @@ fn write_coff_sym(mut fp os.File, s CoffSym) {
 	buf[14] = b2[0]; buf[15] = b2[1]
 	buf[16] = s.storage_class
 	buf[17] = s.num_aux
-	fp.write(buf) or {}
+	fp.write(buf)!
 }
 
 // Write the complete COFF object file.
@@ -448,7 +444,7 @@ fn write_coff_sym(mut fp os.File, s CoffSym) {
 //   [Relocation tables: 10 bytes per entry]
 //   [Symbol table: 18 bytes per entry]
 //   [String table: 4-byte size + NUL-terminated strings]
-pub fn (mut p Pe) write_pe() {
+pub fn (mut p Pe) write_pe() ! {
 	nsects := u32(p.sections.len)
 
 	hdr_sz      := u32(sizeof(CoffFileHeader))
@@ -520,18 +516,18 @@ pub fn (mut p Pe) write_pe() {
 		characteristics:         0
 	}
 
-	mut fp := os.open_file(p.out_file, 'w') or { panic('pe: cannot open `${p.out_file}`') }
+	mut fp := os.open_file(p.out_file, 'w')!
 	defer { fp.close() }
 
-	write_struct(mut fp, hdr)
+	write_struct(mut fp, hdr)!
 	for sh in sect_hdrs {
-		write_struct(mut fp, sh)
+		write_struct(mut fp, sh)!
 	}
 
 	// Section data.
 	for s in p.sections {
 		if s.is_bss || s.data.len == 0 { continue }
-		fp.write(s.data) or { panic('pe: error writing `${s.elf_name}`') }
+		fp.write(s.data)!
 	}
 
 	// Relocation tables.
@@ -543,23 +539,23 @@ pub fn (mut p Pe) write_pe() {
 				virtual_address:    u32(s.relocs.len + 1)
 				symbol_table_index: 0
 				typ:                0
-			})
+			})!
 		}
 		for r in s.relocs {
-			write_coff_reloc(mut fp, r)
+			write_coff_reloc(mut fp, r)!
 		}
 	}
 
 	// Symbol table (18 bytes per entry).
 	for sym in p.syms {
-		write_coff_sym(mut fp, sym)
+		write_coff_sym(mut fp, sym)!
 	}
 
 	// String table: 4-byte total size followed by NUL-terminated strings.
 	mut sz_b := [u8(0), 0, 0, 0]
 	binary.little_endian_put_u32(mut sz_b, strtab_size)
-	fp.write(sz_b) or {}
+	fp.write(sz_b)!
 	if p.strtab.len > 0 {
-		fp.write(p.strtab) or { panic('pe: error writing string table') }
+		fp.write(p.strtab)!
 	}
 }

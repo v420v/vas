@@ -1,0 +1,1 @@
+movq %fs:%rax, %rbx
