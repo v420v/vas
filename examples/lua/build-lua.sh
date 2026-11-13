@@ -42,7 +42,20 @@ mkdir -p "$WORK"; cd "$WORK"
 
 say "fetch Lua $LUA_VER"
 src="lua-${LUA_VER}"
-[[ -d "$src" ]] || { curl -fsSL -O "$LUA_URL"; tar xzf "${src}.tar.gz"; }
+# lua.org sometimes resets TLS connections; fall back to the official GitHub
+# mirror. Its tree is flat and carries two extra translation units (onelua.c
+# is the whole interpreter in one file, ltests.c is the internal test harness),
+# so reshape it into the release tarball layout the rest of this script expects.
+fetch_lua() {
+	curl -fsSL -O "$LUA_URL" && tar xzf "${src}.tar.gz" && return
+	echo "   $LUA_URL unreachable, falling back to github.com/lua/lua"
+	rm -rf "$src" "${src}.tar.gz"
+	curl -fsSL "https://github.com/lua/lua/archive/refs/tags/v${LUA_VER}.tar.gz" | tar xz
+	mkdir "$src/src"
+	mv "$src"/*.c "$src"/*.h "$src/src/"
+	rm -f "$src/src/onelua.c" "$src/src/ltests.c"
+}
+[[ -d "$src" ]] || fetch_lua
 cd "$src/src"
 
 # The `lua` interpreter is every src/*.c except luac.c (the standalone compiler
