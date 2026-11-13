@@ -45,7 +45,7 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 	// as the Intel imm8.
 	if c.inject_imm >= 0 {
 		ops.prepend(Expr(Immediate{
-			expr: Number{lit: c.inject_imm.str(), pos: pos}
+			expr: &Expr(Number{lit: c.inject_imm.str(), pos: pos})
 			pos:  pos
 		}))
 	}
@@ -55,7 +55,7 @@ fn (mut e Encoder) try_table_driven(instr_name_upper string, pos token.Position)
 	// AT&T→Intel reversal places it as the immediate (Intel: dst, imm).
 	if ops.len == 1 && c.name in encoder.one_op_shift_canons {
 		one := Expr(Immediate{
-			expr: Number{lit: '1', pos: pos}
+			expr: &Expr(Number{lit: '1', pos: pos})
 			pos: pos
 		})
 		ops = [one, ops[0]]

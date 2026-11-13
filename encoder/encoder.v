@@ -204,15 +204,15 @@ pub:
 
 pub struct Binop {
 pub:
-	left_hs  Expr
-	right_hs Expr
+	left_hs  &Expr
+	right_hs &Expr
 	op       token.TokenKind
 	pos      token.Position
 }
 
 pub struct Neg {
 pub:
-	expr Expr
+	expr &Expr
 	pos  token.Position
 }
 
@@ -246,16 +246,16 @@ pub mut:
 
 pub struct Immediate {
 pub:
-	expr Expr
+	expr &Expr
 	pos  token.Position
 }
 
 pub struct Indirection {
 pub mut:
-	disp            Expr
+	disp            &Expr = unsafe { nil }
 	base            Register
 	index           Register
-	scale           Expr
+	scale           &Expr = unsafe { nil }
 	pos             token.Position
 	has_base        bool
 	has_index_scale bool
@@ -430,7 +430,7 @@ fn (mut e Encoder) parse_factor() Expr {
 			expr := e.parse_factor()
 			return Neg{
 				pos: pos
-				expr: expr
+				expr: &Expr(expr)
 			}
 		}
 		else {
@@ -448,8 +448,8 @@ fn (mut e Encoder) split_minus_ident(lit string, pos token.Position) Expr {
 	mut expr := e.seg_to_expr(parts[0], pos)
 	for i := 1; i < parts.len; i++ {
 		expr = Binop{
-			left_hs:  expr
-			right_hs: e.seg_to_expr(parts[i], pos)
+			left_hs:  &Expr(expr)
+			right_hs: &Expr(e.seg_to_expr(parts[i], pos))
 			op:       .minus
 			pos:      pos
 		}
@@ -488,8 +488,8 @@ fn (mut e Encoder) parse_term() Expr {
 		e.next()
 		right_hs := e.parse_factor()
 		expr = Binop{
-			left_hs: expr
-			right_hs: right_hs
+			left_hs: &Expr(expr)
+			right_hs: &Expr(right_hs)
 			op: op
 			pos: pos
 		}
@@ -506,8 +506,8 @@ fn (mut e Encoder) parse_expr() Expr {
 		e.next()
 		right_hs := e.parse_term()
 		expr = Binop{
-			left_hs: expr
-			right_hs: right_hs
+			left_hs: &Expr(expr)
+			right_hs: &Expr(right_hs)
 			op: op
 			pos: pos
 		}
@@ -529,7 +529,7 @@ fn (mut e Encoder) parse_operand() Expr {
 		.dolor {
 			e.next()
 			return Immediate{
-				expr: e.parse_expr()
+				expr: &Expr(e.parse_expr())
 				pos: pos
 			}
 		}
@@ -550,7 +550,7 @@ fn (mut e Encoder) parse_operand() Expr {
 						return ind
 					}
 					return Indirection{
-						disp: inner
+						disp: &Expr(inner)
 						pos: pos
 						segment: seg_name
 					}
@@ -584,7 +584,7 @@ fn (mut e Encoder) parse_operand() Expr {
 				// stay as-is: they're branch targets (`jmp .L5`) handled downstream.
 				if expr is Number {
 					return Indirection{
-						disp: expr
+						disp: &Expr(expr)
 						pos: pos
 					}
 				}
@@ -592,7 +592,7 @@ fn (mut e Encoder) parse_operand() Expr {
 			}
 			e.next()
 			mut indirection := Indirection{
-				disp: expr
+				disp: &Expr(expr)
 				pos: pos
 			}
 			if e.tok.kind != .comma {
@@ -603,7 +603,7 @@ fn (mut e Encoder) parse_operand() Expr {
 				indirection.has_index_scale = true
 				e.next()
 				indirection.index = e.parse_register() as Register
-				indirection.scale = if e.tok.kind == .comma {
+				indirection.scale = &Expr(if e.tok.kind == .comma {
 					e.expect(.comma)
 					e.parse_expr()
 				} else {
@@ -611,7 +611,7 @@ fn (mut e Encoder) parse_operand() Expr {
 						lit: '1'
 						pos: pos
 					})
-				}
+				})
 			}
 			e.expect(.rpar)
 			return indirection
