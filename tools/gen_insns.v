@@ -417,7 +417,7 @@ fn enc_has_advanced_prefix(body string) bool {
 	for tok in split_ws(body) {
 		// VEX and EVEX are now supported; only filter XOP, REX2, VSIB, MIB.
 		if tok.starts_with('xop') || tok.starts_with('rex2') || tok.starts_with('vsib')
-			|| tok.starts_with('vm32') || tok.starts_with('vm64') || tok in ['mib'] {
+			|| tok.starts_with('vm32') || tok.starts_with('vm64') || tok == 'mib' {
 			return true
 		}
 	}

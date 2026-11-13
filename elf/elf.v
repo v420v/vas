@@ -249,7 +249,7 @@ pub fn (mut e Elf) rela_text_users() {
 			i64(0-4)
 		}
 
-    	if r.is_already_resolved {
+		if r.is_already_resolved {
 			continue
 		}
 
@@ -293,14 +293,14 @@ pub fn (mut e Elf) rela_text_users() {
 			}
 		} else {
 			index = e.symtab_symbol_indexs[r.uses]
-    	}
+		}
 
 		rela_section_name := '.rela' + r.instr.section_name
 		e.rela[rela_section_name] << Elf64_Rela{
-    	    r_offset: u64(r.instr.addr + r.offset),
-    	    r_info: (u64(index) << 32) + r.rtype,
-    	    r_addend: r_addend + r.adjust,
-    	}
+			r_offset: u64(r.instr.addr + r.offset),
+			r_info: (u64(index) << 32) + r.rtype,
+			r_addend: r_addend + r.adjust,
+		}
 
 		if rela_section_name !in e.rela_section_names {
 			e.rela_section_names << rela_section_name

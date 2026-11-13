@@ -197,7 +197,7 @@ fn (mut l Lexer) read_escaped_char() u8 {
 			c = (c << 3) + (l.c - `0`)
 			if `0` <= l.peak(1) && l.peak(1) <= `7` {
 				l.advance()
-        		c = (c << 3) + (l.c - `0`)
+				c = (c << 3) + (l.c - `0`)
 			}
 		}
 		return c
