@@ -11,12 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Prebuilt release zip, pinned (see ci-elf.yml for why not setup-v).
-      - name: Install V 0.5.2
+      # V master, built from source: vas tracks the newest compiler. If a V
+      # master regression breaks CI, pin temporarily with `git checkout <sha>`
+      # before `make`.
+      - name: Install V (master)
         run: |
-          curl -sSL -o "$RUNNER_TEMP/v.zip" https://github.com/vlang/v/releases/download/0.5.2/v_linux.zip
-          unzip -q "$RUNNER_TEMP/v.zip" -d "$RUNNER_TEMP"
+          git clone --depth=1 https://github.com/vlang/v "$RUNNER_TEMP/v"
+          make -C "$RUNNER_TEMP/v"
           echo "$RUNNER_TEMP/v" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/v/v" version
 
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
