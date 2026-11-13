@@ -40,7 +40,10 @@ KEEP=${KEEP:-0}                 # KEEP=1 leaves $BUILDDIR around afterward
 
 # -gc none => generated C uses plain malloc, so there's no libgc to link and
 # `gcc -S` needs nothing but these three flags.
-VGEN_FLAGS=(-gc none)
+# -d no_segfault_handler => current V only declares v_install_segfault_handler
+# in `-o file.c` output and defines it in a separate runtime unit, so the
+# single .c would not link on its own.
+VGEN_FLAGS=(-gc none -d no_segfault_handler)
 CFLAGS=(-std=c99 -D_DEFAULT_SOURCE -fwrapv $OPT)
 LDLIBS=(-lpthread -lm -ldl)
 
